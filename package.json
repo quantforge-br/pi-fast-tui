@@ -15,6 +15,14 @@
 		"theme"
 	],
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/quantforge-br/pi-fast-tui.git"
+	},
+	"homepage": "https://github.com/quantforge-br/pi-fast-tui#readme",
+	"bugs": {
+		"url": "https://github.com/quantforge-br/pi-fast-tui/issues"
+	},
 	"engines": {
 		"node": ">=22.19.0"
 	},
