@@ -59,7 +59,11 @@ In two-line mode, a long latest logical line can occupy both rows; otherwise the
 
 ### Tool rendering
 
-[tool-view.ts](../src/ui/tool-view.ts) registers rendering wrappers, leaving execution, arguments, results, and model-visible content unchanged. Built-in summaries are selected only when Pi reports the tool source as `builtin`. A same-name replacement keeps its native renderer unless compact mode and `toolView.extensionTools` are both enabled, in which case it uses extension handling. `toolView.exclude` takes precedence over either category.
+[tool-view.ts](../src/ui/tool-view.ts) registers fast-tui's only tool renderer. For every row it first checks `toolView.exclude` (excluded tools keep Pi's native rows), then dispatches on `toolView.mode`: `cards` hands the tool to the card resolver in [cards/index.ts](../src/cards/index.ts), `compact` uses the rules below, and `native` returns Pi's renderers untouched.
+
+In cards mode, `bash`, `read`, `edit`, `write`, `grep`, `find`, `ls`, and `codemode` get dedicated cards; `mcp__*` tools and tools without their own renderer get the generic card; a tool whose extension draws it keeps that drawing. The codemode card always tracks nested calls, so switching to cards mid-session still shows live progress, but the "title your script" system-prompt section is only added while cards mode is active. Nested edit diffs are stored as `codemode-render-changes` session entries, the type pi-codemode-render wrote, so older sessions keep their diffs. With `icons.mode` set to `ascii`, cards switch to an ASCII glyph set (frames, tree connectors, status icons, spinner).
+
+The compact view registers rendering wrappers, leaving execution, arguments, results, and model-visible content unchanged. Built-in summaries are selected only when Pi reports the tool source as `builtin`. A same-name replacement keeps its native renderer unless compact mode and `toolView.extensionTools` are both enabled, in which case it uses extension handling. `toolView.exclude` takes precedence over either category.
 
 Successful rows have dim text and a green dot. Pending dots are dim; running dots alternate between accent and dim once per second. Errors retain a red dot and summary. Shell output shows the latest three nonempty lines while running; failures retain the closing status and last output line. Known tool truncation notices are summarized without discarding arbitrary bracketed text or error messages.
 
@@ -95,7 +99,7 @@ Some integrations use Pi component internals: Copy buttons check required Markdo
 
 ## 简体中文
 
-功能示例和日常操作见 [README](../README.zh-CN.md)，全部设置与默认值见[配置参考](./configuration.md#简体中文)。本文说明这些功能背后的指标口径、渲染规则和集成边界。
+功能示例和日常操作见 [README](../README.md)，全部设置与默认值见[配置参考](./configuration.md#简体中文)。本文说明这些功能背后的指标口径、渲染规则和集成边界。
 
 ### 生命周期与数据来源
 
@@ -150,7 +154,11 @@ Agent 运行期间，工作计时器每 250 毫秒请求一次重绘。Git 和�
 
 ### 工具渲染
 
-[tool-view.ts](../src/ui/tool-view.ts) 注册渲染包装，不修改执行、参数、结果或模型可见内容。仅在 Pi 将工具来源标记为 `builtin` 时使用内置摘要。同名替换工具默认保留原生渲染；只有紧凑模式和 `toolView.extensionTools` 同时开启时才使用扩展处理。`toolView.exclude` 优先于这两类规则。
+[tool-view.ts](../src/ui/tool-view.ts) 注册 fast-tui 唯一的工具渲染器。每条工具行先检查 `toolView.exclude`（被排除的工具保留 Pi 原生渲染），再按 `toolView.mode` 分派：`cards` 交给 [cards/index.ts](../src/cards/index.ts) 的卡片解析器，`compact` 使用下述规则，`native` 原样返回 Pi 的渲染器。
+
+卡片模式下，`bash`、`read`、`edit`、`write`、`grep`、`find`、`ls` 和 `codemode` 使用专用卡片；`mcp__*` 工具和没有自身渲染器的工具使用通用卡片；扩展自行绘制的工具保留其绘制。codemode 卡片始终跟踪嵌套调用，因此会话中途切换到卡片也能看到实时进度；但“为脚本加标题”的系统提示片段只在卡片模式下添加。嵌套编辑的 diff 以 `codemode-render-changes` 会话条目保存（与 pi-codemode-render 相同），旧会话的 diff 仍可显示。`icons.mode` 为 `ascii` 时，卡片改用 ASCII 字符集（边框、树形连接线、状态图标、旋转指示）。
+
+紧凑视图注册渲染包装，不修改执行、参数、结果或模型可见内容。仅在 Pi 将工具来源标记为 `builtin` 时使用内置摘要。同名替换工具默认保留原生渲染；只有紧凑模式和 `toolView.extensionTools` 同时开启时才使用扩展处理。`toolView.exclude` 优先于这两类规则。
 
 成功行使用暗色文字和绿色圆点，等待圆点变暗，运行圆点每秒在强调色与暗色间切换，错误保留红色圆点和摘要。Shell 运行中显示最新三条非空输出行，失败时保留结束状态与最后一行输出。已知的工具截断通知会归纳为提示，不会把任意方括号正文或错误信息一并删除。
 

@@ -1,12 +1,19 @@
 # pi-fast-tui
 
-[![omp status](https://omppackages.com/badge/pi-fast-tui.svg)](https://omppackages.com/packages/pi-fast-tui)
+A polished terminal interface for the [Pi](https://pi.dev) coding agent, with [oh-my-pi](https://github.com/can1357/oh-my-pi) style tool cards.
 
-**English** | [简体中文](./README.zh-CN.md)
+pi-fast-tui merges two packages into one extension: [pi-open-tui](https://www.npmjs.com/package/pi-open-tui) (header, footer, editor, telemetry, thinking peek, Copy buttons, settings) and [pi-omp-tools](https://www.npmjs.com/package/pi-omp-tools) (tool cards, codemode card, generic MCP card). Both halves share one config file, one settings dialog, one icon mode, and one tool renderer.
 
-A polished terminal interface for the [Pi](https://pi.dev) coding agent.
-
-![pi-fast-tui preview](https://raw.githubusercontent.com/OldSuns/pi-fast-tui/main/assets/preview_dashboard_1.png)
+> [!IMPORTANT]
+> pi-fast-tui replaces **pi-open-tui**, **pi-omp-tools**, and **pi-codemode-render**. Remove them before installing it:
+>
+> ```bash
+> pi remove npm:pi-open-tui
+> pi remove npm:pi-omp-tools
+> pi remove npm:pi-codemode-render
+> ```
+>
+> With any of them installed next to pi-fast-tui, two extensions fight over the header, footer, editor, and tool rows, and codemode file changes are recorded twice.
 
 ## Highlights
 
@@ -16,7 +23,8 @@ A polished terminal interface for the [Pi](https://pi.dev) coding agent.
 - **Project awareness** for 50+ runtimes and detailed Git state, including ahead/behind, staged, modified, untracked, stash, and detached HEAD
 - **Turn telemetry** with generation speed, time to first token, duration, stalls, tokens, and cost rate
 - **Thinking peek** with a live preview of hidden reasoning while the model works
-- **Compact tool view** with edit/write previews and optional support for extension and MCP tools
+- **Tool cards** in the oh-my-pi style for built-in tools, codemode scripts, MCP tools, and other extension tools (default)
+- **Compact tool view** with edit/write previews and optional support for extension and MCP tools, or Pi's **native** rows
 - **Fullscreen Copy buttons** for code blocks and user messages
 - **Interactive settings** in English and Simplified Chinese through `/fast-tui`
 
@@ -53,19 +61,19 @@ See [icon detection and spacing](./docs/configuration.md#icons) for automatic se
 
 Run `/fast-tui` to open the settings dialog. Its **General**, **Appearance**, **Footer**, and **Telemetry** tabs are available in English and Simplified Chinese and adapt to the terminal size. Use Tab/Shift+Tab or ←/→ to switch tabs, ↑/↓ to move, Enter/Space to change a value, and Esc/q to close.
 
-Settings are stored in `fast-tui.json` inside Pi's agent directory (default: `~/.pi/agent`; overridden by `PI_CODING_AGENT_DIR`). If saving fails, a warning explains that the change applies only to the current session.
+Settings are stored in `fast-tui.json` inside Pi's agent directory (default: `~/.pi/agent`; overridden by `PI_CODING_AGENT_DIR`). If saving fails, a warning explains that the change applies only to the current session. Settings from pi-open-tui's `open-tui.json` are not imported; copy the values you want into `fast-tui.json`.
 
 | Setting | Where to find it | Default |
 | --- | --- | --- |
 | Header and settings language | General → Interface | Header on, English |
 | Thinking peek | General → Messages & tools | 1 line |
 | Copy buttons | General → Messages & tools | On, fullscreen only |
-| Tool view | General → Messages & tools | Native |
+| Tool view | General → Messages & tools | Cards |
 | Footer in editor border | General → Footer | Off |
 | Icons and cursor style | Appearance | Auto icons, block cursor |
 | Footer fields and telemetry measurements | Footer / Telemetry | Individually configurable |
 
-Selecting **Tool view: Compact** reveals **Compact extension tools** as a child setting. Switching back to Native hides it and retains its value. The [configuration reference](./docs/configuration.md#english) contains the complete JSON defaults, every option, and tool exclusions.
+**Tool view** cycles through Cards, Compact, and Native. Selecting Compact reveals **Compact extension tools** as a child setting; switching to another mode hides it and retains its value. The [configuration reference](./docs/configuration.md#english) contains the complete JSON defaults, every option, and tool exclusions.
 
 ## Header, footer, and editor
 
@@ -100,7 +108,82 @@ Choose **Off**, **1 line**, or **2 lines** under **General → Messages & tools 
 
 ## Tool view
 
-**Native** remains the default. Select **General → Messages & tools → Tool view → Compact** to display Pi's built-in tools (`read`, `bash`, `powershell`, `edit`, `write`, `grep`, `find`, `ls`) as call and summary rows:
+pi-fast-tui registers a single tool renderer. **General → Messages & tools → Tool view** picks how each new tool row is drawn:
+
+| Mode | Rows |
+| --- | --- |
+| **Cards** (default) | One oh-my-pi style card per call |
+| **Compact** | One call row plus a summary row |
+| **Native** | Pi's own rendering |
+
+Tools listed in `toolView.exclude` keep Pi's native rows in every mode. Changing the mode affects newly created rows; use `/reload` or a new session to apply it to the whole transcript.
+
+### Cards
+
+Each tool call becomes one card. The call sits in the top border, the result in the body, and the run's facts (wall time, timeout, exit code, totals) in the bottom border. The border color follows the call: accent while it runs, dim once it succeeds, yellow for a warning, red for an error. A running call shows a spinner and a live timer.
+
+```text
+ ╭─── ✔ Bash ─────────────────────────────────────────────────────────╮
+ │ $ npm test                                                         │
+ ├─── Output ─────────────────────────────────────────────────────────┤
+ │ Test Files  9 passed (9)                                           │
+ │      Tests  108 passed (108)                                       │
+ ╰─── Wall: 1.84s · Timeout: 300s ────────────────────────────────────╯
+ ╭─── ✔ Edit: src/config.ts ⟨+2/-1⟩ ──────────────────────────────────╮
+ │  11 export const name = "pi";                                      │
+ │ -12 export const retries = 3;                                      │
+ │ +12 export const retries = 5;                                      │
+ │ +13 export const backoffMs = 200;                                  │
+ ╰────────────────────────────────────────────────────────────────────╯
+ ✔ Grep: retries in src 2 matches · 2 files
+ ├─ src/config.ts
+ │  *12│ export const retries = 5;
+ ├─ src/client.ts
+ │  *40│ for (let i = 0; i < retries; i++) {
+```
+
+| Tool | Card |
+| --- | --- |
+| `bash` | The command, its output following the tail (10 rows collapsed), and `Wall · Timeout · Exit` in the bottom border. |
+| `read` | One line while it runs; then the lines numbered from the offset, with Pi's "Use offset=…" notice in the bottom border. |
+| `edit` | A diff preview built from the arguments while they stream, then Pi's diff with `⟨+added/-removed⟩` in the header. |
+| `write` | The file, its line count, and the start of its content, highlighted. |
+| `grep`, `find`, `ls` | One header line with counts, and the results as a tree; grep groups matches by file. |
+| `codemode` | The script's title in the top border and one row per nested call (see below). |
+| MCP tools (`mcp__*`) | A generic card: arguments inline, the result as a JSON tree or a four-line preview. |
+| Anything else | Tools without a renderer get the same generic card. Tools whose extension draws them keep that drawing. |
+
+`Ctrl+O` (or whatever `app.tools.expand` is bound to) expands every card: full output, the arguments as a tree, the whole diff. Clicking a card toggles it too. Colors come from the active theme, and cards respect Pi's `outputPad` setting. With **Appearance → Icons** set to `ascii`, cards switch to ASCII frames, tree connectors, and status icons.
+
+### Codemode card
+
+```text
+ ╭─── ⚠ Codemode: Raise the retry limits ─────────────────────────────────────────╮
+ │ ├─ ✔ read src/config.ts                                                    4ms │
+ │ ├─ ✎ src/config.ts +2 −1                                                   3ms │
+ │ │  -12 export const retries = 3;                                               │
+ │ │  +12 export const retries = 5;                                               │
+ │ │  +13 export const backoffMs = 200;                                           │
+ │ ├─ ✔ $ npm test in packages/core                                          2.1s │
+ │ └─ ✘ read missing.txt                                                      2ms │
+ │    ENOENT: no such file or directory                                           │
+ ├─── Output ─────────────────────────────────────────────────────────────────────┤
+ │ Tests  47 passed (47)                                                          │
+ ╰─── 4 actions · 1 file +2 −1 · 1 failed · 2.21s ────────────────────────────────╯
+```
+
+- While the model writes the script, the card follows its last lines.
+- Each nested call is a row with its status, time, and cost; a running one spins and shows the last line of its output.
+- Consecutive edits to one file fold into one row with their diff. Edits and failures stay in view when older actions are hidden.
+- The bottom border totals actions, changed files and lines, failures, time, cost, and images. A finished script with a failed action gets a warning border.
+- Expanded, the card shows the highlighted script, every action, full diffs, and the full output.
+- In Cards mode the extension asks the model to start every script with a `// title` comment, which becomes the card's title.
+
+Diffs of nested edits are kept in the session as `codemode-render-changes` entries, the same type pi-codemode-render and pi-omp-tools wrote, so sessions recorded with them keep their diffs.
+
+### Compact rows
+
+Compact mode displays Pi's built-in tools (`read`, `bash`, `powershell`, `edit`, `write`, `grep`, `find`, `ls`) as call and summary rows:
 
 ```text
 ● Read(src/ui/footer.ts:1-120)
@@ -114,10 +197,9 @@ Choose **Off**, **1 line**, or **2 lines** under **General → Messages & tools 
 - Successful `edit` and `write` calls show syntax-highlighted previews of up to 16 rows, with a hint to expand longer output.
 - Running shell calls show recent output and elapsed time; errors retain their error summary.
 - Click a row to expand its native card, or use `Ctrl+O` to expand all rows. Tools, arguments, results, and model-visible content are unchanged.
-- Enable **Compact extension tools** to include extension and MCP tools. Use `toolView.exclude` in the config file for tools that should keep native rendering. Recognized `@ff-labs/pi-fff` tools receive search-specific summaries.
-- Changing the mode affects newly created rows. Use `/reload` or a new session to apply it to the whole transcript.
+- Enable **Compact extension tools** to include extension and MCP tools. Recognized `@ff-labs/pi-fff` tools receive search-specific summaries.
 
-See [tool rendering details](./docs/implementation.md#tool-rendering) for preview rules, extension summaries, and renderer compatibility.
+See [tool rendering details](./docs/implementation.md#tool-rendering) for the selector, preview rules, extension summaries, and renderer compatibility.
 
 ## Copy buttons
 
@@ -149,17 +231,19 @@ npm run typecheck
 pi -e .
 ```
 
-CI checks Pi 1.5.0 and the latest release on Node.js 22.19.0 and 24 across Linux, Windows, and macOS. Keep all Pi packages on the same version. Use `pi -e .` to check terminal fonts, mouse interaction, and cursor support interactively.
+Tests run on vitest; they use temporary agent directories and never write to `~/.pi/agent`. Built and tested against Pi 1.5.2. Keep all Pi packages on the same version. Use `pi -e .` to check terminal fonts, mouse interaction, and cursor support interactively.
 
 ## Acknowledgements
 
-This project builds on several Pi community packages:
+This project merges [pi-open-tui](https://www.npmjs.com/package/pi-open-tui) and [pi-omp-tools](https://www.npmjs.com/package/pi-omp-tools), which build on several Pi community packages:
 
 - **[pi-haiku](https://github.com/nnocte/pi-haiku)** — two-line footer structure and working timer
 - **[pi-claude-code-tui](https://github.com/Phoobobo/pi-claude-code-tui)** — Pi logo artwork and rounded editor border technique
 - **[pi-zentui](https://github.com/lmilojevicc/pi-zentui)** — Starship-style footer segments, runtime detection, session lifecycle, and settings UI pattern
 - **[pi-tps](https://github.com/monotykamary/pi-tps)** — turn timing, stall detection, and conservative TPS measurement
 - **[pi-polish](https://github.com/Pringled/pi-extensions/blob/main/packages/pi-polish)** — compact tool-call rows and syntax-highlighted edit diffs
+- **[oh-my-pi](https://github.com/can1357/oh-my-pi)** — card frame, status line, output preview, and JSON tree (MIT)
+- **[pi-codemode-render](https://www.npmjs.com/package/pi-codemode-render)** — the codemode card's session entries
 
 The logo artwork is derived from Pi's official install script (`pi.dev/install.sh`). Runtime detection and Git porcelain parsing borrow structure from `pi-zentui`.
 
@@ -167,4 +251,4 @@ Special thanks to the **[LINUX DO](https://linux.do)** community for its support
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](./LICENSE). The license file keeps the notices of pi-open-tui, pi-omp-tools, and oh-my-pi.

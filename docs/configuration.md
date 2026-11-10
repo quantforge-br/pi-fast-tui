@@ -23,7 +23,7 @@ You only need to specify values you want to change; missing fields inherit [the 
 
 Tab/Shift+Tab or ←/→ switches tabs; ↑/↓ or Page Up/Page Down moves between settings; Enter/Space changes a value; Esc/q closes the dialog. Dim section headings occupy rows but cannot be selected or changed. The scroll position counts both headings and settings.
 
-**Compact extension tools** appears only while **Tool view** is Compact. Switching to Native hides it while retaining its value. Installing or removing the UI through the **Enabled** switch is deferred until the dialog closes. Existing configuration files need no migration.
+**Tool view** cycles Cards → Compact → Native. **Compact extension tools** appears only while **Tool view** is Compact. Switching to another mode hides it while retaining its value. Installing or removing the UI through the **Enabled** switch is deferred until the dialog closes. Existing configuration files need no migration.
 
 ### General options
 
@@ -35,13 +35,13 @@ Tab/Shift+Tab or ←/→ switches tabs; ↑/↓ or Page Up/Page Down moves betwe
 | `copyButtons` | `true` | Code-block and user-message Copy labels in fullscreen mode |
 | `settingsLanguage` | `"en"` | `"en"` or `"zh"`; changes the settings interface language |
 | `cursorStyle` | `"block"` | `"block"`, `"bar"`, or `"underline"`; the latter two need terminal cursor-shape support |
-| `icons.mode` | `"auto"` | `"auto"`, `"nerd"`, `"unicode"`, or `"ascii"`; see [Icons](#icons) |
+| `icons.mode` | `"auto"` | `"auto"`, `"nerd"`, `"unicode"`, or `"ascii"`; see [Icons](#icons). Cards draw Unicode box glyphs unless the mode is `"ascii"` |
 | `thinkingPeek.lines` | `1` | `0` (off), `1`, or `2`; visible while Pi's Hide thinking setting is on and reasoning is streamed |
-| `toolView.mode` | `"native"` | `"native"` or `"compact"`; selected when Pi creates each tool row |
+| `toolView.mode` | `"cards"` | `"cards"`, `"compact"`, or `"native"`; selected when Pi creates each tool row |
 | `toolView.extensionTools` | `false` | In compact mode, includes extension, MCP, and replacement tools |
 | `toolView.exclude` | `[]` | Exact tool names that keep native rendering, including built-ins; edited in the JSON file only |
 
-For example, `"toolView": { "mode": "compact", "extensionTools": true, "exclude": ["edit", "subagent_wait"] }` enables compact rendering while preserving those two tools' native cards. Use `/reload` or a new session to rebuild existing rows with the new tool-view settings.
+For example, `"toolView": { "mode": "compact", "extensionTools": true, "exclude": ["edit", "subagent_wait"] }` enables compact rendering while preserving those two tools' native cards. Exclusions apply in every mode, so excluded tools also skip the cards. Use `/reload` or a new session to rebuild existing rows with the new tool-view settings.
 
 ### Footer options
 
@@ -99,7 +99,7 @@ For wide Nerd glyphs that consume the gap before a label, enable **Footer → Ot
 
 ## 简体中文
 
-安装和功能示例见 [README](../README.zh-CN.md)。本参考列出 `fast-tui.json` 接受的全部设置，依据为 [config.ts](../src/ui/config.ts)、[settings-command.ts](../src/ui/settings-command.ts) 和 [icons.ts](../src/ui/icons.ts)。
+安装和功能示例见 [README](../README.md)。本参考列出 `fast-tui.json` 接受的全部设置，依据为 [config.ts](../src/ui/config.ts)、[settings-command.ts](../src/ui/settings-command.ts) 和 [icons.ts](../src/ui/icons.ts)。
 
 ### 存储与加载
 
@@ -118,7 +118,7 @@ For wide Nerd glyphs that consume the gap before a label, enable **Footer → Ot
 
 Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/Space 修改值，Esc/q 关闭。暗色分组标题占一行，但不能选中或修改；滚动位置同时统计标题行和设置行。
 
-**紧凑显示扩展工具**仅在**工具视图**为紧凑时显示；切回原生后隐藏，但保留开关值。通过**启用**开关安装或移除界面会延迟到窗口关闭后执行。现有配置文件无需迁移。
+**工具视图**按卡片 → 紧凑 → 原生循环切换。**紧凑显示扩展工具**仅在**工具视图**为紧凑时显示；切换到其他模式后隐藏，但保留开关值。通过**启用**开关安装或移除界面会延迟到窗口关闭后执行。现有配置文件无需迁移。
 
 ### 常规选项
 
@@ -130,13 +130,13 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | `copyButtons` | `true` | 全屏模式中代码块和用户消息的复制标签 |
 | `settingsLanguage` | `"en"` | `"en"` 或 `"zh"`，控制设置界面的语言 |
 | `cursorStyle` | `"block"` | `"block"`、`"bar"` 或 `"underline"`，后两种需要终端支持光标形状控制 |
-| `icons.mode` | `"auto"` | `"auto"`、`"nerd"`、`"unicode"` 或 `"ascii"`，见[图标](#图标) |
+| `icons.mode` | `"auto"` | `"auto"`、`"nerd"`、`"unicode"` 或 `"ascii"`，见[图标](#图标)。除 `"ascii"` 外，卡片使用 Unicode 边框字符 |
 | `thinkingPeek.lines` | `1` | `0`（关闭）、`1` 或 `2`；Pi 开启 Hide thinking 且模型输出推理时可见 |
-| `toolView.mode` | `"native"` | `"native"` 或 `"compact"`，每条工具行创建时确定 |
+| `toolView.mode` | `"cards"` | `"cards"`、`"compact"` 或 `"native"`，每条工具行创建时确定 |
 | `toolView.extensionTools` | `false` | 紧凑模式下包含扩展、MCP 和替换内置工具的扩展 |
 | `toolView.exclude` | `[]` | 保持原生渲染的完整工具名，可包含内置工具；仅在 JSON 文件中编辑 |
 
-例如 `"toolView": { "mode": "compact", "extensionTools": true, "exclude": ["edit", "subagent_wait"] }` 会启用紧凑模式，并让这两个工具保留原生卡片。执行 `/reload` 或新开会话，可让已有工具行按新设置重建。
+例如 `"toolView": { "mode": "compact", "extensionTools": true, "exclude": ["edit", "subagent_wait"] }` 会启用紧凑模式，并让这两个工具保留原生卡片。排除列表在所有模式下生效，被排除的工具也不会绘制为卡片。执行 `/reload` 或新开会话，可让已有工具行按新设置重建。
 
 ### 底栏选项
 
@@ -240,7 +240,7 @@ The complete default configuration is shared by both language references. Set `s
     "lines": 1
   },
   "toolView": {
-    "mode": "native",
+    "mode": "cards",
     "extensionTools": false,
     "exclude": []
   }

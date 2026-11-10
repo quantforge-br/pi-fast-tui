@@ -4,6 +4,8 @@
 
 Extensions use `pi.events` to add text to either main footer row, including the editor borders when `inlineFooter` is enabled. No additional status row is created.
 
+The event names keep the `open-tui:footer:` prefix on purpose: extensions written for pi-open-tui work with pi-fast-tui unchanged.
+
 ## Events
 
 | Event | Payload | Purpose |
