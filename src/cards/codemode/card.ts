@@ -7,7 +7,7 @@ import type { CardBuilder, CardInput, CardSnapshot } from "../card.ts";
 import type { FrameSection } from "../frame.ts";
 import { formatDuration, plural } from "../format.ts";
 import { formatOutputPane } from "../output-pane.ts";
-import { SEP, SPINNER_FRAMES, TREE } from "../symbols.ts";
+import { MARKS, SEP, SPINNER_FRAMES, STATUS_GLYPHS, TREE } from "../symbols.ts";
 import { type ChangeLog, type FileChange, mergeChanges } from "./changes.ts";
 import type { LiveCall, LiveCalls } from "./live.ts";
 import { formatActionTime, formatCost, parseScriptOutput, scriptTitle, shortenPath, summarizeCall } from "./summarize.ts";
@@ -139,10 +139,10 @@ function takeLiveCall(live: LiveCall[], name: string): LiveCall | undefined {
 	return index === -1 ? undefined : live.splice(index, 1)[0];
 }
 
-const NESTED_STATUS: Record<Exclude<NestedCall["status"], "running">, { icon: string; color: ThemeColor }> = {
-	ok: { icon: "✔", color: "success" },
-	error: { icon: "✘", color: "error" },
-	cancelled: { icon: "⊘", color: "muted" },
+const NESTED_STATUS: Record<Exclude<NestedCall["status"], "running">, { icon: () => string; color: ThemeColor }> = {
+	ok: { icon: () => STATUS_GLYPHS.success, color: "success" },
+	error: { icon: () => STATUS_GLYPHS.error, color: "error" },
+	cancelled: { icon: () => MARKS.cancelled, color: "muted" },
 };
 
 function timing(durationMs: number | undefined, cost: number | undefined, theme: Theme): string {
@@ -154,8 +154,8 @@ function actionRow(call: NestedCall, live: LiveCall | undefined, input: CardInpu
 	const { theme } = input;
 	const icon =
 		call.status === "running"
-			? theme.fg("accent", SPINNER_FRAMES[(input.spinnerFrame ?? 0) % SPINNER_FRAMES.length])
-			: theme.fg(NESTED_STATUS[call.status].color, NESTED_STATUS[call.status].icon);
+			? theme.fg("accent", SPINNER_FRAMES[(input.spinnerFrame ?? 0) % SPINNER_FRAMES.length]!)
+			: theme.fg(NESTED_STATUS[call.status].color, NESTED_STATUS[call.status].icon());
 	const summary = summarizeCall(call.name, call.args, input.cwd);
 	let left = `${icon} ${theme.fg("toolTitle", summary.label)}`;
 	if (summary.detail) left += ` ${theme.fg("toolOutput", summary.detail)}`;
@@ -180,7 +180,7 @@ function lineCounts(added: number, removed: number, theme: Theme): string {
 function changeRow(calls: NestedCall[], change: FileChange, theme: Theme, cwd: string): ActionRow {
 	const counts = lineCounts(change.added, change.removed, theme);
 	const left = [
-		`${theme.fg("success", "✎")} ${theme.fg("toolTitle", shortenPath(change.path, cwd))}`,
+		`${theme.fg("success", MARKS.edit)} ${theme.fg("toolTitle", shortenPath(change.path, cwd))}`,
 		change.written === undefined ? counts : theme.fg("muted", `wrote ${plural(change.written, "line")}`),
 		calls.length > 1 ? theme.fg("muted", `· ${calls.length} edits`) : "",
 	];

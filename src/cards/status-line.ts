@@ -1,7 +1,7 @@
 // One-line card header: status icon or spinner, title, description, badge and short facts.
 
 import type { Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
-import { BRACKET, SEP, SPINNER_FRAMES } from "./symbols.ts";
+import { BRACKET, SEP, SPINNER_FRAMES, STATUS_GLYPHS } from "./symbols.ts";
 
 /** What the header's icon says about the call. */
 export type StatusIcon = "pending" | "running" | "success" | "error" | "warning" | "info";
@@ -18,22 +18,21 @@ export interface StatusLineOptions {
 	meta?: readonly string[];
 }
 
-const ICONS: Record<Exclude<StatusIcon, "running">, { glyph: string; color: ThemeColor }> = {
-	pending: { glyph: "◌", color: "muted" },
-	success: { glyph: "✔", color: "success" },
-	error: { glyph: "✘", color: "error" },
-	warning: { glyph: "⚠", color: "warning" },
-	info: { glyph: "•", color: "accent" },
+const ICON_COLORS: Record<Exclude<StatusIcon, "running">, ThemeColor> = {
+	pending: "muted",
+	success: "success",
+	error: "error",
+	warning: "warning",
+	info: "accent",
 };
 
 /** The styled glyph for an icon; a running icon is the spinner frame when one is given. */
 export function statusIcon(icon: StatusIcon, theme: Theme, spinnerFrame?: number): string {
 	if (icon === "running") {
-		const glyph = spinnerFrame === undefined ? "⟳" : SPINNER_FRAMES[spinnerFrame % SPINNER_FRAMES.length];
+		const glyph = spinnerFrame === undefined ? STATUS_GLYPHS.running : SPINNER_FRAMES[spinnerFrame % SPINNER_FRAMES.length]!;
 		return theme.fg("accent", glyph);
 	}
-	const { glyph, color } = ICONS[icon];
-	return theme.fg(color, glyph);
+	return theme.fg(ICON_COLORS[icon], STATUS_GLYPHS[icon]);
 }
 
 /** Draw a header row. Newlines inside fields become spaces so the row stays one line. */

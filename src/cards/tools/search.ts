@@ -54,7 +54,7 @@ function grepTree(files: GrepFile[], theme: Theme, expanded: boolean, expandHint
 			const number = String(line.line).padStart(width);
 			const marker = line.match ? theme.fg("accent", "*") : " ";
 			const body = theme.fg(line.match ? "toolOutput" : "dim", line.text);
-			rows.push(`${theme.fg("dim", TREE.vertical)}  ${marker}${theme.fg("dim", `${number}│`)} ${body}`);
+			rows.push(`${theme.fg("dim", TREE.vertical)}  ${marker}${theme.fg("dim", `${number}${TREE.vertical}`)} ${body}`);
 			if (line.match) shown++;
 		}
 	}
