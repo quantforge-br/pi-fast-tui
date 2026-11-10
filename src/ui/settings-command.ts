@@ -14,7 +14,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 } from "@earendil-works/pi-tui";
-import type { CursorStyle, IconMode, FastTuiConfig, SettingsLanguage, ThinkingPeekLines } from "./config.ts";
+import type { CursorStyle, IconMode, FastTuiConfig, SettingsLanguage, ThinkingPeekLines, ToolViewMode } from "./config.ts";
 
 interface SettingItem {
 	id: string;
@@ -354,7 +354,7 @@ function handleSettingChange(
 		if (itemId === "settingsLanguage") return toggleLanguage(config);
 		if (itemId === "thinkingPeek") return cycleThinkingPeek(config);
 		if (itemId === "toolView") {
-			return { ...config, toolView: { ...config.toolView, mode: config.toolView.mode === "native" ? "compact" : "native" } };
+			return { ...config, toolView: { ...config.toolView, mode: nextToolViewMode(config.toolView.mode) } };
 		}
 		if (itemId === "extensionTools") {
 			return { ...config, toolView: { ...config.toolView, extensionTools: !config.toolView.extensionTools } };
@@ -647,6 +647,11 @@ class SettingsUi implements SettingsUiHandle {
 		this.cachedLines = undefined;
 		this.container.invalidate();
 	}
+}
+
+/** Tool view cycles Cards → Compact → Native → Cards. */
+export function nextToolViewMode(mode: ToolViewMode): ToolViewMode {
+	return mode === "cards" ? "compact" : mode === "compact" ? "native" : "cards";
 }
 
 export function registerSettingsCommand(

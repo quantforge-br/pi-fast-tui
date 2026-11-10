@@ -7,7 +7,7 @@ import { visibleWidth, type Component, type KeybindingsManager, type TUI } from 
 import { DEFAULT_CONFIG, loadConfig, saveConfig, type FastTuiConfig } from "../../src/ui/config.ts";
 import { installEditor } from "../../src/ui/editor.ts";
 import fastTui, { getPendingUiChange } from "../../src/ui/index.ts";
-import { registerSettingsCommand } from "../../src/ui/settings-command.ts";
+import { nextToolViewMode, registerSettingsCommand } from "../../src/ui/settings-command.ts";
 import { preserveEnvironment, temporaryDirectory } from "./fixtures/test-helpers.ts";
 
 interface SettingsComponent extends Component {
@@ -302,9 +302,34 @@ test("toggles copy buttons from General settings", async () => {
 	assert.equal(settings.getConfig().copyButtons, false);
 });
 
+test("tool view defaults to Cards and cycles Cards → Compact → Native", async () => {
+	assert.equal(nextToolViewMode("cards"), "compact");
+	assert.equal(nextToolViewMode("compact"), "native");
+	assert.equal(nextToolViewMode("native"), "cards");
+	const settings = await openSettings();
+	// Enabled → Header → Language → Thinking peek → Copy buttons → Tool view
+	for (let i = 0; i < 5; i++) settings.component.handleInput("\x1b[B");
+	assert.match(selectedLine(settings.component), /Tool view\s+Cards/);
+	settings.component.handleInput(" ");
+	assert.equal(settings.getConfig().toolView.mode, "compact");
+	assert.match(selectedLine(settings.component), /Tool view\s+Compact/);
+	settings.component.handleInput(" ");
+	assert.equal(settings.getConfig().toolView.mode, "native");
+	assert.match(selectedLine(settings.component), /Tool view\s+Native/);
+	settings.component.handleInput(" ");
+	assert.equal(settings.getConfig().toolView.mode, "cards");
+});
+
+test("tool view shows the Cards option in Chinese", async () => {
+	const config = structuredClone(DEFAULT_CONFIG);
+	config.settingsLanguage = "zh";
+	const settings = await openSettings(config);
+	for (let i = 0; i < 5; i++) settings.component.handleInput("\x1b[B");
+	assert.match(selectedLine(settings.component), /工具视图\s+卡片/);
+});
+
 test("toggling tool view settings keeps the other tool view options", async () => {
 	const config = structuredClone(DEFAULT_CONFIG);
-	config.toolView.mode = "native";
 	config.toolView.exclude = ["subagent_wait"];
 	const settings = await openSettings(config);
 	// Enabled → Header → Language → Thinking peek → Copy buttons → Tool view
