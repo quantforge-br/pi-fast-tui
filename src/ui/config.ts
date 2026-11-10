@@ -6,7 +6,10 @@ import type { IconMode } from "./icons.ts";
 export type SettingsLanguage = "en" | "zh";
 export type CursorStyle = "block" | "bar" | "underline";
 export type ThinkingPeekLines = 0 | 1 | 2;
-export type ToolViewMode = "native" | "compact";
+/** `cards` draws oh-my-pi style cards, `compact` collapses rows to one line, `native` keeps Pi's rows. */
+export type ToolViewMode = "cards" | "compact" | "native";
+
+const TOOL_VIEW_MODES: readonly ToolViewMode[] = ["cards", "compact", "native"];
 
 export type { IconMode } from "./icons.ts";
 
@@ -111,7 +114,7 @@ export const DEFAULT_CONFIG: FastTuiConfig = {
 		lines: 1,
 	},
 	toolView: {
-		mode: "native",
+		mode: "cards",
 		extensionTools: false,
 		exclude: [],
 	},
@@ -131,7 +134,7 @@ function normalizeToolView(value: unknown): ToolViewConfig {
 		? (value as Partial<Record<keyof ToolViewConfig, unknown>>)
 		: {};
 	return {
-		mode: source.mode === "compact" ? "compact" : DEFAULT_CONFIG.toolView.mode,
+		mode: TOOL_VIEW_MODES.includes(source.mode as ToolViewMode) ? source.mode as ToolViewMode : DEFAULT_CONFIG.toolView.mode,
 		extensionTools: source.extensionTools === true,
 		exclude: Array.isArray(source.exclude) ? source.exclude.filter((name): name is string => typeof name === "string") : [],
 	};

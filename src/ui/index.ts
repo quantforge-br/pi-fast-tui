@@ -10,7 +10,8 @@ import { readRuntimeInfo } from "./runtime.ts";
 import { SessionLifecycle } from "./session-lifecycle.ts";
 import { registerSettingsCommand } from "./settings-command.ts";
 import { formatTurnTelemetry, TurnTelemetryTracker } from "./telemetry.ts";
-import { registerToolView } from "./tool-view.ts";
+import { registerToolView, type ToolRendererResolver } from "./tool-view.ts";
+import { setCardGlyphMode } from "../cards/symbols.ts";
 import {
 	createInitialState,
 	getModelMeta,
@@ -37,7 +38,12 @@ function isTuiContext(ctx: ExtensionContext): boolean {
 	return ctx.hasUI && ctx.mode === "tui";
 }
 
-export default function (pi: ExtensionAPI) {
+export interface SetupUiOptions {
+	/** Builds the card resolver used by the `cards` tool view; `isActive` reports whether that mode is on. */
+	cards?: (isActive: () => boolean) => ToolRendererResolver;
+}
+
+export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 	const sessionLifecycle = new SessionLifecycle();
 	const state: FooterState = createInitialState();
 	const turnTelemetry = new TurnTelemetryTracker();
@@ -372,17 +378,21 @@ export default function (pi: ExtensionAPI) {
 		refreshInteractiveState(ctx);
 	});
 
+	const toolView = () => {
+		// Resumed sessions rebuild their rows before session_start fires, so read the file once here.
+		if (!configLoaded) {
+			config = loadConfig();
+			configLoaded = true;
+		}
+		// Cards draw box-drawing glyphs everywhere except under an explicit ASCII icon mode.
+		setCardGlyphMode(config.icons.mode === "ascii" ? "ascii" : "unicode");
+		return config.enabled ? config.toolView : { ...config.toolView, mode: "native" as const };
+	};
 	registerToolView(
 		pi,
-		() => {
-			// Resumed sessions rebuild their rows before session_start fires, so read the file once here.
-			if (!configLoaded) {
-				config = loadConfig();
-				configLoaded = true;
-			}
-			return config.enabled ? config.toolView : { ...config.toolView, mode: "native" };
-		},
+		toolView,
 		() => resolveGlyphs(config.icons.mode),
+		options.cards?.(() => toolView().mode === "cards"),
 	);
 
 	pi.registerMarkdownTransformer(markCopyScope);
@@ -400,6 +410,7 @@ export default function (pi: ExtensionAPI) {
 					: "fast-tui settings apply for this session but could not be saved. Check configuration directory permissions and free space.", "warning");
 			}
 			config = newConfig;
+			setCardGlyphMode(config.icons.mode === "ascii" ? "ascii" : "unicode");
 			if (newConfig.thinkingPeek.lines === 0 || !newConfig.enabled) {
 				resetPeek();
 				clearPeekLabel(lastCtx);

@@ -304,6 +304,7 @@ test("toggles copy buttons from General settings", async () => {
 
 test("toggling tool view settings keeps the other tool view options", async () => {
 	const config = structuredClone(DEFAULT_CONFIG);
+	config.toolView.mode = "native";
 	config.toolView.exclude = ["subagent_wait"];
 	const settings = await openSettings(config);
 	// Enabled → Header → Language → Thinking peek → Copy buttons → Tool view
@@ -494,7 +495,7 @@ test("normalizes invalid settings values", (t) => {
 	assert.equal(loaded.inlineFooter, false);
 	assert.equal(loaded.copyButtons, true);
 	assert.equal(loaded.thinkingPeek.lines, 1);
-	assert.deepEqual(loaded.toolView, { mode: "native", extensionTools: false, exclude: ["keep"] });
+	assert.deepEqual(loaded.toolView, { mode: "cards", extensionTools: false, exclude: ["keep"] });
 	assert.equal("fullscreen" in loaded, true);
 });
 

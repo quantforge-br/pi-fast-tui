@@ -554,11 +554,21 @@ export function createCompactRenderers(
 
 const OWNED_TOOLS = new Set(Object.keys(TOOL_LABELS));
 
+/** Picks a tool's renderers; `next` is what the rest of the renderer chain would draw. */
+export type ToolRendererResolver = (toolName: string, next: () => ToolRenderers | undefined) => ToolRenderers | undefined;
+
 /**
- * Display-only: Pi's tools, execution, arguments and results are untouched. The configuration is
- * read when Pi builds a row, so changing it affects new rows only.
+ * The one tool renderer of fast-tui. Display-only: Pi's tools, execution, arguments and results are
+ * untouched. The configuration is read when Pi builds a row, so changing the mode affects new rows only.
+ * Excluded tools always keep their native rows; `cards` mode hands every other tool to `cards`, and
+ * falls back to native rows when no card resolver is given.
  */
-export function registerToolView(pi: ExtensionAPI, getView: () => ToolViewConfig, glyphs: () => IconGlyphs): void {
+export function registerToolView(
+	pi: ExtensionAPI,
+	getView: () => ToolViewConfig,
+	glyphs: () => IconGlyphs,
+	cards?: ToolRendererResolver,
+): void {
 	const running = new Map<string, RowState | undefined>();
 	pi.on("tool_execution_start", (event) => { running.set(event.toolCallId, undefined); });
 	pi.on("tool_execution_end", (event) => {
@@ -571,9 +581,11 @@ export function registerToolView(pi: ExtensionAPI, getView: () => ToolViewConfig
 		running.clear();
 	});
 	pi.registerToolRenderer((toolName, next) => {
-		const native = next();
 		const view = getView();
-		if (view.mode !== "compact" || view.exclude.includes(toolName)) return native;
+		if (view.exclude.includes(toolName)) return next();
+		if (view.mode === "cards") return cards ? cards(toolName, next) : next();
+		const native = next();
+		if (view.mode !== "compact") return native;
 		const sourceInfo = OWNED_TOOLS.has(toolName) || view.extensionTools && FFF_TOOLS.has(toolName)
 			? pi.getAllTools().find((tool) => tool.name === toolName)?.sourceInfo : undefined;
 		const builtin = OWNED_TOOLS.has(toolName) && sourceInfo?.source === "builtin";

@@ -955,3 +955,70 @@ test("real write/edit execution supplies previews while native expansion remains
 	assert.equal(partial.length, 1);
 	assert.match(stripAnsi(partial[0]!), /Running…/);
 });
+
+test("cards mode hands tools to the card resolver, honours exclusions, and leaves other modes alone", async (t) => {
+	const cwd = await mkdtemp(join(tmpdir(), "pi-tool-view-"));
+	t.after(() => rm(cwd, { recursive: true, force: true }));
+	const settingsManager = SettingsManager.inMemory();
+	const view: ToolViewConfig = { mode: "cards", extensionTools: false, exclude: [] };
+	const card: ToolRenderers = { renderShell: "self" };
+	const asked: string[] = [];
+	const cards = (toolName: string, next: () => ToolRenderers | undefined) => {
+		asked.push(toolName);
+		return toolName === "own" ? next() : card;
+	};
+	let registrations = 0;
+	const resourceLoader = new DefaultResourceLoader({
+		cwd, agentDir: cwd, settingsManager,
+		noExtensions: true, noSkills: true, noThemes: true, noPromptTemplates: true, noContextFiles: true,
+		extensionFactories: [(pi) => {
+			const register = pi.registerToolRenderer.bind(pi);
+			pi.registerToolRenderer = (resolver) => { registrations++; register(resolver); };
+			registerToolView(pi, () => view, glyphs, cards);
+		}],
+	});
+	await resourceLoader.reload();
+	assert.deepEqual(resourceLoader.getExtensions().errors, []);
+	assert.equal(registrations, 1, "one renderer serves every mode");
+	const { session } = await createAgentSession({
+		cwd, agentDir: cwd, resourceLoader, settingsManager, sessionManager: SessionManager.inMemory(cwd),
+	});
+	t.after(() => session.dispose());
+	const runner = session.extensionRunner;
+	const native = createEditToolDefinition(cwd) as ToolRenderers;
+
+	assert.equal(runner.resolveToolRenderers("edit", () => native), card);
+	assert.equal(runner.resolveToolRenderers("mcp__x", () => undefined), card);
+	assert.equal(runner.resolveToolRenderers("own", () => native), native, "the resolver may chain to native rows");
+
+	view.exclude = ["edit"];
+	asked.length = 0;
+	assert.equal(runner.resolveToolRenderers("edit", () => native), native, "excluded tools keep native rows");
+	assert.deepEqual(asked, [], "excluded tools never reach the card resolver");
+
+	view.exclude = [];
+	view.mode = "native";
+	assert.equal(runner.resolveToolRenderers("edit", () => native), native);
+	view.mode = "compact";
+	assert.equal(runner.resolveToolRenderers("edit", () => native)?.renderShell, "self");
+	assert.notEqual(runner.resolveToolRenderers("edit", () => native), card);
+	assert.deepEqual(asked, [], "only cards mode consults the card resolver");
+});
+
+test("cards mode without a card resolver keeps native rows", async (t) => {
+	const cwd = await mkdtemp(join(tmpdir(), "pi-tool-view-"));
+	t.after(() => rm(cwd, { recursive: true, force: true }));
+	const settingsManager = SettingsManager.inMemory();
+	const resourceLoader = new DefaultResourceLoader({
+		cwd, agentDir: cwd, settingsManager,
+		noExtensions: true, noSkills: true, noThemes: true, noPromptTemplates: true, noContextFiles: true,
+		extensionFactories: [(pi) => registerToolView(pi, () => ({ mode: "cards", extensionTools: false, exclude: [] }), glyphs)],
+	});
+	await resourceLoader.reload();
+	const { session } = await createAgentSession({
+		cwd, agentDir: cwd, resourceLoader, settingsManager, sessionManager: SessionManager.inMemory(cwd),
+	});
+	t.after(() => session.dispose());
+	const native = createEditToolDefinition(cwd) as ToolRenderers;
+	assert.equal(session.extensionRunner.resolveToolRenderers("edit", () => native), native);
+});
