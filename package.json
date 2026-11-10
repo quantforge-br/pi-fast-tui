@@ -1,0 +1,58 @@
+{
+	"name": "pi-fast-tui",
+	"version": "0.1.0",
+	"description": "A fast, polished TUI for pi: branded header, responsive footer, framed editor, turn telemetry, thinking peek, Copy buttons, and oh-my-pi style tool cards with live codemode progress",
+	"type": "module",
+	"keywords": [
+		"pi-package",
+		"pi",
+		"pi-coding-agent",
+		"pi-extension",
+		"tui",
+		"renderer",
+		"tools",
+		"oh-my-pi",
+		"theme"
+	],
+	"license": "MIT",
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"files": [
+		"src",
+		"docs",
+		"README.md",
+		"CHANGELOG.md",
+		"LICENSE"
+	],
+	"pi": {
+		"extensions": [
+			"./src/index.ts"
+		]
+	},
+	"scripts": {
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit",
+		"prepublishOnly": "npm test && npm run typecheck"
+	},
+	"dependencies": {
+		"diff": "^9.0.0"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-ai": ">=1.5.0",
+		"@earendil-works/pi-coding-agent": ">=1.5.0",
+		"@earendil-works/pi-tui": ">=1.5.0"
+	},
+	"devDependencies": {
+		"@earendil-works/pi-ai": "1.5.2",
+		"@earendil-works/pi-coding-agent": "1.5.2",
+		"@earendil-works/pi-tui": "1.5.2",
+		"@types/node": "26.6.6",
+		"typescript": "7.0.2",
+		"vitest": "5.0.5"
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	}
+}

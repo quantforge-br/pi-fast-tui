@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Reference checkouts of the plugins merged into this package
+pi-omp-tools/
+pi-open-tui/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor and OS files
+.vscode/settings.json
+.idea/
+*.swp
+.DS_Store
+
+# Agent state
+.agents/
+.pi/
