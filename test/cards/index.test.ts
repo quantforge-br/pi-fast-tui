@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ToolRenderers } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { describe, expect, it } from "vitest";
-import extension, { createResolver } from "../../src/cards/index.ts";
+import { createResolver } from "../../src/cards/index.ts";
 import { draw, newRow } from "./row.ts";
 
 const resolve = createResolver(() => ({ variant: "inline", status: { title: "Codemode" } }));
@@ -40,19 +40,5 @@ describe("resolver", () => {
 	it("reuses renderers per tool", () => {
 		expect(resolve("bash", none)).toBe(resolve("bash", none));
 		expect(resolve("mcp__a__b", none)).toBe(resolve("mcp__a__b", none));
-	});
-});
-
-describe("extension", () => {
-	it("registers one renderer resolver and the codemode events", () => {
-		const resolvers: unknown[] = [];
-		const events: string[] = [];
-		const pi = {
-			registerToolRenderer: (resolver: unknown) => resolvers.push(resolver),
-			on: (event: string) => events.push(event),
-		} as unknown as ExtensionAPI;
-		extension(pi);
-		expect(resolvers).toHaveLength(1);
-		expect(events.sort()).toEqual(["before_agent_start", "session_start", "tool_execution_end", "tool_execution_start", "tool_execution_update"]);
 	});
 });

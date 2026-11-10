@@ -1,11 +1,12 @@
 /**
  * Draws pi's tool rows as oh-my-pi cards: built-in tools, codemode scripts, and a generic card for MCP and
- * any other tool that has no renderer of its own.
+ * any other tool that has no renderer of its own. The package entrypoint plugs the resolver into the single tool
+ * renderer that src/ui/tool-view.ts registers.
  */
 
-import type { ExtensionAPI, ToolRenderers } from "@earendil-works/pi-coding-agent";
+import type { ToolRenderers } from "@earendil-works/pi-coding-agent";
 import { type CardBuilder, createCardRenderers } from "./card.ts";
-import { CODEMODE_TOOL_NAME, setupCodemode } from "./codemode/extension.ts";
+import { CODEMODE_TOOL_NAME } from "./codemode/extension.ts";
 import { bashCard } from "./tools/bash.ts";
 import { editCard } from "./tools/edit.ts";
 import { createGenericCard } from "./tools/generic.ts";
@@ -48,8 +49,4 @@ export function createResolver(codemode: CardBuilder): (toolName: string, next: 
 		if (own?.renderCall || own?.renderResult) return own;
 		return cached(toolName, () => createCardRenderers(createGenericCard(toolName)));
 	};
-}
-
-export default function (pi: ExtensionAPI) {
-	pi.registerToolRenderer(createResolver(setupCodemode(pi)));
 }
