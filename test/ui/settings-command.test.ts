@@ -495,7 +495,9 @@ test("toggles the header without resetting a disabled slot and warns when persis
 	const agentDir = temporaryDirectory(t, "pi-fast-tui-");
 	preserveEnvironment(t, ["PI_CODING_AGENT_DIR"]);
 	process.env.PI_CODING_AGENT_DIR = agentDir;
-	writeFileSync(join(agentDir, "fast-tui.json"), JSON.stringify({ ...DEFAULT_CONFIG, header: false }));
+	// Pinned to Unicode: under the non-TTY test runner `auto` resolves to ASCII and would switch the card glyph set.
+	writeFileSync(join(agentDir, "fast-tui.json"), JSON.stringify({ ...DEFAULT_CONFIG, header: false, icons: { ...DEFAULT_CONFIG.icons, mode: "unicode" } }));
+	t.after(() => setCardGlyphMode("unicode"));
 	const handlers = new Map<string, (event: unknown, ctx: ExtensionContext) => unknown>();
 	let command: ((args: string, ctx: ExtensionContext) => unknown) | undefined;
 	let settings: SettingsComponent | undefined;

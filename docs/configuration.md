@@ -117,7 +117,7 @@ The footer's live-speed estimate has its own `footerSegments.liveTps` switch. Se
 | `unicode` | Portable Unicode symbols; emoji use the terminal's own fallback font |
 | `ascii` | Plain-text symbols |
 
-With `ascii`, everything pi-fast-tui draws stays within ASCII: the footer (token counts read `i`/`o`, separators ` | `, ellipses `...`), turn telemetry, tool cards and compact rows (`+`, `-`, `|` frames, `x` for failures, a `| / - \` spinner), popup borders (`+`, `-`, `|`), the Copy code frame, the header (frame, tips divider, a logo of `#` cells), the `/fast-tui` dialog (the `>` selection marker, `-` section rules, and arrows named `Up/Down`, `Left/Right` in the key hint), and the thinking peek. Switching the mode redraws the transcript at once. Two things are not covered: the editor frame follows `editorShape` (pick `ascii` there for an ASCII input box), and content drawn by Pi or returned by tools (model output, file contents, Pi's own menus and the `Language / 语言` row) is shown unchanged.
+With `ascii`, or `auto` when it falls back to ASCII, everything pi-fast-tui draws stays within ASCII: the footer (token counts read `i`/`o`, separators ` | `, ellipses `...`), turn telemetry, tool cards and compact rows (`+`, `-`, `|` frames, `x` for failures, a `| / - \` spinner), popup borders (`+`, `-`, `|`), the Copy code frame, the header (frame, tips divider, a logo of `#` cells), the `/fast-tui` dialog (the `>` selection marker, `-` section rules, and arrows named `Up/Down`, `Left/Right` in the key hint), and the thinking peek. Switching the mode redraws the transcript at once. Two things are not covered: the editor frame follows `editorShape` (pick `ascii` there for an ASCII input box), and content drawn by Pi or returned by tools (model output, file contents, Pi's own menus and the `Language / 语言` row) is shown unchanged.
 
 Auto detection does not inspect installed fonts. Configure a Nerd Font in the terminal profile or choose `unicode`/`ascii` if symbols are missing. If the SSH client terminal has a Nerd Font, select `nerd` explicitly.
 
@@ -238,7 +238,7 @@ Tab/Shift+Tab 切页，↑/↓ 或 Page Up/Page Down 移动，→（或 Enter/Sp
 | `unicode` | 可移植 Unicode 图标，emoji 使用终端自身的回退字体 |
 | `ascii` | 纯文本图标 |
 
-使用 `ascii` 时，pi-fast-tui 绘制的所有内容都只使用 ASCII 字符：底栏（令牌数显示为 `i`/`o`，分隔符为 ` | `，省略号为 `...`）、回合遥测、工具卡片与紧凑行（`+`、`-`、`|` 边框，失败用 `x`，旋转指示为 `| / - \`）、弹窗边框（`+`、`-`、`|`）、复制按钮的代码框、顶栏（边框、提示分隔线、由 `#` 组成的标志）、`/fast-tui` 对话框（选中标记 `>`、`-` 分节线，按键提示中的方向键写作 `Up/Down`、`Left/Right`）以及思考预览。切换模式后记录会立即重绘。以下内容不受影响：输入框边框跟随 `editorShape`（需要 ASCII 输入框时请在那里选择 `ascii`）；由 Pi 绘制或由工具返回的内容（模型输出、文件内容、Pi 自身的菜单以及 `Language / 语言` 行）原样显示。
+使用 `ascii`，或 `auto` 回退为 ASCII 时，pi-fast-tui 绘制的所有内容都只使用 ASCII 字符：底栏（令牌数显示为 `i`/`o`，分隔符为 ` | `，省略号为 `...`）、回合遥测、工具卡片与紧凑行（`+`、`-`、`|` 边框，失败用 `x`，旋转指示为 `| / - \`）、弹窗边框（`+`、`-`、`|`）、复制按钮的代码框、顶栏（边框、提示分隔线、由 `#` 组成的标志）、`/fast-tui` 对话框（选中标记 `>`、`-` 分节线，按键提示中的方向键写作 `Up/Down`、`Left/Right`）以及思考预览。切换模式后记录会立即重绘。以下内容不受影响：输入框边框跟随 `editorShape`（需要 ASCII 输入框时请在那里选择 `ascii`）；由 Pi 绘制或由工具返回的内容（模型输出、文件内容、Pi 自身的菜单以及 `Language / 语言` 行）原样显示。
 
 自动检测不会检查已安装字体。图标缺失时，请在终端配置中选中 Nerd Font，或切换到 `unicode`/`ascii`。SSH 客户端终端已配置 Nerd Font 时，可显式选择 `nerd`。
 

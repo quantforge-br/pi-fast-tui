@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- `icons.mode: auto` falling back to ASCII (stdout not a TTY, `TERM=dumb`, or a non-UTF-8 locale) now also draws cards, separators, popups, the header and the settings dialog in ASCII, instead of mixing ASCII footer icons with Unicode frames and punctuation.
+
 ## [0.8.0] - 2026-11-11
 
 ### Changed

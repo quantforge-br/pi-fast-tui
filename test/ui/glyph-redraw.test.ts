@@ -15,6 +15,26 @@ const theme = {
 	bold: (text: string) => text,
 } as unknown as Theme;
 
+/** Run as an interactive UTF-8 terminal (`tty`) or as a non-TTY with a C locale, restored after the test. */
+function terminal(t: { after(fn: () => unknown): void }, tty: boolean): void {
+	const keys = ["TERM", "LC_ALL", "LC_CTYPE", "LANG", "SSH_TTY", "SSH_CONNECTION"] as const;
+	const saved = keys.map((key) => [key, process.env[key]] as const);
+	const ownIsTTY = Object.hasOwn(process.stdout, "isTTY");
+	const isTTY = process.stdout.isTTY;
+	for (const key of keys) delete process.env[key];
+	process.env.TERM = "xterm-256color";
+	process.env.LANG = tty ? "C.UTF-8" : "C";
+	Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: tty });
+	t.after(() => {
+		for (const [key, value] of saved) {
+			if (value === undefined) delete process.env[key];
+			else process.env[key] = value;
+		}
+		if (ownIsTTY) Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: isTTY });
+		else delete (process.stdout as { isTTY?: boolean }).isTTY;
+	});
+}
+
 async function harness(t: { after(fn: () => unknown): void }, edit: (config: FastTuiConfig) => void = () => {}) {
 	const handlers = new Map<string, Array<(event: any, ctx: ExtensionContext) => unknown>>();
 	let command: ((args: string, ctx: ExtensionContext) => unknown) | undefined;
@@ -99,6 +119,7 @@ async function harness(t: { after(fn: () => unknown): void }, edit: (config: Fas
 }
 
 test("redraws the transcript only when /fast-tui changes the glyph set", async (t) => {
+	terminal(t, true);
 	const { calls, openSettings } = await harness(t);
 	const settings = openSettings();
 	settings.handleInput("\t");
@@ -121,4 +142,22 @@ test("applies an ASCII icon mode from the configuration file at session start", 
 		config.icons.mode = "ascii";
 	});
 	assert.equal(cardGlyphMode(), "ascii");
+});
+
+test("auto icon mode that falls back to ASCII switches the cards to ASCII at session start", async (t) => {
+	setCardGlyphMode("unicode");
+	terminal(t, false);
+	await harness(t, (config) => {
+		config.icons.mode = "auto";
+	});
+	assert.equal(cardGlyphMode(), "ascii");
+});
+
+test("auto icon mode on a UTF-8 terminal keeps the Unicode cards", async (t) => {
+	setCardGlyphMode("ascii");
+	terminal(t, true);
+	await harness(t, (config) => {
+		config.icons.mode = "auto";
+	});
+	assert.equal(cardGlyphMode(), "unicode");
 });

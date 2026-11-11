@@ -19,7 +19,7 @@ import {
 	invalidateUsageCache,
 	type FooterState,
 } from "./state.ts";
-import { resolveGlyphs } from "./icons.ts";
+import { resolveGlyphs, resolveIconMode } from "./icons.ts";
 import {
 	buildPeekLabel,
 	collectPeekParts,
@@ -417,7 +417,8 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 	});
 
 	/** Cards and chrome draw box-drawing glyphs everywhere except under an explicit ASCII icon mode. */
-	const applyGlyphMode = (): boolean => setCardGlyphMode(config.icons.mode === "ascii" ? "ascii" : "unicode");
+	// The resolved mode, so `auto` falling back to ASCII (non-TTY, TERM=dumb, non-UTF-8 locale) switches the cards too.
+	const applyGlyphMode = (): boolean => setCardGlyphMode(resolveIconMode(config.icons.mode) === "ascii" ? "ascii" : "unicode");
 
 	const toolView = () => {
 		// Resumed sessions rebuild their rows before session_start fires, so read the file once here.
