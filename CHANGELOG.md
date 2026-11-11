@@ -8,6 +8,7 @@
 - Compact tool view: a failed call is marked with an error glyph (`✘`, or `x` under ASCII icons) instead of the call dot, so it stands out without color.
 - ASCII icon mode: footer token counts read `i`/`o` instead of `↑`/`↓`, and footer, compact-row and thinking-peek separators, ellipses and minus signs are drawn in ASCII (` | `, `...`, `-`). The thinking peek spinner uses the card spinner frames.
 - ASCII icon mode: popups draw a plain `+`, `-`, `|` box and clip titles and rows with `...`.
+- ASCII icon mode: fullscreen code blocks with the Copy button are framed with `+`, `-` and `|`.
 
 ## [0.7.0] - 2026-11-11
 

@@ -14,6 +14,7 @@ import {
 	type TuiMouseEvent,
 	type TuiMouseEventResult,
 } from "@earendil-works/pi-tui";
+import { BOX, TEXT } from "../cards/symbols.ts";
 import { stripAnsi } from "./utils.ts";
 
 const LABEL = "[Copy]";
@@ -122,15 +123,15 @@ export function renderFramedCode(
 		return wrapped.length > 0 ? wrapped : [""];
 	});
 	const suffix = label === undefined ? "" : ` ${LABEL} `;
-	const name = truncateToWidth(lang?.trim().split(/\s+/, 1)[0] || "code", Math.max(1, width - 6 - visibleWidth(suffix)), "…");
-	const prefix = `╭─ ${name} `;
+	const name = truncateToWidth(lang?.trim().split(/\s+/, 1)[0] || "code", Math.max(1, width - 6 - visibleWidth(suffix)), TEXT.ellipsis);
+	const prefix = `${BOX.topLeft}${BOX.horizontal} ${name} `;
 	const widest = Math.max(0, ...rows.map((row) => visibleWidth(row)));
 	const frameWidth = Math.min(width, Math.max(widest + 4, visibleWidth(prefix) + 3 + visibleWidth(suffix) + 1));
 	const fill = Math.max(0, frameWidth - visibleWidth(prefix) - visibleWidth(suffix) - 1);
-	const top = (label === undefined ? marker : "") + border("╭─ ") + theme.codeBlockBorder(`${name} `) + border("─".repeat(fill))
-		+ (label === undefined ? "" : ` ${marker}${label} `) + border("╮");
-	const body = rows.map((row) => border("│ ") + row + " ".repeat(Math.max(0, frameWidth - 4 - visibleWidth(row))) + border(" │"));
-	return [top, ...body, border(`╰${"─".repeat(frameWidth - 2)}╯`)];
+	const top = (label === undefined ? marker : "") + border(`${BOX.topLeft}${BOX.horizontal} `) + theme.codeBlockBorder(`${name} `) + border(BOX.horizontal.repeat(fill))
+		+ (label === undefined ? "" : ` ${marker}${label} `) + border(BOX.topRight);
+	const body = rows.map((row) => border(`${BOX.vertical} `) + row + " ".repeat(Math.max(0, frameWidth - 4 - visibleWidth(row))) + border(` ${BOX.vertical}`));
+	return [top, ...body, border(`${BOX.bottomLeft}${BOX.horizontal.repeat(frameWidth - 2)}${BOX.bottomRight}`)];
 }
 
 /** Hit-test press/drag/release on recorded regions. Anything else returns undefined so Pi keeps its selection. */

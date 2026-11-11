@@ -14,6 +14,8 @@ import {
 } from "../../src/ui/copy-buttons.ts";
 import { installRealCopyButtons } from "./fixtures/copy-test-helpers.ts";
 import { mouseEvent } from "./fixtures/test-helpers.ts";
+import { setCardGlyphMode } from "../../src/cards/symbols.ts";
+import { stripAnsi } from "../../src/ui/utils.ts";
 
 const identity = (text: string) => text;
 const markdownTheme = new Proxy({}, {
@@ -38,6 +40,25 @@ function mouse(type: TuiMouseEvent["type"], x: number, y: number, button: TuiMou
 const md = "Intro\n\n```ts\nconst a = 1;\n```\n";
 
 // Frames, label eligibility, and user-message caches.
+test("the ASCII glyph set draws the code frame in ASCII", () => {
+	const copy = setup();
+	setCardGlyphMode("ascii");
+	try {
+		const lines = markdown(md).render(30).map(stripAnsi);
+		const top = lines.findIndex((line) => line.startsWith("+- ts "));
+		assert.ok(top >= 0);
+		assert.match(lines[top]!, /^\+- ts -+ \[Copy\] \+/);
+		assert.match(lines[top + 1]!, /^\| const a = 1;\s*\|/);
+		assert.match(lines[top + 2]!, /^\+-+\+/);
+		const clipped = markdown("```" + "x".repeat(40) + "\ncode\n```\n").render(30).map(stripAnsi);
+		assert.ok(clipped.some((line) => line.includes("x...")));
+		for (const line of clipped) assert.match(line, /^[\x00-\x7F]*$/);
+	} finally {
+		setCardGlyphMode("unicode");
+		copy.cleanup();
+	}
+});
+
 test("frames code blocks with [Copy] embedded in the top border", () => {
 	const copy = setup();
 	try {
