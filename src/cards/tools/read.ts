@@ -3,6 +3,7 @@
 import { getLanguageFromPath, highlightCode } from "@earendil-works/pi-coding-agent";
 import type { CardBuilder } from "../card.ts";
 import { formatOutputPane } from "../output-pane.ts";
+import { wrapHanging } from "../wrap.ts";
 import { lines, numberArg, pathArg, resultText, splitNotice, stringArg } from "./common.ts";
 
 /** Lines a collapsed read card shows. */
@@ -37,8 +38,10 @@ export const readCard: CardBuilder = (input) => {
 	const language = path ? getLanguageFromPath(path) : undefined;
 	const highlighted = language ? safeHighlight(raw.join("\n"), language) ?? raw : raw.map((line) => theme.fg("toolOutput", line));
 	const first = Math.max(1, Math.floor(offset ?? 1));
-	const gutter = String(first + raw.length - 1).length;
-	const numbered = highlighted.map((line, index) => `${theme.fg("dim", String(first + index).padStart(gutter))} ${line}`);
+	const gutterWidth = String(first + raw.length - 1).length;
+	const numbered = highlighted.map((line, index) =>
+		wrapHanging(`${theme.fg("dim", String(first + index).padStart(gutterWidth))} `, line, input.contentWidth),
+	);
 	const pane = formatOutputPane({ lines: numbered, expanded: input.expanded, collapsedMaxLines: READ_PREVIEW_LINES, expandHint: input.expandHint }, theme);
 	return {
 		variant: "framed",

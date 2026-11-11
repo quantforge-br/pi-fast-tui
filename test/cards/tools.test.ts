@@ -4,10 +4,15 @@ import { createCardRenderers } from "../../src/cards/card.ts";
 import { bashCard, parseBashOutput } from "../../src/cards/tools/bash.ts";
 import { splitNotice } from "../../src/cards/tools/common.ts";
 import { diffCounts, editCard, editPairs } from "../../src/cards/tools/edit.ts";
-import { readCard, readTarget } from "../../src/cards/tools/read.ts";
+import { READ_PREVIEW_LINES, readCard, readTarget } from "../../src/cards/tools/read.ts";
 import { findCard, grepCard, lsCard, parseGrep, SEARCH_PREVIEW_LINES } from "../../src/cards/tools/search.ts";
 import { writeCard } from "../../src/cards/tools/write.ts";
+import { plain } from "./helpers.ts";
 import { draw, newRow, type Row, text } from "./row.ts";
+
+function plainRows(lines: readonly string[]): string[] {
+	return plain(lines).split("\n");
+}
 
 const bash = createCardRenderers(bashCard);
 const read = createCardRenderers(readCard);
@@ -106,6 +111,29 @@ describe("read", () => {
 		const failed = draw(read, settled({ path: "missing.txt" }, "ENOENT: no such file or directory, open 'missing.txt'", { isError: true }), 80);
 		expect(failed).toContain("✘ Read: missing.txt");
 		expect(failed).toContain("ENOENT");
+	});
+	it("wraps long lines to the right of the line-number gutter", () => {
+		const output = `export const value6 = "xxxx";\nexport const value7 = "${"x".repeat(44)}"; // line 7`;
+		const rows = draw(read, settled({ path: "a.txt", offset: 6 }, output), 40).split("\n");
+		expect(rows.slice(1, -1)).toEqual([
+			' │ 6 export const value6 = "xxxx";    │',
+			" │ 7 export const value7 =            │",
+			' │   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx │',
+			' │   xxxxxxxxxxxxx"; // line 7        │',
+		]);
+		const highlighted = settled({ path: "a.ts", offset: 6 }, output);
+		draw(read, highlighted, 40);
+		const body = (highlighted.callComponent?.render(40) ?? []).slice(1, -1);
+		for (const line of body) expect(visibleWidth(line)).toBe(40);
+		for (const line of plainRows(body)) expect(line.slice(3, 4)).toMatch(/^[\d ]$/);
+		expect(plainRows(body).slice(2).every((line) => line.startsWith(" │   "))).toBe(true);
+	});
+
+	it("caps wrapped files by logical line", () => {
+		const long = Array.from({ length: 20 }, (_, index) => `row ${index} ${"w".repeat(60)}`).join("\n");
+		const rows = draw(read, settled({ path: "big.txt" }, long), 40).split("\n");
+		expect(rows.filter((row) => /^ │\s+\d+ row /.test(row))).toHaveLength(READ_PREVIEW_LINES);
+		expect(rows.join("\n")).toContain(`… ${20 - READ_PREVIEW_LINES} more lines (ctrl+o to expand)`);
 	});
 });
 

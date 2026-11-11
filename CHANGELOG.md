@@ -11,6 +11,7 @@
 - Turn telemetry fits the terminal width: when the line is too wide it first drops the input breakdown `(U … + R …)`, then wraps onto several lines, breaking only between metrics.
 - Header: terminals shorter than 30 rows get a compact five-row header (version title, model and thinking level, cwd, commands) without the logo; it switches back when the terminal grows. The full header leaves a blank column between the tips divider and the right border.
 - Grep, Find and Ls cards: rows longer than the card wrap with a hanging indent, under the tree rail (and, for grep lines, under the line-number gutter) instead of at the first column. Collapsed cards still show the same number of logical rows.
+- Read card: long lines wrap to the right of the line-number gutter, so the number column holds only numbers. The collapsed preview and its `… N more lines` marker still count logical lines.
 
 ## [0.5.1] - 2026-11-11
 
