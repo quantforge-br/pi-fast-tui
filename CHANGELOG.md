@@ -8,7 +8,7 @@
 
 ### Changed
 
-- `opencode` input shape: the panel now opens with a half-height row (`▖▄▄▄`) in the panel color, matching the half-height closing row, so the indicators row no longer touches the transcript. Mouse mapping accounts for the extra row.
+- `opencode` input shape: the panel now opens with a half-height row in the panel color, matching the half-height closing row, so the indicators row no longer touches the transcript. Mouse mapping accounts for the extra row. The panel half of that row is the cell background (reverse video `▀` blocks), so terminals that draw block elements from the font, such as Termux, no longer show a dark line between it and the indicators row.
 
 ## [0.3.3] - 2026-11-10
 

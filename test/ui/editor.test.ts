@@ -321,7 +321,7 @@ test("fills the opencode panel background past embedded resets", () => {
 	editor.setText("x");
 
 	const lines = editor.render(20);
-	assert.equal(lines[0], `▖\x1b[38;5;236m${"▄".repeat(19)}\x1b[39m`, "the opening row is half gap, half panel");
+	assert.equal(lines[0], `▖\x1b[38;5;236m\x1b[7m${"▀".repeat(19)}\x1b[27;39m`, "the opening row is half gap, half panel");
 	assert.equal(lines.at(-1), `▘\x1b[38;5;236m${"▀".repeat(19)}\x1b[39m`, "the closing row is half panel, half gap");
 	for (const line of lines.slice(1, -1)) {
 		assert.ok(line.startsWith(`▌${open}`), JSON.stringify(line));
@@ -334,7 +334,7 @@ test("puts the working indicator and scroll labels below the opencode half-row m
 	const editor = createFastTuiEditor({ editorShape: "opencode", panelBackground: () => "\x1b[48;5;236m" });
 	editor.setWorkingStatusIndicator({ renderInBorder: () => "◐ working", renderSpinnerInBorder: () => "◐" });
 	const initialLines = editor.render(40).map(stripAnsi);
-	assert.equal(initialLines[0], `▖${"▄".repeat(39)}`);
+	assert.equal(initialLines[0], `▖${"▀".repeat(39)}`);
 	assert.match(initialLines[1] ?? "", /^▌ +◐ working $/);
 
 	editor.setText(Array.from({ length: 30 }, (_, index) => `line ${index}`).join("\n"));
@@ -372,7 +372,7 @@ test("leaves the opencode half-height edge rows blank without a 256-color or tru
 		assert.equal(lines.at(-1), " ".repeat(20));
 	}
 	const truecolor = createFastTuiEditor({ editorShape: "opencode", panelBackground: () => "\x1b[48;2;33;59;73m" });
-	assert.equal(truecolor.render(20)[0], `▖\x1b[38;2;33;59;73m${"▄".repeat(19)}\x1b[39m`);
+	assert.equal(truecolor.render(20)[0], `▖\x1b[38;2;33;59;73m\x1b[7m${"▀".repeat(19)}\x1b[27;39m`);
 	assert.equal(truecolor.render(20).at(-1), `▘\x1b[38;2;33;59;73m${"▀".repeat(19)}\x1b[39m`);
 });
 

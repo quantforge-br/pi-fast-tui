@@ -364,8 +364,14 @@ function panelStatus(width: number, scrollLabel: string | undefined, indicator: 
 /**
  * Panel shapes: an accent rail beside a filled block holding a padding row with the
  * indicators, Pi's content rows, a blank row and an info row (model or the footer's second line).
- * Opening lower half blocks and closing upper half blocks in the panel color add half a row
- * of padding above the indicators and below the info row; without a usable color they stay blank.
+ * Half-height opening and closing rows in the panel color add half a row of padding above the
+ * indicators and below the info row; without a usable color they stay blank.
+ *
+ * Both edge rows draw only upper half blocks: terminals that render block elements from the font
+ * (Termux) anchor the glyph to the top of the cell and can leave its bottom pixel row uncovered.
+ * The opening row therefore takes the panel color from the cell background (reverse video turns
+ * the foreground into the background) and draws the gap above it with `▀` in the default
+ * background color, so the edge touching the indicators row never depends on glyph coverage.
  */
 function renderPanel(
 	decoration: EditorDecoration,
@@ -391,7 +397,7 @@ function renderPanel(
 	const railStart = shape.panelRailStart ? decoration.editor.borderColor(shape.panelRailStart) : " ".repeat(railWidth);
 	const result = [
 		halfBlock
-			? `${railStart}${halfBlock}${"▄".repeat(Math.max(0, width - railWidth))}\x1b[39m`
+			? `${railStart}${halfBlock}\x1b[7m${"▀".repeat(Math.max(0, width - railWidth))}\x1b[27;39m`
 			: " ".repeat(Math.max(0, width)),
 		row(spreadRow(footer?.top.left ?? "", topRight, contentWidth)),
 	];
