@@ -8,6 +8,7 @@
 - `/fast-tui` dialog: ← and → change the selected setting's value (→ to the next value, ← to the previous one; boolean rows toggle either way). Tabs now switch only with Tab and Shift+Tab. The key hint says so in both languages.
 - `/fast-tui` dialog: the key hint always fits on one row. When the full hint is too wide, a short form (`Tab tabs · ↑↓ move · ←→ change · Esc close`) is shown, and below that no hint at all.
 - `/fast-tui` dialog: the `(n/total)` scroll indicator counts settings only, not section headings (the Footer tab reads `(1/16)` on its first setting), and section headings leave a space between the rule and the label (`── Extension ───`).
+- `/fast-tui` dialog: the language row reads `Language / 语言` in both languages, so it can be found without reading the current one.
 
 ## [0.6.0] - 2026-11-11
 

@@ -676,6 +676,16 @@ test("counts only settings in the scroll indicator and spaces the section rule f
 	for (const line of lines) assert.ok(visibleWidth(line) <= 80);
 });
 
+test("labels the language row in both languages", async () => {
+	for (const language of ["en", "zh"] as const) {
+		const settings = await openSettings({ ...classicConfig(), popupMenus: true, settingsLanguage: language });
+		settings.terminal.columns = 60;
+		settings.press("\x1b[B", 2);
+		const line = selectedLine(settings.component, 60);
+		assert.match(line, /Language \/ 语言: (English|简体中文)/);
+	}
+});
+
 // Width, height, and localization.
 test("keeps localized settings and values within narrow widths", async () => {
 	const config = classicConfig();
