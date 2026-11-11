@@ -523,7 +523,6 @@ function renderFooterContent(
 	};
 
 	const modelParts: string[] = [];
-	modelParts.push(theme.fg("mdLink", glyphs.model));
 	if (meta.provider && meta.provider !== "Unknown") {
 		modelParts.push(theme.fg(providerColor(ctx.model?.provider ?? "none"), meta.provider));
 	}
@@ -531,7 +530,7 @@ function renderFooterContent(
 	if (meta.effort && meta.effort !== "off") {
 		modelParts.push(theme.fg(effortColor(meta.effort), `${glyphs.thinking} ${meta.effort}`));
 	}
-	const modelBlock = modelParts.join(theme.fg("dim", " · "));
+	const modelBlock = `${theme.fg("mdLink", glyphs.model)} ${modelParts.join(theme.fg("dim", " · "))}`;
 	const stats = renderStatsSegments(theme, totals, glyphs, segments);
 	const statsBlock = [stats.tokens, stats.cost].filter(Boolean).join(` ${theme.fg("dim", "|")} `);
 	builtins.model = { text: modelBlock, priority: 0 };

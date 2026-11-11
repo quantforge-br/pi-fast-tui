@@ -5,6 +5,7 @@
 ### Changed
 
 - Footer run status: the timer stays on `working` from the first `agent_start` of a run until `agent_settled`, so retries and continuations no longer flash `done` or restart the clock. A run that settles on a provider error reads `failed <duration>` (error color) and a stopped run reads `stopped <duration>` (muted), both with a new `failed` glyph (`✘` / `✗` / `x`).
+- Footer row 2: the model icon is followed by a space instead of the ` · ` separator (`<icon> Provider · Model · <thinking> effort`), in the regular and editor-border footers.
 
 ## [0.5.1] - 2026-11-11
 

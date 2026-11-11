@@ -276,6 +276,7 @@ function footerFixture(options: {
 	contextTokens?: number;
 	entries?: Array<{ id: string }>;
 	effort?: string;
+	provider?: string;
 	state?: Partial<FooterState>;
 	theme?: Theme;
 	statuses?: () => Map<string, string>;
@@ -311,7 +312,7 @@ function footerFixture(options: {
 		ctx,
 		() => state,
 		() => config,
-		() => ({ provider: "OpenAI", model: "gpt-5", effort: options.effort ?? "off" }),
+		() => ({ provider: options.provider ?? "OpenAI", model: "gpt-5", effort: options.effort ?? "off" }),
 		{ setRequestRender() {}, scheduleGitRefresh() {}, ...options.hooks },
 	);
 	assert.ok(footerFactory);
@@ -1086,4 +1087,15 @@ test("timer segment renders done, failed and stopped settled runs", () => {
 	assert.ok(line().includes(`<error>${glyphs.failed} <error>failed <text>4s`), line());
 	state.lastOutcome = "aborted";
 	assert.ok(line().includes(`<muted>${glyphs.failed} <muted>stopped <text>4s`), line());
+});
+
+test("row 2 prefixes the model block with its icon and a space", () => {
+	const model = resolveGlyphs("ascii").model;
+	const { component, handle } = footerFixture({ effort: "high" });
+	assert.ok(component.render(160)[1]!.startsWith(`${model} OpenAI · gpt-5 · ~ high`), component.render(160)[1]);
+	assert.ok(handle.renderInline(160)!.bottom.left.startsWith(`${model} OpenAI · gpt-5`));
+
+	const unknown = footerFixture({ provider: "Unknown" });
+	assert.ok(unknown.component.render(160)[1]!.startsWith(`${model} gpt-5`), unknown.component.render(160)[1]);
+	assert.ok(unknown.handle.renderInline(160)!.bottom.left.startsWith(`${model} gpt-5`));
 });
