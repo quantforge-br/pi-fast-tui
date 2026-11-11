@@ -294,12 +294,13 @@ const modelInfoStub: InlineFooterRenderer = {
 	renderInfo: () => "Opus 4.5 Anthropic · high",
 };
 
-test("draws the opencode panel with a rail, padding and an info row", () => {
+test("draws the opencode panel with a rail, top spacing and an info row", () => {
 	const editor = createFastTuiEditor({ editorShape: "opencode", inlineFooter: modelInfoStub });
 	editor.setText("first\nsecond");
 
 	const lines = editor.render(30).map(stripAnsi);
 	assert.deepEqual(lines, [
+		" ".repeat(30),
 		`▌${" ".repeat(29)}`,
 		`▌ ${"first".padEnd(28)}`,
 		`▌ ${"second".padEnd(28)}`,
@@ -320,49 +321,58 @@ test("fills the opencode panel background past embedded resets", () => {
 	editor.setText("x");
 
 	const lines = editor.render(20);
+	assert.equal(lines[0], `▖\x1b[38;5;236m${"▄".repeat(19)}\x1b[39m`, "the opening row is half gap, half panel");
 	assert.equal(lines.at(-1), `▘\x1b[38;5;236m${"▀".repeat(19)}\x1b[39m`, "the closing row is half panel, half gap");
-	for (const line of lines.slice(0, -1)) {
+	for (const line of lines.slice(1, -1)) {
 		assert.ok(line.startsWith(`▌${open}`), JSON.stringify(line));
 		assert.ok(line.endsWith("\x1b[49m"), JSON.stringify(line));
 	}
 	assert.ok(lines.at(-2)!.includes(`a\x1b[0m${open}b`));
 });
 
-test("puts the working indicator and scroll labels in the opencode padding row", () => {
-	const editor = createFastTuiEditor({ editorShape: "opencode" });
+test("puts the working indicator and scroll labels below the opencode half-row margin", () => {
+	const editor = createFastTuiEditor({ editorShape: "opencode", panelBackground: () => "\x1b[48;5;236m" });
 	editor.setWorkingStatusIndicator({ renderInBorder: () => "◐ working", renderSpinnerInBorder: () => "◐" });
-	assert.match(stripAnsi(editor.render(40)[0] ?? ""), /^▌ +◐ working $/);
+	const initialLines = editor.render(40).map(stripAnsi);
+	assert.equal(initialLines[0], `▖${"▄".repeat(39)}`);
+	assert.match(initialLines[1] ?? "", /^▌ +◐ working $/);
 
 	editor.setText(Array.from({ length: 30 }, (_, index) => `line ${index}`).join("\n"));
 	for (let i = 0; i < 12; i++) editor.handleInput("\x1b[A");
 	const lines = editor.render(60).map(stripAnsi);
-	assert.match(lines[0] ?? "", /^▌ +◐ working ↑ \d+ more ↓ \d+ more $/);
-	assert.ok(lines.slice(0, -1).every((line) => line.startsWith("▌") && visibleWidth(line) === 60));
+	assert.match(lines[1] ?? "", /^▌ +◐ working ↑ \d+ more ↓ \d+ more $/);
+	assert.ok(lines.slice(1, -1).every((line) => line.startsWith("▌") && visibleWidth(line) === 60));
 	assert.ok(!lines.some((line) => line.includes("─")));
 });
 
 test("embeds both inline footer lines in the opencode panel", () => {
 	const editor = createFastTuiEditor({ editorShape: "opencode", inlineFooter: inlineFooterStub });
 	const lines = editor.render(40).map(stripAnsi);
-	assert.match(lines[0] ?? "", /^▌ cwd +context $/);
+	assert.equal(lines[0], " ".repeat(40));
+	assert.match(lines[1] ?? "", /^▌ cwd +context $/);
 	assert.match(lines.at(-2) ?? "", /^▌ model +stats $/);
 	assert.equal(lines.at(-1), " ".repeat(40));
 });
 
-test("maps opencode panel clicks past the rail", () => {
+test("maps opencode panel clicks past the rail and half-row margin", () => {
 	const editor = createFastTuiEditor({ editorShape: "opencode" });
-	editor.setText("abcdef");
+	editor.setText("abcdef\nuvwxyz");
 	editor.render(40);
-	editor.handleMouse(mouseEvent("click", 3, 1, { width: 40, height: 8 }));
-	assert.equal(editor.getCursor().col, 1);
+	editor.handleMouse(mouseEvent("click", 3, 2, { width: 40, height: 8 }));
+	assert.deepEqual(editor.getCursor(), { line: 0, col: 1 });
+	editor.handleMouse(mouseEvent("click", 4, 3, { width: 40, height: 8 }));
+	assert.deepEqual(editor.getCursor(), { line: 1, col: 2 });
 });
 
-test("leaves the opencode closing row blank without a 256-color or truecolor background", () => {
+test("leaves the opencode half-height edge rows blank without a 256-color or truecolor background", () => {
 	for (const panelBackground of [undefined, () => "", () => "\x1b[100m"]) {
 		const editor = createFastTuiEditor({ editorShape: "opencode", panelBackground });
-		assert.equal(stripAnsi(editor.render(20).at(-1) ?? ""), " ".repeat(20));
+		const lines = editor.render(20).map(stripAnsi);
+		assert.equal(lines[0], " ".repeat(20));
+		assert.equal(lines.at(-1), " ".repeat(20));
 	}
 	const truecolor = createFastTuiEditor({ editorShape: "opencode", panelBackground: () => "\x1b[48;2;33;59;73m" });
+	assert.equal(truecolor.render(20)[0], `▖\x1b[38;2;33;59;73m${"▄".repeat(19)}\x1b[39m`);
 	assert.equal(truecolor.render(20).at(-1), `▘\x1b[38;2;33;59;73m${"▀".repeat(19)}\x1b[39m`);
 });
 
@@ -374,13 +384,13 @@ test("maps clicks on the opencode info and closing rows to Pi's bottom rule", ()
 		return undefined;
 	};
 	const editor = decorateFastTuiEditor(inner, tui, { editorShape: "opencode" });
-	assert.equal(editor.render(40).length, 5);
-	for (const y of [2, 3, 4]) editor.handleMouse(mouseEvent("click", 5, y, { width: 40, height: 8 }));
+	assert.equal(editor.render(40).length, 6);
+	for (const y of [3, 4, 5]) editor.handleMouse(mouseEvent("click", 5, y, { width: 40, height: 8 }));
 	assert.deepEqual(rows, [2, 2, 2]);
 });
 
 test("maps clicks below the frame to Pi's completion rows without the frame inset", () => {
-	for (const [shape, yOffset] of [["rounded", 0], ["claude", 0], ["rule", 1], ["opencode", -2]] as const) {
+	for (const [shape, yOffset] of [["rounded", 0], ["claude", 0], ["rule", 1], ["opencode", -3]] as const) {
 		const inner = new CustomEditor(tui, editorTheme, { matches: () => false } as unknown as KeybindingsManager, { paddingX: 0 });
 		const events: TuiMouseEvent[] = [];
 		inner.handleMouse = (event) => {
@@ -390,7 +400,8 @@ test("maps clicks below the frame to Pi's completion rows without the frame inse
 		const editor = decorateFastTuiEditor(inner, tui, { editorShape: shape });
 		const rows = editor.render(40).length;
 		editor.handleMouse(mouseEvent("click", 5, rows, { width: 40, height: 8 }));
-		editor.handleMouse(mouseEvent("click", 5, 1, { width: 40, height: 8 }));
+		const contentRow = shape === "opencode" ? 2 : 1;
+		editor.handleMouse(mouseEvent("click", 5, contentRow, { width: 40, height: 8 }));
 		assert.equal(events[0]?.x, 5, `${shape} completion x`);
 		assert.equal(events[0]?.y, rows + yOffset, `${shape} completion y`);
 		assert.equal(events[1]?.x, 3, `${shape} content x`);

@@ -6,6 +6,10 @@
 
 - `popupMenus` setting (default on, **Appearance → Editor → Popup menus**): `/settings`, `/model` and ctrl+l, `/scoped-models`, the thinking selector, and `/fast-tui` open as a centered popup panel in the OpenCode style (filled `userMessageBg` background, border, title with `esc` hint, padding, Pi's rules removed) while the input box stays visible. Turning it off restores Pi's inline menus.
 
+### Changed
+
+- `opencode` input shape: the panel now opens with a half-height row (`▖▄▄▄`) in the panel color, matching the half-height closing row, so the indicators row no longer touches the transcript. Mouse mapping accounts for the extra row.
+
 ## [0.3.3] - 2026-11-10
 
 ### Changed

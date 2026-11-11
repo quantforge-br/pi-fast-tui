@@ -28,6 +28,8 @@ export interface EditorShapeStyle {
 	 * rows, a blank row and an info row. Replaces both of Pi's rules.
 	 */
 	readonly panel?: boolean;
+	/** Lower half of the panel rail, drawn on the half-height opening row. */
+	readonly panelRailStart?: string;
 	/** Upper half of the panel rail, drawn on the half-height closing row. */
 	readonly panelRailEnd?: string;
 	/** Cells added before Pi's content (rail + space, or prompt). */
@@ -62,7 +64,7 @@ const SHAPES: Partial<Record<EditorShape, EditorShapeStyle>> = {
 	native: { id: "native", glyphs: RULE, sideRails: false, bottomBorder: true, leftInset: 0, rightInset: 0 },
 	claude: { id: "claude", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: true, leftInset: 2, rightInset: 0 },
 	rule: { id: "rule", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: false, leftInset: 2, rightInset: 0 },
-	opencode: { id: "opencode", glyphs: { ...RULE, vertical: "▌" }, sideRails: false, panel: true, panelRailEnd: "▘", bottomBorder: false, leftInset: 2, rightInset: 1 },
+	opencode: { id: "opencode", glyphs: { ...RULE, vertical: "▌" }, sideRails: false, panel: true, panelRailStart: "▖", panelRailEnd: "▘", bottomBorder: false, leftInset: 2, rightInset: 1 },
 };
 
 /** Whether the shape has a row below the content that can hold the footer's second line. */

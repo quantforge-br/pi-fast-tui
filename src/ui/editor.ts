@@ -303,6 +303,8 @@ interface FrameLayout {
 	width: number;
 	leftInset: number;
 	horizontalChrome: number;
+	/** Rows to add to a framed content y to reach Pi's layout. */
+	contentRowShift: number;
 	/** First chrome row after the content; chrome rows up to `belowFrameRow` map onto Pi's bottom rule. */
 	contentEndRow: number;
 	/** First row below the frame (completion list); those rows keep Pi's own x coordinates. */
@@ -348,8 +350,8 @@ function panelStatus(width: number, scrollLabel: string | undefined, indicator: 
 /**
  * Panel shapes: an accent rail beside a filled block holding a padding row with the
  * indicators, Pi's content rows, a blank row and an info row (model or the footer's second line).
- * A closing row of upper half blocks in the panel color adds half a row of padding under the info
- * row and half a row of space above whatever is drawn below; without a usable color it stays blank.
+ * Opening lower half blocks and closing upper half blocks in the panel color add half a row
+ * of padding above the indicators and below the info row; without a usable color they stay blank.
  */
 function renderPanel(
 	decoration: EditorDecoration,
@@ -370,14 +372,20 @@ function renderPanel(
 	const footer = embedFooter ? decoration.inlineFooter?.render(contentWidth) : undefined;
 	const status = panelStatus(contentWidth, scrollLabel, decoration.indicator);
 	const topRight = [footer?.top.right ?? "", status].filter((part) => visibleWidth(part) > 0).join(" ");
-	const result = [row(spreadRow(footer?.top.left ?? "", topRight, contentWidth))];
+	const halfBlock = backgroundAsForeground(open);
+	const railWidth = visibleWidth(shape.glyphs.vertical);
+	const railStart = shape.panelRailStart ? decoration.editor.borderColor(shape.panelRailStart) : " ".repeat(railWidth);
+	const result = [
+		halfBlock
+			? `${railStart}${halfBlock}${"▄".repeat(Math.max(0, width - railWidth))}\x1b[39m`
+			: " ".repeat(Math.max(0, width)),
+		row(spreadRow(footer?.top.left ?? "", topRight, contentWidth)),
+	];
 	for (let i = 1; i < bottomIdx; i++) result.push(row(baseLines[i] ?? ""));
 	result.push(row(""));
 	result.push(row(footer
 		? spreadRow(footer.bottom.left, footer.bottom.right, contentWidth)
 		: decoration.inlineFooter?.renderInfo?.(contentWidth) ?? ""));
-	const halfBlock = backgroundAsForeground(open);
-	const railWidth = visibleWidth(shape.glyphs.vertical);
 	const railEnd = shape.panelRailEnd ? decoration.editor.borderColor(shape.panelRailEnd) : " ".repeat(railWidth);
 	result.push(halfBlock
 		? `${railEnd}${halfBlock}${"▀".repeat(Math.max(0, width - railWidth))}\x1b[39m`
@@ -419,9 +427,10 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 			width,
 			leftInset: shape.leftInset,
 			horizontalChrome,
+			contentRowShift: -1,
 			contentEndRow: bottomIdx,
-			belowFrameRow: bottomIdx + 3,
-			belowFrameShift: -2,
+			belowFrameRow: bottomIdx + 4,
+			belowFrameShift: -3,
 		};
 		for (let i = bottomIdx + 1; i < baseLines.length; i++) result.push(baseLines[i]!);
 		return result.map((line) => truncateToWidth(line, width, ""));
@@ -454,6 +463,7 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 		width,
 		leftInset: shape.leftInset,
 		horizontalChrome,
+		contentRowShift: 0,
 		contentEndRow: bottomIdx,
 		belowFrameRow: shape.bottomBorder ? bottomIdx + 1 : bottomIdx,
 		// Pi's bottom rule is not drawn, so rows below the frame sit one row higher than in Pi's layout.
@@ -468,7 +478,7 @@ function mapMouseEvent<T extends { x: number; y: number; width: number }>(decora
 	const width = event.width - frame.horizontalChrome;
 	// Completion rows are copied unshifted from Pi's render, so only their row index moves.
 	if (event.y >= frame.belowFrameRow) return { ...event, y: event.y + frame.belowFrameShift, width };
-	const y = Math.min(event.y, frame.contentEndRow);
+	const y = Math.min(Math.max(0, event.y + frame.contentRowShift), frame.contentEndRow);
 	return { ...event, x: event.x - frame.leftInset, y, width };
 }
 

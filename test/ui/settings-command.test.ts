@@ -258,7 +258,9 @@ test("cycles editor shapes from the Appearance tab without remounting the editor
 	for (const shape of [...EDITOR_SHAPES.slice(1), EDITOR_SHAPES[0]]) {
 		settings.component.handleInput("\r");
 		assert.equal(settings.getConfig().editorShape, shape);
-		assert.match(mounted!.render(40)[0]!, topLeft[shape]!, shape);
+		const lines = mounted!.render(40);
+		if (shape === "opencode") assert.equal(lines[0], " ".repeat(40));
+		assert.match(lines[shape === "opencode" ? 1 : 0]!, topLeft[shape]!, shape);
 		assert.match(selectedLine(settings.component), /Input shape/);
 	}
 	assert.equal(editorInstalls, 1);
