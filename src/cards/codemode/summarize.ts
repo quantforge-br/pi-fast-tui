@@ -2,6 +2,7 @@
 
 import { homedir } from "node:os";
 import { stripVTControlCharacters } from "node:util";
+import { TEXT } from "../symbols.ts";
 
 export interface CallSummary {
 	/** What ran: `$` for shell commands, otherwise the tool name. */
@@ -23,8 +24,6 @@ const JSON_ESCAPES: Record<string, string> = { n: "\n", r: "\r", t: "\t" };
 /** Fields that name what a tool acts on, most telling first. */
 const SUBJECT_FIELDS = ["path", "file_path", "url", "query", "pattern"];
 const TAIL_CHARS = 2000;
-/** Keeps a multi-line command on its row, where the width decides how much of it shows. */
-const LINE_BREAK = " ↵ ";
 
 function unescapeJson(text: string): string {
 	return text.replace(JSON_ESCAPE, (_, escape: string) =>
@@ -81,7 +80,8 @@ function summarizeCommand(command: string, cwd: string): CallSummary {
 	const shortened = where && shortenPath(where, cwd);
 	return {
 		label: "$",
-		detail: lines.join(LINE_BREAK) || command.trim(),
+		// The line-break marker keeps a multi-line command on its row, where the width decides how much of it shows.
+		detail: lines.join(TEXT.lineBreak) || command.trim(),
 		where: shortened === "." ? undefined : shortened,
 	};
 }
@@ -96,7 +96,7 @@ function describeRange(args: Record<string, unknown>): string {
 /** `mcp__server__tool` reads as `server › tool`. */
 export function displayName(name: string): string {
 	const [prefix, server, ...tool] = name.split("__");
-	return prefix === "mcp" && server && tool.length > 0 ? `${server} › ${tool.join("__")}` : name;
+	return prefix === "mcp" && server && tool.length > 0 ? `${server}${TEXT.chevron}${tool.join("__")}` : name;
 }
 
 function summarizeFields(args: Record<string, unknown>, cwd: string): string {
@@ -111,7 +111,7 @@ function summarizeFields(args: Record<string, unknown>, cwd: string): string {
 			return typeof value === "number" || typeof value === "boolean" ? String(value) : "";
 		})
 		.filter(Boolean)
-		.join(" · ")
+		.join(TEXT.sep)
 		.replace(/\s+/g, " ");
 }
 

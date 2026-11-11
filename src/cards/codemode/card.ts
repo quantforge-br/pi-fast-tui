@@ -172,7 +172,7 @@ function actionRow(call: NestedCall, live: LiveCall | undefined, input: CardInpu
 }
 
 function lineCounts(added: number, removed: number, theme: Theme): string {
-	return [added > 0 ? theme.fg("toolDiffAdded", `+${added}`) : "", removed > 0 ? theme.fg("toolDiffRemoved", `−${removed}`) : ""]
+	return [added > 0 ? theme.fg("toolDiffAdded", `+${added}`) : "", removed > 0 ? theme.fg("toolDiffRemoved", `${TEXT.minus}${removed}`) : ""]
 		.filter(Boolean)
 		.join(" ");
 }
@@ -182,7 +182,7 @@ function changeRow(calls: NestedCall[], change: FileChange, theme: Theme, cwd: s
 	const left = [
 		`${theme.fg("success", MARKS.edit)} ${theme.fg("toolTitle", shortenPath(change.path, cwd))}`,
 		change.written === undefined ? counts : theme.fg("muted", `wrote ${plural(change.written, "line")}`),
-		calls.length > 1 ? theme.fg("muted", `· ${calls.length} edits`) : "",
+		calls.length > 1 ? theme.fg("muted", `${TEXT.sep.trimStart()}${calls.length} edits`) : "",
 	];
 	const durationMs = calls.reduce((sum, call) => sum + (call.durationMs ?? 0), 0);
 	return { left: left.filter(Boolean).join(" "), right: timing(durationMs, undefined, theme), below: [], pinned: true, change };
@@ -216,8 +216,8 @@ function addDiffs(rows: ActionRow[], expanded: boolean, theme: Theme, expandHint
 		if (!expanded) budget -= shown.length;
 		row.below.push(...renderDiff(shown.join("\n")).split("\n"));
 		const hidden = changed.length - shown.length;
-		if (hidden > 0) row.below.push(`${theme.fg("dim", `… ${plural(hidden, "more line")} (`)}${expandHint}${theme.fg("dim", ")")}`);
-		if (expanded && change.truncated) row.below.push(theme.fg("muted", "… diff cut short"));
+		if (hidden > 0) row.below.push(`${theme.fg("dim", `${TEXT.ellipsis} ${plural(hidden, "more line")} (`)}${expandHint}${theme.fg("dim", ")")}`);
+		if (expanded && change.truncated) row.below.push(theme.fg("muted", `${TEXT.ellipsis} diff cut short`));
 	}
 }
 
@@ -225,7 +225,7 @@ function addDiffs(rows: ActionRow[], expanded: boolean, theme: Theme, expandHint
 function actionLines(rows: ActionRow[], earlier: number, input: CardInput): string[] {
 	const { theme, contentWidth, expanded } = input;
 	const lines: string[] = [];
-	if (earlier > 0) lines.push(`${theme.fg("dim", TREE.branch)} ${theme.fg("dim", `… ${plural(earlier, "earlier action")}`)}`);
+	if (earlier > 0) lines.push(`${theme.fg("dim", TREE.branch)} ${theme.fg("dim", `${TEXT.ellipsis} ${plural(earlier, "earlier action")}`)}`);
 	rows.forEach((row, index) => {
 		const last = index === rows.length - 1;
 		const branch = theme.fg("dim", last ? TREE.last : TREE.branch);
@@ -238,10 +238,10 @@ function actionLines(rows: ActionRow[], earlier: number, input: CardInput): stri
 			for (const below of row.below) lines.push(...wrapTextWithAnsi(below, room).map((line) => `${indent}${line}`));
 			return;
 		}
-		const left = truncateToWidth(row.left, Math.max(1, room - rightWidth - 1));
+		const left = truncateToWidth(row.left, Math.max(1, room - rightWidth - 1), TEXT.ellipsis);
 		const gap = " ".repeat(Math.max(1, room - visibleWidth(left) - rightWidth));
 		lines.push(`${branch} ${left}${gap}${row.right}`);
-		for (const below of row.below) lines.push(`${indent}${truncateToWidth(below, room)}`);
+		for (const below of row.below) lines.push(`${indent}${truncateToWidth(below, room, TEXT.ellipsis)}`);
 	});
 	return lines;
 }

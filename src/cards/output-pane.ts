@@ -1,6 +1,7 @@
 // Caps tool output to a preview, from the head or the tail, with a marker that says what was left out.
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
+import { TEXT } from "./symbols.ts";
 
 /** Which end of the output stays visible when it is capped. */
 export type PaneEdge = "head" | "tail";
@@ -38,8 +39,8 @@ export function formatOutputPane(options: OutputPaneOptions, theme: Theme): Outp
 	const shown = edge === "tail" ? styled.slice(styled.length - limit) : styled.slice(0, limit);
 	const label =
 		edge === "tail"
-			? `… (${hidden} earlier ${hidden === 1 ? "line" : "lines"}, showing ${limit} of ${styled.length})`
-			: `… ${hidden} more ${hidden === 1 ? "line" : "lines"}`;
+			? `${TEXT.ellipsis} (${hidden} earlier ${hidden === 1 ? "line" : "lines"}, showing ${limit} of ${styled.length})`
+			: `${TEXT.ellipsis} ${hidden} more ${hidden === 1 ? "line" : "lines"}`;
 	const marker = `${theme.fg("dim", `${label} (`)}${options.expandHint}${theme.fg("dim", ")")}`;
 	return { lines: edge === "tail" ? [marker, ...shown] : [...shown, marker], hidden };
 }

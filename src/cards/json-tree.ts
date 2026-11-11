@@ -2,7 +2,7 @@
 
 import type { Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { TREE } from "./symbols.ts";
+import { TEXT, TREE } from "./symbols.ts";
 
 /** Bounds of a JSON tree. */
 export interface JsonTreeOptions {
@@ -24,15 +24,17 @@ export const JSON_TREE_EXPANDED: JsonTreeOptions = { maxDepth: 6, maxLines: 200,
 // Containers whose one-line form fits this many characters stay on one row.
 const INLINE_LEN = 60;
 
-/** Cut plain text to a width, ending in `…` when cut. Unlike pi-tui's truncation it adds no escape codes. */
+/** Cut plain text to a width, ending in the glyph set's ellipsis when cut. Unlike pi-tui's truncation it adds no escape codes. */
 export function clipText(text: string, maxWidth: number): string {
 	if (visibleWidth(text) <= maxWidth) return text;
+	const ellipsis = TEXT.ellipsis;
+	const room = maxWidth - visibleWidth(ellipsis);
 	let result = "";
 	for (const char of text) {
-		if (visibleWidth(result + char) > maxWidth - 1) break;
+		if (visibleWidth(result + char) > room) break;
 		result += char;
 	}
-	return `${result}…`;
+	return `${result}${ellipsis}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -58,7 +60,7 @@ export function formatArgsInline(args: Record<string, unknown>, maxWidth: number
 		const used = visibleWidth(result) + sep.length;
 		const reserve = keys.slice(index + 1).reduce((sum, next) => sum + next.length + 7, 0);
 		const budget = Math.max(key.length + 4, maxWidth - used - reserve);
-		if (used + key.length + 2 > maxWidth) return `${result}${sep}…`;
+		if (used + key.length + 2 > maxWidth) return `${result}${sep}${TEXT.ellipsis}`;
 		const piece = `${key}=${formatScalar(args[key], budget - key.length - 3)}`;
 		result += sep + clipText(piece, Math.min(budget, maxWidth - used));
 	}

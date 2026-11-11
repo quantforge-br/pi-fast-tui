@@ -3,6 +3,7 @@
 import { renderDiff } from "@earendil-works/pi-coding-agent";
 import type { CardBuilder, CardInput } from "../card.ts";
 import { formatOutputPane } from "../output-pane.ts";
+import { TEXT } from "../symbols.ts";
 import { lines, pathArg, resultText } from "./common.ts";
 
 /** Diff lines a collapsed edit card shows. */
@@ -49,7 +50,7 @@ export function editPairs(args: Record<string, unknown>): EditPair[] {
 function previewDiff(input: CardInput): string[] {
 	const { theme } = input;
 	return editPairs(input.args).flatMap((pair, index) => [
-		...(index > 0 ? [theme.fg("dim", "…")] : []),
+		...(index > 0 ? [theme.fg("dim", TEXT.ellipsis)] : []),
 		...(pair.oldText ? lines(pair.oldText).map((line) => theme.fg("toolDiffRemoved", `-${line}`)) : []),
 		...(pair.newText ? lines(pair.newText).map((line) => theme.fg("toolDiffAdded", `+${line}`)) : []),
 	]);

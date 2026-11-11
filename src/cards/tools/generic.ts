@@ -4,7 +4,7 @@ import type { CardBuilder } from "../card.ts";
 import { displayName } from "../codemode/summarize.ts";
 import { formatArgsInline, JSON_TREE_COLLAPSED, JSON_TREE_EXPANDED, renderJsonTree } from "../json-tree.ts";
 import { formatOutputPane } from "../output-pane.ts";
-import { TREE } from "../symbols.ts";
+import { TEXT, TREE } from "../symbols.ts";
 import { lines, resultText } from "./common.ts";
 
 /** Output rows a collapsed generic card shows. */
@@ -41,7 +41,7 @@ export function createGenericCard(toolName: string): CardBuilder {
 		}
 		if (expanded && hasArgs) {
 			const tree = renderJsonTree(input.args, theme, JSON_TREE_EXPANDED);
-			sections.push({ label: "Args", lines: tree.truncated ? [...tree.lines, theme.fg("dim", "…")] : tree.lines });
+			sections.push({ label: "Args", lines: tree.truncated ? [...tree.lines, theme.fg("dim", TEXT.ellipsis)] : tree.lines });
 		}
 
 		const text = resultText(input.result);
@@ -55,7 +55,7 @@ export function createGenericCard(toolName: string): CardBuilder {
 				rows = [theme.fg("dim", "(no output)")];
 			} else if (tree && tree.lines.length > 0 && !(expanded && tree.truncated)) {
 				// An expanded tree that hit a bound would show less than the raw text, so expanding falls through to it.
-				rows = tree.truncated ? [...tree.lines, `${theme.fg("dim", "… (")}${input.expandHint}${theme.fg("dim", ")")}`] : tree.lines;
+				rows = tree.truncated ? [...tree.lines, `${theme.fg("dim", `${TEXT.ellipsis} (`)}${input.expandHint}${theme.fg("dim", ")")}`] : tree.lines;
 			} else {
 				rows = formatOutputPane(
 					{ lines: lines(output), expanded, collapsedMaxLines: GENERIC_PREVIEW_LINES, styleLine: (line) => theme.fg(color, line), expandHint: input.expandHint },

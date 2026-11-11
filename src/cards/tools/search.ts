@@ -3,7 +3,7 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import type { CardBuilder, CardInput, CardSnapshot } from "../card.ts";
 import { plural } from "../format.ts";
-import { TREE } from "../symbols.ts";
+import { TEXT, TREE } from "../symbols.ts";
 import { wrapHanging } from "../wrap.ts";
 import { lines, pathArg, resultText, splitNotice, stringArg } from "./common.ts";
 
@@ -63,7 +63,7 @@ function grepTree(files: GrepFile[], theme: Theme, expanded: boolean, expandHint
 		}
 	}
 	if (shown < total) {
-		rows.push(`${theme.fg("dim", `${TREE.last} … ${plural(total - shown, "more match", "more matches")} (`)}${expandHint}${theme.fg("dim", ")")}`);
+		rows.push(`${theme.fg("dim", `${TREE.last} ${TEXT.ellipsis} ${plural(total - shown, "more match", "more matches")} (`)}${expandHint}${theme.fg("dim", ")")}`);
 	}
 	return rows;
 }
@@ -83,7 +83,7 @@ function listTree(
 		return wrapHanging(`${theme.fg("dim", last ? TREE.last : TREE.branch)} `, style(item), rowWidth, continuation);
 	});
 	const hidden = items.length - shown.length;
-	if (hidden > 0) rows.push(`${theme.fg("dim", `${TREE.last} … ${hidden} more (`)}${expandHint}${theme.fg("dim", ")")}`);
+	if (hidden > 0) rows.push(`${theme.fg("dim", `${TREE.last} ${TEXT.ellipsis} ${hidden} more (`)}${expandHint}${theme.fg("dim", ")")}`);
 	return rows;
 }
 
@@ -114,7 +114,7 @@ function where(input: CardInput, pattern: string): string {
 
 /** Draws a grep call. */
 export const grepCard: CardBuilder = (input) => {
-	const pattern = stringArg(input.args, "pattern") ?? "…";
+	const pattern = stringArg(input.args, "pattern") ?? TEXT.ellipsis;
 	const glob = stringArg(input.args, "glob");
 	const description = glob ? `${where(input, pattern)} (${glob})` : where(input, pattern);
 	return searchCard(input, "Grep", description, /^No matches found$/, (text) => {
@@ -122,7 +122,7 @@ export const grepCard: CardBuilder = (input) => {
 		if (!files) return { meta: undefined, rows: lines(text).map((line) => input.theme.fg("toolOutput", line)) };
 		const matches = files.reduce((sum, file) => sum + file.lines.filter((line) => line.match).length, 0);
 		return {
-			meta: `${plural(matches, "match", "matches")} · ${plural(files.length, "file")}`,
+			meta: `${plural(matches, "match", "matches")}${TEXT.sep}${plural(files.length, "file")}`,
 			rows: grepTree(files, input.theme, input.expanded, input.expandHint, input.inlineWidth),
 		};
 	});
@@ -130,7 +130,7 @@ export const grepCard: CardBuilder = (input) => {
 
 /** Draws a find call. */
 export const findCard: CardBuilder = (input) => {
-	const pattern = stringArg(input.args, "pattern") ?? "…";
+	const pattern = stringArg(input.args, "pattern") ?? TEXT.ellipsis;
 	return searchCard(input, "Find", where(input, pattern), /^No files found/, (text) => {
 		const items = lines(text).filter(Boolean);
 		return { meta: plural(items.length, "file"), rows: listTree(items, input.theme, input.expanded, input.expandHint, input.inlineWidth, (item) => input.theme.fg("toolOutput", item)) };

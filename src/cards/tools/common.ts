@@ -2,6 +2,7 @@
 
 import type { CardInput, CardResult } from "../card.ts";
 import { displayPath } from "../format.ts";
+import { TEXT } from "../symbols.ts";
 
 /** A string argument, or undefined when the model sent something else or it has not streamed yet. */
 export function stringArg(args: Record<string, unknown>, key: string): string | undefined {
@@ -42,9 +43,9 @@ export function splitNotice(text: string): Noticed {
 }
 
 /** A path argument as the card shows it, or the fallback while it streams in. */
-export function pathArg(input: CardInput, key = "path", fallback = "…"): string {
+export function pathArg(input: CardInput, key = "path", fallback?: string): string {
 	const path = stringArg(input.args, key);
-	return path ? displayPath(path, input.cwd) : fallback;
+	return path ? displayPath(path, input.cwd) : fallback ?? TEXT.ellipsis;
 }
 
 /** Lines of text, dropping one trailing empty line. */
