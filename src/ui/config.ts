@@ -5,6 +5,14 @@ import type { IconMode } from "./icons.ts";
 
 export type SettingsLanguage = "en" | "zh";
 export type CursorStyle = "block" | "bar" | "underline";
+/**
+ * Editor frame shape. Box shapes (`rounded`, `square`, `heavy`, `double`, `ascii`) draw a
+ * closed frame; `native` keeps Pi's two rules; `claude` adds a `❯` prompt between the rules;
+ * `rule` keeps only the top rule with a `❯` prompt.
+ */
+export type EditorShape = "rounded" | "square" | "heavy" | "double" | "ascii" | "native" | "claude" | "rule";
+
+export const EDITOR_SHAPES: readonly EditorShape[] = ["rounded", "square", "heavy", "double", "ascii", "native", "claude", "rule"];
 export type ThinkingPeekLines = 0 | 1 | 2;
 /** `cards` draws oh-my-pi style cards, `compact` collapses rows to one line, `native` keeps Pi's rows. */
 export type ToolViewMode = "cards" | "compact" | "native";
@@ -64,6 +72,7 @@ export interface FastTuiConfig {
 	copyButtons: boolean;
 	settingsLanguage: SettingsLanguage;
 	cursorStyle: CursorStyle;
+	editorShape: EditorShape;
 	icons: {
 		mode: IconMode;
 	};
@@ -80,6 +89,7 @@ export const DEFAULT_CONFIG: FastTuiConfig = {
 	copyButtons: true,
 	settingsLanguage: "en",
 	cursorStyle: "block",
+	editorShape: "rounded",
 	icons: {
 		mode: "auto",
 	},
@@ -219,6 +229,9 @@ export function loadConfig(notify?: (msg: string, level: "warning" | "info") => 
 		}
 		if (config.cursorStyle !== "block" && config.cursorStyle !== "bar" && config.cursorStyle !== "underline") {
 			config.cursorStyle = DEFAULT_CONFIG.cursorStyle;
+		}
+		if (!EDITOR_SHAPES.includes(config.editorShape)) {
+			config.editorShape = DEFAULT_CONFIG.editorShape;
 		}
 		if (typeof config.thinkingPeek !== "object" || config.thinkingPeek === null || Array.isArray(config.thinkingPeek)) {
 			config.thinkingPeek = structuredClone(DEFAULT_CONFIG.thinkingPeek);

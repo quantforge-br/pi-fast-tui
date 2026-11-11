@@ -4,7 +4,7 @@ import { join } from "node:path";
 import test from "./fixtures/node-test.ts";
 import { createEventBus, type ExtensionAPI, type ExtensionContext, type Theme } from "@earendil-works/pi-coding-agent";
 import { visibleWidth, type Component, type KeybindingsManager, type TUI } from "@earendil-works/pi-tui";
-import { DEFAULT_CONFIG, loadConfig, saveConfig, type FastTuiConfig } from "../../src/ui/config.ts";
+import { DEFAULT_CONFIG, EDITOR_SHAPES, loadConfig, saveConfig, type FastTuiConfig } from "../../src/ui/config.ts";
 import { installEditor } from "../../src/ui/editor.ts";
 import fastTui, { getPendingUiChange } from "../../src/ui/index.ts";
 import { nextToolViewMode, registerSettingsCommand } from "../../src/ui/settings-command.ts";
@@ -506,6 +506,7 @@ test("normalizes invalid settings values", (t) => {
 	writeFileSync(join(agentDir, "fast-tui.json"), JSON.stringify({
 		settingsLanguage: "de",
 		cursorStyle: "invalid",
+		editorShape: "band",
 		header: "no",
 		inlineFooter: "yes",
 		copyButtons: "no",
@@ -516,12 +517,26 @@ test("normalizes invalid settings values", (t) => {
 	const loaded = loadConfig();
 	assert.equal(loaded.settingsLanguage, "en");
 	assert.equal(loaded.cursorStyle, "block");
+	assert.equal(loaded.editorShape, "rounded");
 	assert.equal(loaded.header, true);
 	assert.equal(loaded.inlineFooter, false);
 	assert.equal(loaded.copyButtons, true);
 	assert.equal(loaded.thinkingPeek.lines, 1);
 	assert.deepEqual(loaded.toolView, { mode: "cards", extensionTools: false, exclude: ["keep"] });
 	assert.equal("fullscreen" in loaded, true);
+});
+
+test("loads valid editor shapes and defaults a missing one", (t) => {
+	const agentDir = temporaryDirectory(t, "pi-fast-tui-");
+	preserveEnvironment(t, ["PI_CODING_AGENT_DIR"]);
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+	const path = join(agentDir, "fast-tui.json");
+	for (const shape of EDITOR_SHAPES) {
+		writeFileSync(path, JSON.stringify({ editorShape: shape }), "utf8");
+		assert.equal(loadConfig().editorShape, shape);
+	}
+	writeFileSync(path, JSON.stringify({ cursorStyle: "bar" }), "utf8");
+	assert.equal(loadConfig().editorShape, "rounded");
 });
 
 test("cycles the thinking peek line count from General settings", async () => {
