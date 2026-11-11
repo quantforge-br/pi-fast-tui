@@ -30,7 +30,7 @@ Tab/Shift+Tab or ←/→ switches tabs; ↑/↓ or Page Up/Page Down moves betwe
 | Key | Default | Values and behavior |
 | --- | --- | --- |
 | `enabled` | `true` | Master switch for fast-tui |
-| `header` | `true` | Replaces the header; disable to leave that slot to Pi or another extension |
+| `header` | `true` | Replaces the header; disable to leave that slot to Pi or another extension. Terminals shorter than 30 rows get a compact five-row form (version, model and thinking level, cwd, commands) without the logo |
 | `inlineFooter` | `false` | Moves the two main footer rows into a compatible editor's borders; extension status rows remain separate |
 | `copyButtons` | `true` | Code-block and user-message Copy labels in fullscreen mode |
 | `settingsLanguage` | `"en"` | `"en"` or `"zh"`; changes the settings interface language |
@@ -149,7 +149,7 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | 键 | 默认值 | 可选值与行为 |
 | --- | --- | --- |
 | `enabled` | `true` | fast-tui 总开关 |
-| `header` | `true` | 替换顶栏；关闭后把位置留给 Pi 或其他扩展 |
+| `header` | `true` | 替换顶栏；关闭后把位置留给 Pi 或其他扩展。终端少于 30 行时显示不含标志的五行紧凑版（版本、模型与思考级别、工作目录、命令） |
 | `inlineFooter` | `false` | 将两条主底栏行移入兼容编辑器的边框，扩展状态行保持独立 |
 | `copyButtons` | `true` | 全屏模式中代码块和用户消息的复制标签 |
 | `settingsLanguage` | `"en"` | `"en"` 或 `"zh"`，控制设置界面的语言 |

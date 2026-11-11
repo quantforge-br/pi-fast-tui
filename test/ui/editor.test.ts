@@ -1141,7 +1141,7 @@ function createHeader(accent = "\x1b[35m"): FastTuiHeader {
 				},
 			},
 		} as unknown as ExtensionContext,
-		tui,
+		{ ...tui, terminal: { columns: 80, rows: 40 } } as TUI,
 	);
 }
 
