@@ -4,7 +4,7 @@
 
 ### Changed
 
-- The popup border is now drawn with light box-drawing lines (`┌─┐│└┘`): equally thin on every side and joined at the corners. The border cells keep the terminal background, so the fill stays inside the line. The previous one-eighth blocks left a gap at each corner and looked thicker on the top and bottom than on the sides.
+- The popup border now sits outside the filled area: one-eighth blocks (`▁ ▔ ▕ ▏`) in the unfilled cells around the panel hug the edge that touches the fill. The line touches the fill on every side, with no empty band between them and no fill sticking out past it, and the lines meet at the corners of the fill instead of leaving a one-cell gap.
 
 ## [0.4.0] - 2026-11-11
 

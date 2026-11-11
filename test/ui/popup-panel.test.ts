@@ -62,28 +62,27 @@ test("draws a bordered panel with a title row and drops the native rules", () =>
 	const lines = panel(menu).render(40);
 	const plain = lines.map((line) => stripAnsi(line).replace(/[<>]/g, ""));
 	assert.equal(menu.lastWidth, 34, "content width leaves the border and two columns of padding per side");
-	const row = (inner: string) => `│  ${inner.padEnd(34)}  │`;
+	const row = (inner: string) => `▕  ${inner.padEnd(34)}  ▏`;
 	assert.deepEqual(plain, [
-		"┌" + "─".repeat(38) + "┐",
+		" " + "▁".repeat(38) + " ",
 		row(""),
 		row("Settings" + " ".repeat(23) + "esc"),
 		row(""),
 		row("  first item"),
 		row("→ selected item"),
 		row(""),
-		"└" + "─".repeat(38) + "┘",
+		" " + "▔".repeat(38) + " ",
 	]);
 	for (const line of lines) assert.equal(visibleWidth(line.replace(/[<>]/g, "")), 40);
 });
 
 test("fills only the area inside the border and re-opens the background after resets", () => {
 	const lines = panel(nativeMenu()).render(40);
-	assert.ok(!lines[0]!.includes(BG) && !lines.at(-1)!.includes(BG), "the top and bottom borders stay unfilled");
+	assert.equal(lines[0], ` <${"▁".repeat(38)}> `, "the top border hugs the fill from the row above, corners blank");
+	assert.equal(lines.at(-1), ` <${"▔".repeat(38)}> `, "the bottom border hugs the fill from the row below, corners blank");
 	for (const line of lines.slice(1, -1)) {
-		assert.match(line, /^<│>/, "the left border cell stays unfilled");
-		assert.match(line, /<│>$/, "the right border cell stays unfilled");
-		assert.ok(line.startsWith(`<│>${BG}`), "the fill starts right inside the left border");
-		assert.ok(line.endsWith("\x1b[49m<│>"), "the fill closes right before the right border");
+		assert.ok(line.startsWith(`<▕>${BG}`), "the left line touches the fill from the unfilled cell before it");
+		assert.ok(line.endsWith("\x1b[49m<▏>"), "the right line touches the fill from the unfilled cell after it");
 	}
 	assert.ok(lines[5]!.includes(`\x1b[0m${BG}`), "the background survives the content's own reset");
 });
@@ -91,14 +90,14 @@ test("fills only the area inside the border and re-opens the background after re
 test("leaves rows unfilled when the theme has no background", () => {
 	const lines = new PopupPanel(nativeMenu(), { title: "Model", background: () => "", border: (text) => text }).render(30);
 	assert.ok(lines.every((line) => !line.includes("\x1b[48")));
-	assert.ok(stripAnsi(lines[2]!).startsWith("│  Model"));
+	assert.ok(stripAnsi(lines[2]!).startsWith("▕  Model"));
 });
 
 test("keeps the frame when the content is taller than the allowed rows", () => {
 	const menu = new FakeMenu(Array.from({ length: 20 }, (_, i) => `item ${i}`));
 	const lines = panel(menu, 20).render(30);
 	assert.equal(lines.length, 20);
-	assert.match(stripAnsi(lines.at(-1)!), /^<└─+┘>$/);
+	assert.match(stripAnsi(lines.at(-1)!), /^ <▔+> $/);
 	assert.match(stripAnsi(lines.at(-3)!), /item 13/);
 });
 
@@ -107,11 +106,11 @@ test("drops the padding rows in short terminals", () => {
 	const popup = panel(menu, 10);
 	const lines = popup.render(30).map(stripAnsi);
 	assert.equal(lines.length, 10);
-	assert.match(lines[0]!, /^<┌─+┐>$/);
+	assert.match(lines[0]!, /^ <▁+> $/);
 	assert.match(lines[1]!, /Settings/);
 	assert.match(lines[2]!, /item 0/);
 	assert.match(lines.at(-2)!, /item 6/);
-	assert.match(lines.at(-1)!, /^<└─+┘>$/);
+	assert.match(lines.at(-1)!, /^ <▔+> $/);
 	popup.handleMouse(event(5, 3));
 	assert.equal(menu.mouse[0]!.y, 1, "compact rows start right below the title");
 });

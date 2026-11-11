@@ -65,7 +65,7 @@ The working indicator, cursor style, completion list, and mouse positions work w
 
 ### Popup menus
 
-`popupMenus` (**Appearance → Editor → Popup menus**) shows Pi's settings, model (`/model` and ctrl+l), scoped-models, and thinking-level menus, plus `/fast-tui`, as a centered popup over the conversation. The popup is 70% of the terminal width, kept between 60 and 100 columns, and at most 85% of its height. It uses the theme's `userMessageBg` as background (no fill when the theme has none), a thin box-drawing border (`┌─┐│└┘`) whose cells keep the terminal background, so the fill stays inside the line and never sticks out past it, the menu title on the left and `esc` on the right, and two columns of padding; in terminals shorter than 19 rows the blank padding rows are dropped. Pi's own rules around the menu are removed; the menu items, search, and keys are Pi's. The input box stays mounted behind the popup. Toggling the option applies to the next menu opened. Non-boolean values fall back to `true`. Independently of this option, the model selector closes on its own opening key (`app.model.select`, ctrl+l by default), just like `esc`.
+`popupMenus` (**Appearance → Editor → Popup menus**) shows Pi's settings, model (`/model` and ctrl+l), scoped-models, and thinking-level menus, plus `/fast-tui`, as a centered popup over the conversation. The popup is 70% of the terminal width, kept between 60 and 100 columns, and at most 85% of its height. It uses the theme's `userMessageBg` as background (no fill when the theme has none), a thin border of one-eighth blocks (`▁ ▔ ▕ ▏`) in the unfilled cells around the panel, each hugging the edge that touches the fill, so the line sits right against the filled area with no empty band and no fill past it (corner cells stay blank, leaving a one-eighth notch), the menu title on the left and `esc` on the right, and two columns of padding; in terminals shorter than 19 rows the blank padding rows are dropped. Pi's own rules around the menu are removed; the menu items, search, and keys are Pi's. The input box stays mounted behind the popup. Toggling the option applies to the next menu opened. Non-boolean values fall back to `true`. Independently of this option, the model selector closes on its own opening key (`app.model.select`, ctrl+l by default), just like `esc`.
 
 ### Footer options
 
@@ -184,7 +184,7 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 
 ### 弹出式菜单
 
-`popupMenus`（**外观 → 输入框 → 弹出式菜单**）让 Pi 的设置、模型（`/model` 与 ctrl+l）、作用域模型和思考等级菜单，以及 `/fast-tui`，以居中弹窗显示在对话上方。弹窗宽度为终端宽度的 70%，限制在 60 到 100 列之间，高度最多为终端高度的 85%。背景使用主题的 `userMessageBg`（主题没有该颜色时不填充），带由制表符（`┌─┐│└┘`）组成的细边框，边框所在单元格保留终端背景，填充只在边框内侧，不会越过边框线，首行左侧为菜单标题、右侧为 `esc`，左右各留两列内边距；终端少于 19 行时省略空白留白行。菜单周围的 Pi 横线会被移除，菜单项、搜索和按键仍由 Pi 处理。输入框在弹窗后方保持挂载。切换该选项后，从下一次打开的菜单开始生效。非布尔值回退为 `true`。无论该选项是否开启，模型选择器都可以用打开它的按键（`app.model.select`，默认 ctrl+l）关闭，效果与 `esc` 相同。
+`popupMenus`（**外观 → 输入框 → 弹出式菜单**）让 Pi 的设置、模型（`/model` 与 ctrl+l）、作用域模型和思考等级菜单，以及 `/fast-tui`，以居中弹窗显示在对话上方。弹窗宽度为终端宽度的 70%，限制在 60 到 100 列之间，高度最多为终端高度的 85%。背景使用主题的 `userMessageBg`（主题没有该颜色时不填充），带由八分之一方块（`▁ ▔ ▕ ▏`）组成的细边框，画在面板外侧未填充的单元格中并紧贴填充区域的边缘，因此边框线与填充之间没有空白带，填充也不会越过边框线（角落单元格留空，只留下八分之一的缺口），首行左侧为菜单标题、右侧为 `esc`，左右各留两列内边距；终端少于 19 行时省略空白留白行。菜单周围的 Pi 横线会被移除，菜单项、搜索和按键仍由 Pi 处理。输入框在弹窗后方保持挂载。切换该选项后，从下一次打开的菜单开始生效。非布尔值回退为 `true`。无论该选项是否开启，模型选择器都可以用打开它的按键（`app.model.select`，默认 ctrl+l）关闭，效果与 `esc` 相同。
 
 ### 底栏选项
 

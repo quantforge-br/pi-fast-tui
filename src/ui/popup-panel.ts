@@ -3,16 +3,17 @@ import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { fillBackground, stripAnsi } from "./utils.ts";
 
 /**
- * Popup border glyphs: light box-drawing lines, equally thin on every side and joined at the
- * corners. They sit in the middle of their cells, so the border cells keep the terminal
- * background and only the area inside the border is filled; a filled border cell would
- * stick out half a cell past the line.
+ * Popup border glyphs: one-eighth blocks in the unfilled cells around the panel, each hugging
+ * the cell edge that touches the fill. The line therefore sits right against the filled area,
+ * with no empty band between them and no fill sticking out past it (box-drawing lines sit in
+ * the middle of their cells and leave half a cell on one side or the other). Corner cells stay
+ * blank: the lines meet at the fill's corner, leaving only a one-eighth notch.
  */
 const BORDER = {
-	top: { left: "┌", fill: "─", right: "┐" },
-	bottom: { left: "└", fill: "─", right: "┘" },
-	left: "│",
-	right: "│",
+	top: { left: " ", fill: "▁", right: " " },
+	bottom: { left: " ", fill: "▔", right: " " },
+	left: "▕",
+	right: "▏",
 } as const;
 
 /** Columns of space between the border and the content. */
@@ -126,7 +127,7 @@ export class PopupPanel implements Component {
 		const pad = " ".repeat(POPUP_PADDING_X);
 		const row = (inner: string) => `${border(BORDER.left)}${fillBackground(open, `${pad}${fit(inner, innerWidth)}${pad}`)}${border(BORDER.right)}`;
 		const rule = (edge: { left: string; fill: string; right: string }) =>
-			border(`${edge.left}${edge.fill.repeat(Math.max(0, width - 2))}${edge.right}`);
+			`${edge.left}${border(edge.fill.repeat(Math.max(0, width - 2)))}${edge.right}`;
 
 		const hint = this.options.hint ? (this.options.hintStyle ?? ((text: string) => text))(this.options.hint) : "";
 		const titleWidth = Math.max(0, innerWidth - (hint ? visibleWidth(hint) + 1 : 0));
