@@ -67,6 +67,7 @@ const COPY = {
 			language: "Language",
 			cursorStyle: "Cursor style",
 			editorShape: "Input shape",
+			popupMenus: "Popup menus",
 			iconMode: "Icon mode",
 			cwd: "CWD",
 			hostname: "Hostname",
@@ -139,6 +140,7 @@ const COPY = {
 			language: "语言",
 			cursorStyle: "光标样式",
 			editorShape: "输入框样式",
+			popupMenus: "弹出式菜单",
 			iconMode: "图标模式",
 			cwd: "当前目录",
 			hostname: "主机名",
@@ -287,6 +289,7 @@ function buildIconsItems(config: FastTuiConfig, copy: SettingsCopy): SettingGrou
 			items: [
 				{ id: "cursorStyle", label: copy.labels.cursorStyle, currentValue: copy.values.cursorStyles[config.cursorStyle] },
 				{ id: "editorShape", label: copy.labels.editorShape, currentValue: copy.values.editorShapes[config.editorShape] },
+				{ id: "popupMenus", label: copy.labels.popupMenus, currentValue: config.popupMenus ? copy.values.on : copy.values.off },
 			],
 		},
 	];
@@ -399,6 +402,7 @@ function handleSettingChange(
 		if (itemId === "mode") return cycleIconMode(config);
 		if (itemId === "cursorStyle") return cycleCursorStyle(config);
 		if (itemId === "editorShape") return cycleEditorShape(config);
+		if (itemId === "popupMenus") return { ...config, popupMenus: !config.popupMenus };
 	}
 	if (tab === "segments") {
 		return toggleSetting(config, itemId as keyof FastTuiConfig["footerSegments"]);

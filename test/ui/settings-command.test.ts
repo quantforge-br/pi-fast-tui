@@ -3,10 +3,11 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "./fixtures/node-test.ts";
 import { createEventBus, type ExtensionAPI, type ExtensionContext, type Theme } from "@earendil-works/pi-coding-agent";
-import { visibleWidth, type Component, type KeybindingsManager, type OverlayOptions, type TUI } from "@earendil-works/pi-tui";
+import { Container, visibleWidth, type Component, type KeybindingsManager, type OverlayOptions, type TUI } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG, EDITOR_SHAPES, loadConfig, saveConfig, type FastTuiConfig } from "../../src/ui/config.ts";
 import { installEditor } from "../../src/ui/editor.ts";
 import fastTui, { getPendingUiChange } from "../../src/ui/index.ts";
+import { installPopupMenus } from "../../src/ui/popup-menus.ts";
 import { nextToolViewMode, registerSettingsCommand } from "../../src/ui/settings-command.ts";
 import { preserveEnvironment, temporaryDirectory } from "./fixtures/test-helpers.ts";
 
@@ -266,6 +267,60 @@ test("cycles editor shapes from the Appearance tab without remounting the editor
 	settings.component.handleInput("q");
 	await settings.waitForClose();
 	editor.cleanup();
+});
+
+test("toggles popup menus from the Appearance tab and applies it to the next menu", async () => {
+	class SettingsSelectorComponent extends Container {}
+	const editor = Object.assign(new Container(), { getText: () => "", setText() {}, handleInput() {}, onSubmit() {} });
+	const editorContainer = new Container();
+	editorContainer.addChild(editor);
+	const root = new Container();
+	root.addChild(editorContainer);
+	let overlays = 0;
+	const tui = Object.assign(root, {
+		terminal: { columns: 80, rows: 24 },
+		showOverlay: () => {
+			overlays++;
+			return { hide() {} };
+		},
+	}) as unknown as TUI;
+	let current = { ...classicConfig(), popupMenus: true };
+	const popups = installPopupMenus({ getTui: () => tui, getTheme: () => ({ fg: (_c: string, t: string) => t, bold: (t: string) => t }) as unknown as Theme, isEnabled: () => current.popupMenus });
+	const openMenu = () => {
+		const menu = new SettingsSelectorComponent();
+		editorContainer.clear();
+		editorContainer.addChild(menu);
+		const inline = editorContainer.children.includes(menu);
+		editorContainer.clear();
+		editorContainer.addChild(editor);
+		return inline;
+	};
+	assert.equal(openMenu(), false);
+	const settings = await openSettings(current, (config) => {
+		current = config;
+	});
+	settings.press("\t");
+	// Icon mode → Cursor style → Input shape → Popup menus
+	settings.press("\x1b[B", 3);
+	assert.match(selectedLine(settings.component), /Popup menus.*On/);
+	settings.press("\r");
+	assert.equal(current.popupMenus, false);
+	assert.match(selectedLine(settings.component), /Popup menus.*Off/);
+	assert.equal(openMenu(), true);
+	settings.press("\r");
+	assert.equal(current.popupMenus, true);
+	assert.equal(openMenu(), false);
+	assert.equal(overlays, 2);
+	popups.cleanup();
+});
+
+test("labels popup menus in Chinese", async () => {
+	const config = classicConfig();
+	config.settingsLanguage = "zh";
+	const settings = await openSettings(config);
+	settings.press("\t");
+	settings.press("\x1b[B", 3);
+	assert.match(selectedLine(settings.component), /弹出式菜单.*关闭/);
 });
 
 test("labels editor shapes in Chinese", async () => {
