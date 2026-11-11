@@ -436,3 +436,12 @@ export function headerColumnWidths(
 
 	return { leftWidth, rightWidth, useTips: true };
 }
+
+// Resets that would clear a filled background mid-row: SGR 0 (`[0m`, `[m`) and default background (`[49m`).
+const BACKGROUND_RESET = /\x1b\[(?:0|49)?m/g;
+
+/** Paints `text` on the background opened by `open`, re-opening it after every reset inside the text. */
+export function fillBackground(open: string, text: string): string {
+	if (!open) return text;
+	return `${open}${text.replace(BACKGROUND_RESET, (reset) => `${reset}${open}`)}\x1b[49m`;
+}
