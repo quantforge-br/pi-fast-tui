@@ -15,6 +15,7 @@ import {
 	visibleWidth,
 } from "@earendil-works/pi-tui";
 import { EDITOR_SHAPES, type CursorStyle, type IconMode, type FastTuiConfig, type SettingsLanguage, type ThinkingPeekLines, type ToolViewMode } from "./config.ts";
+import { BOX, cardGlyphMode, TEXT } from "../cards/symbols.ts";
 import { popupMaxRows, popupOverlayOptions, popupPanelOptions } from "./popup-menus.ts";
 import { popupChromeRows, PopupPanel } from "./popup-panel.ts";
 
@@ -190,9 +191,29 @@ const COPY = {
 
 type SettingsCopy = (typeof COPY)[SettingsLanguage];
 
+/** Arrow names that replace the arrow glyphs in key hints under the ASCII glyph set, longest first. */
+const ASCII_HINT_ARROWS: ReadonlyArray<readonly [string, string]> = [
+	["↑/↓", "Up/Down"],
+	["←/→", "Left/Right"],
+	["↑↓", "Up/Dn"],
+	["←→", "Lt/Rt"],
+];
+
+/** A key hint in the active glyph set: separators from it, and arrow names under ASCII. */
+export function glyphHint(hint: string): string {
+	const text = hint.replaceAll(" · ", TEXT.sep);
+	if (cardGlyphMode() !== "ascii") return text;
+	return ASCII_HINT_ARROWS.reduce((result, [arrows, names]) => result.replaceAll(arrows, names), text);
+}
+
+/** Pi starts the selected row with "→ "; the ASCII glyph set draws it as "> ". */
+function selectionMarker(text: string): string {
+	return cardGlyphMode() === "ascii" ? text.replace(/^→ /, "> ") : text;
+}
+
 /** The widest hint that fits `width` columns on one row, or undefined when none does. */
 function pickHint(copy: SettingsCopy, width: number): string | undefined {
-	return [copy.hint, copy.hintShort].find((hint) => visibleWidth(hint) <= width);
+	return [copy.hint, copy.hintShort].map(glyphHint).find((hint) => visibleWidth(hint) <= width);
 }
 
 function formatThinkingPeekLines(lines: ThinkingPeekLines, copy: SettingsCopy): string {
@@ -453,8 +474,8 @@ class SectionedSettingsList {
 		this.showScrollInfo = rows.length > availableRows && availableRows > 1;
 		this.visibleRows = Math.max(1, availableRows - (this.showScrollInfo ? 1 : 0));
 		this.selectList = new SelectList(this.items, this.items.length, {
-			selectedPrefix: (t) => theme.fg("accent", t),
-			selectedText: (t) => theme.fg("accent", t),
+			selectedPrefix: (t) => theme.fg("accent", selectionMarker(t)),
+			selectedText: (t) => theme.fg("accent", selectionMarker(t)),
 			description: (t) => theme.fg("muted", t),
 			scrollInfo: (t) => theme.fg("dim", t),
 			noMatch: (t) => theme.fg("warning", t),
@@ -497,8 +518,8 @@ class SectionedSettingsList {
 		let itemIndex = 0;
 		const lines = this.rows.map((row) => {
 			if (row.kind === "setting") return settingLines[itemIndex++]!;
-			const label = truncateToWidth(`  ── ${row.label} `, width, "");
-			return this.theme.fg("dim", label + "─".repeat(Math.max(0, width - visibleWidth(label))));
+			const label = truncateToWidth(`  ${BOX.horizontal.repeat(2)} ${row.label} `, width, "");
+			return this.theme.fg("dim", label + BOX.horizontal.repeat(Math.max(0, width - visibleWidth(label))));
 		});
 		const { start, end } = this.visibleRange();
 		const visible = lines.slice(start, end);

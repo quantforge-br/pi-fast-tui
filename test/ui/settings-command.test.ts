@@ -10,6 +10,7 @@ import fastTui, { getPendingUiChange } from "../../src/ui/index.ts";
 import { installPopupMenus } from "../../src/ui/popup-menus.ts";
 import { nextToolViewMode, registerSettingsCommand } from "../../src/ui/settings-command.ts";
 import { preserveEnvironment, temporaryDirectory } from "./fixtures/test-helpers.ts";
+import { setCardGlyphMode } from "../../src/cards/symbols.ts";
 
 interface SettingsComponent extends Component {
 	handleInput(data: string): void;
@@ -922,4 +923,22 @@ test("cycles the thinking peek line count from General settings", async () => {
 	settings.component.handleInput("\r");
 	assert.equal(settings.getConfig().thinkingPeek.lines, 1);
 	settings.component.handleInput("q");
+});
+
+test("the ASCII glyph set draws every English tab in ASCII, except the language row", async (t) => {
+	setCardGlyphMode("ascii");
+	t.after(() => setCardGlyphMode("unicode"));
+	const settings = await openSettings({ ...classicConfig(), icons: { ...DEFAULT_CONFIG.icons, mode: "ascii" } });
+	for (let tab = 0; tab < 4; tab++) {
+		for (const width of [80, 50]) {
+			const lines = settings.component.render(width);
+			assert.ok(lines.some((line) => /^\s*> /.test(line)), "the selected row is marked with >");
+			for (const line of lines.filter((row) => !row.includes("Language"))) assert.match(line, /^[\x00-\x7F]*$/, line);
+		}
+		settings.press("\t");
+	}
+	const hint = settings.component.render(120).join("\n");
+	assert.match(hint, /Up\/Down: move \| Left\/Right\/Enter\/Space: change/);
+	assert.match(settings.component.render(60).join("\n"), /Tab tabs \| Up\/Dn move \| Lt\/Rt change \| Esc close/);
+	assert.match(hint, /  -- \S.* -+\s*$/m, "section rules are drawn with -");
 });

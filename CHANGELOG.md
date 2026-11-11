@@ -10,6 +10,7 @@
 - ASCII icon mode: popups draw a plain `+`, `-`, `|` box and clip titles and rows with `...`.
 - ASCII icon mode: fullscreen code blocks with the Copy button are framed with `+`, `-` and `|`.
 - ASCII icon mode: the header frame, tips divider and separators are drawn in ASCII, and the logo uses `#` cells.
+- ASCII icon mode: the `/fast-tui` dialog marks the selected row with `>`, draws section rules with `-`, and its key hint names the arrows (`Up/Down`, `Left/Right`, short form `Up/Dn`, `Lt/Rt`).
 
 ## [0.7.0] - 2026-11-11
 

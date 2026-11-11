@@ -207,7 +207,7 @@ async function createHost(
 		}
 		let found = false;
 		for (let index = 0; index < 24; index++) {
-			const selected = (overlay.render(120) as string[]).map(stripAnsi).find((line) => line.includes("→ "));
+			const selected = (overlay.render(120) as string[]).map(stripAnsi).find((line) => /(?:^|[\s|])> /.test(line)); // ASCII icons mark the selected row with ">"
 			if (selected?.includes(label)) {
 				found = true;
 				break;
