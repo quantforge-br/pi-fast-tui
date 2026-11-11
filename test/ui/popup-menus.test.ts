@@ -10,7 +10,7 @@ import {
 	type TUI,
 } from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { bindMenuToggleKey, installPopupMenus, popupMenuTitle } from "../../src/ui/popup-menus.ts";
+import { bindMenuToggleKey, installPopupMenus, popupBackground, popupMenuTitle, popupPanelOptions } from "../../src/ui/popup-menus.ts";
 import { PopupPanel } from "../../src/ui/popup-panel.ts";
 
 class FakeEditor implements Component {
@@ -202,3 +202,27 @@ describe("menu toggle keys", () => {
 	});
 });
 
+describe("popup colors", () => {
+	const colorTheme = (appearance: unknown, mode = "truecolor") => ({
+		appearance,
+		getColorMode: () => mode,
+		getBgAnsi: (token: string) => `<bg:${token}>`,
+		fg: (token: string, text: string) => `<${token}>${text}`,
+		bold: (text: string) => text,
+	}) as unknown as Parameters<typeof popupBackground>[0];
+	const tui = { terminal: { rows: 40, columns: 120 } } as unknown as TUI;
+
+	it("fills dark themes with black and light themes with white", () => {
+		expect(popupBackground(colorTheme("dark"))).toBe("\x1b[48;2;0;0;0m");
+		expect(popupBackground(colorTheme("light"))).toBe("\x1b[48;2;255;255;255m");
+		expect(popupBackground(colorTheme("dark", "256color"))).toMatch(/^\x1b\[48;5;\d+m$/);
+	});
+
+	it("falls back to the input panel background without an appearance", () => {
+		expect(popupBackground(colorTheme(undefined))).toBe("<bg:userMessageBg>");
+	});
+
+	it("draws the border in the theme's accent border color", () => {
+		expect(popupPanelOptions(tui, colorTheme("dark"), "Settings").border("─")).toBe("<borderAccent>─");
+	});
+});

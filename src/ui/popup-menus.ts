@@ -1,5 +1,5 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { getKeybindings, type Component, type Container, type Keybinding, type OverlayHandle, type OverlayOptions, type TUI } from "@earendil-works/pi-tui";
+import { backgroundAnsi, getKeybindings, rgbColor, type Component, type Container, type Keybinding, type OverlayHandle, type OverlayOptions, type TUI } from "@earendil-works/pi-tui";
 import { PopupPanel, type PopupPanelOptions } from "./popup-panel.ts";
 
 /** Pi menus shown as popups, by component class name, with the panel title for each. */
@@ -45,13 +45,31 @@ export function popupOverlayOptions(tui: TUI, extra: Partial<OverlayOptions> = {
 	};
 }
 
-/** Panel look shared by every popup: the input panel background, a border, title and an "esc" hint. */
+/**
+ * Popup fill: the far end of the theme's own background, black on dark themes and white on light
+ * ones, so the panel stands apart from the conversation behind it. Falls back to the input panel
+ * background when the theme cannot report its appearance or color mode.
+ */
+export function popupBackground(theme: Theme): string {
+	try {
+		const appearance = theme.appearance;
+		if (appearance === "dark" || appearance === "light") {
+			const level = appearance === "dark" ? 0 : 255;
+			return backgroundAnsi(rgbColor(level, level, level), theme.getColorMode());
+		}
+	} catch {
+		// Older or partial themes: use the token below.
+	}
+	return theme.getBgAnsi?.("userMessageBg") ?? "";
+}
+
+/** Panel look shared by every popup: a contrasting fill, an accent border, title and an "esc" hint. */
 export function popupPanelOptions(tui: TUI, theme: Theme, title: PopupPanelOptions["title"]): PopupPanelOptions {
 	return {
 		title,
 		hint: "esc",
-		background: () => theme.getBgAnsi?.("userMessageBg") ?? "",
-		border: (text) => theme.fg("border", text),
+		background: () => popupBackground(theme),
+		border: (text) => theme.fg("borderAccent", text),
 		titleStyle: (text) => theme.bold(theme.fg("text", text)),
 		hintStyle: (text) => theme.fg("dim", text),
 		maxRows: () => popupMaxRows(tui.terminal.rows),

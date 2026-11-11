@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Popup colors: the fill is now black on dark themes and white on light ones instead of the gray `userMessageBg`, and the border uses the theme's `borderAccent` color (orange in Claude-style themes) instead of the neutral `border`.
+
 ## [0.4.1] - 2026-11-11
 
 ### Changed
