@@ -29,7 +29,8 @@ export interface FrameOptions {
 	borderColor?: ThemeColor;
 }
 
-const CAP = BOX.horizontal.repeat(3);
+/** Border cells between a corner and the label. */
+const CAP_CELLS = 3;
 // Border, one padding column, content, one padding column, border.
 const FRAME_COLUMNS = 4;
 
@@ -59,12 +60,13 @@ export function renderFrame(options: FrameOptions, theme: Theme): string[] {
 	const color = options.borderColor ?? stateBorderColor(options.state);
 	const border = (text: string) => theme.fg(color, text);
 	const contentWidth = frameContentWidth(width);
-	const lines: string[] = [bar(BOX.topLeft, BOX.topRight, joinLabel(options.header, options.headerMeta), width, border)];
+	const cap = BOX.horizontal.repeat(CAP_CELLS);
+	const lines: string[] = [bar(BOX.topLeft, BOX.topRight, joinLabel(options.header, options.headerMeta), width, border, cap)];
 
 	const sections = options.sections?.length ? options.sections : [{ lines: [] }];
 	sections.forEach((section, index) => {
 		if (section.label || (section.separator && index > 0)) {
-			lines.push(bar(BOX.teeRight, BOX.teeLeft, section.label, width, border));
+			lines.push(bar(BOX.teeRight, BOX.teeLeft, section.label, width, border, cap));
 		}
 		for (const line of section.lines.flatMap((entry) => entry.split("\n"))) {
 			for (const wrapped of wrapTextWithAnsi(line.replace(/\t/g, "   ").trimEnd(), contentWidth)) {
@@ -76,13 +78,13 @@ export function renderFrame(options: FrameOptions, theme: Theme): string[] {
 	// A clipped bottom border would drop trailing facts such as the exit code, so a footer that does not fit
 	// becomes body rows above a plain border.
 	const footer = options.footerMeta;
-	const footerFits = footer === undefined || visibleWidth(` ${footer} `) <= width - visibleWidth(BOX.bottomLeft + CAP + BOX.bottomRight);
+	const footerFits = footer === undefined || visibleWidth(` ${footer} `) <= width - visibleWidth(BOX.bottomLeft + cap + BOX.bottomRight);
 	if (footer !== undefined && !footerFits) {
 		for (const wrapped of wrapTextWithAnsi(footer, contentWidth)) lines.push(contentRow(wrapped, contentWidth, border));
 	}
-	lines.push(bar(BOX.bottomLeft, BOX.bottomRight, footerFits ? footer : undefined, width, border));
+	lines.push(bar(BOX.bottomLeft, BOX.bottomRight, footerFits ? footer : undefined, width, border, cap));
 
-	const clipped = width < CAP.length + FRAME_COLUMNS ? lines.map((line) => truncateToWidth(line, width, "")) : lines;
+	const clipped = width < CAP_CELLS + FRAME_COLUMNS ? lines.map((line) => truncateToWidth(line, width, "")) : lines;
 	if (!options.applyBg || !options.state) return clipped;
 	const bgAnsi = theme.getBgAnsi(stateBg(options.state));
 	// Inner resets would clear the card's background mid-line, so each one restores it.
@@ -94,10 +96,10 @@ function joinLabel(header: string | undefined, meta: string | undefined): string
 	return parts.length > 0 ? parts.join(TEXT.sep) : undefined;
 }
 
-function bar(left: string, right: string, label: string | undefined, width: number, border: (text: string) => string): string {
-	const head = left + CAP;
+function bar(left: string, right: string, label: string | undefined, width: number, border: (text: string) => string, cap: string): string {
+	const head = left + cap;
 	const room = Math.max(0, width - visibleWidth(head) - visibleWidth(right));
-	const text = label ? truncateToWidth(` ${label} `, room, "…") : "";
+	const text = label ? truncateToWidth(` ${label} `, room, TEXT.ellipsis) : "";
 	const fill = BOX.horizontal.repeat(Math.max(0, room - visibleWidth(text)));
 	return `${border(head)}${text}${border(fill)}${border(right)}`;
 }

@@ -1,9 +1,23 @@
 import { visibleWidth } from "@earendil-works/pi-tui";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { frameContentWidth, renderFrame } from "../../src/cards/frame.ts";
+import { setCardGlyphMode } from "../../src/cards/symbols.ts";
 import { fgOf, plain, theme } from "./helpers.ts";
 
 describe("renderFrame", () => {
+	afterEach(() => {
+		setCardGlyphMode("unicode");
+	});
+
+	it("draws an ASCII frame with an ASCII cap, separator and ellipsis", () => {
+		setCardGlyphMode("ascii");
+		const lines = plain(renderFrame({ width: 30, header: "Read", headerMeta: "x".repeat(40), sections: [{ label: "Out", lines: ["a"] }] }, theme)).split("\n");
+		expect(lines[0]).toMatch(/^\+--- Read \| x+\.\.\.\s?-*\+$/);
+		expect(lines[1]).toMatch(/^\+--- Out -+\+$/);
+		expect(lines.at(-1)).toMatch(/^\+-+\+$/);
+		for (const line of lines) expect(line).toMatch(/^[\x00-\x7f]*$/);
+	});
+
 	it("draws the header in the top border and every line at the full width", () => {
 		const lines = renderFrame({ width: 40, header: "Bash", headerMeta: "2 lines", sections: [{ lines: ["one", "two"] }] }, theme);
 		expect(plain(lines)).toBe(
