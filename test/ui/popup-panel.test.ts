@@ -154,3 +154,16 @@ test("forwards input and maps mouse rows past the dropped rules", () => {
 	assert.deepEqual(popup.handleMouse(event(0, 0)), { handled: true, render: false }, "the frame swallows clicks");
 	assert.equal(menu.mouse.length, 1);
 });
+
+test("marks clipped content rows with an ellipsis and pads rows that fit", () => {
+	const inner = 70;
+	const lines = panel(new FakeMenu(["x".repeat(inner + 5), "y".repeat(inner), "short"])).render(inner + 6);
+	const rows = lines.map((line) => stripAnsi(line).replace(/[<>]/g, "")).filter((line) => line.startsWith("▕")).map((line) => line.slice(3, 3 + inner));
+	const clipped = rows.find((row) => row.startsWith("x"))!;
+	assert.equal(visibleWidth(clipped), inner);
+	assert.ok(clipped.endsWith("…"));
+	assert.equal(rows.find((row) => row.startsWith("y")), "y".repeat(inner));
+	const short = rows.find((row) => row.startsWith("short"))!;
+	assert.equal(short, "short".padEnd(inner));
+	assert.ok(!short.includes("…"));
+});

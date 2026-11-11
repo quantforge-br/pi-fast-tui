@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Popups (`/model`, `/settings`, `/scoped-models`, thinking level, `/fast-tui`) are at least 76 columns wide (70 columns of content on an 80-column terminal), and content rows wider than the panel end with `…` instead of being cut silently.
+
 ## [0.6.0] - 2026-11-11
 
 ### Changed

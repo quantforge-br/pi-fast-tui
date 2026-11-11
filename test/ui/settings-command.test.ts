@@ -606,7 +606,7 @@ test("opens /fast-tui as a centered popup panel when popup menus are on", async 
 	const settings = await openSettings({ ...classicConfig(), popupMenus: true });
 	const options = settings.overlayOptions();
 	assert.equal(options?.anchor, "center");
-	assert.equal(options?.width, 60);
+	assert.equal(options?.width, 76);
 	assert.equal(options?.maxHeight, "85%");
 	settings.terminal.columns = 200;
 	assert.equal(settings.overlayOptions()?.width, 100);

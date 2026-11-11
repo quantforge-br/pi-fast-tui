@@ -17,12 +17,12 @@ const MENU_TOGGLE_KEYBINDINGS: Readonly<Record<string, string>> = {
 
 /** Share of the terminal width the popup covers, clamped to a readable range. */
 const POPUP_WIDTH_RATIO = 0.7;
-const POPUP_MIN_WIDTH = 60;
+const POPUP_MIN_WIDTH = 76;
 const POPUP_MAX_WIDTH = 100;
 /** Share of the terminal height the popup may cover. */
 const POPUP_MAX_HEIGHT = 0.85;
 
-/** Popup width for a terminal width: 70% of it, kept within 60–100 columns and the screen. */
+/** Popup width for a terminal width: 70% of it, kept within 76–100 columns and the screen. */
 export function popupWidth(columns: number): number {
 	const width = Math.round(columns * POPUP_WIDTH_RATIO);
 	return Math.max(1, Math.min(columns, Math.max(POPUP_MIN_WIDTH, Math.min(POPUP_MAX_WIDTH, width))));

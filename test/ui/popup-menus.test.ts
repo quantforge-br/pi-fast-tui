@@ -10,7 +10,7 @@ import {
 	type TUI,
 } from "@earendil-works/pi-tui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { bindMenuToggleKey, installPopupMenus, popupBackground, popupMenuTitle, popupPanelOptions } from "../../src/ui/popup-menus.ts";
+import { bindMenuToggleKey, installPopupMenus, popupBackground, popupMenuTitle, popupPanelOptions, popupWidth } from "../../src/ui/popup-menus.ts";
 import { PopupPanel } from "../../src/ui/popup-panel.ts";
 
 class FakeEditor implements Component {
@@ -224,5 +224,16 @@ describe("popup colors", () => {
 
 	it("draws the border in the theme's accent border color", () => {
 		expect(popupPanelOptions(tui, colorTheme("dark"), "Settings").border("─")).toBe("<borderAccent>─");
+	});
+});
+
+describe("popupWidth", () => {
+	it("covers 70% of the terminal, kept between 76 and 100 columns and the screen", () => {
+		const table: [number, number][] = [[40, 40], [60, 60], [76, 76], [80, 76], [100, 76], [120, 84], [143, 100], [200, 100]];
+		for (const [columns, width] of table) expect(popupWidth(columns)).toBe(width);
+		for (let n = 1; n <= 300; n++) {
+			expect(popupWidth(n + 1)).toBeGreaterThanOrEqual(popupWidth(n));
+			expect(popupWidth(n)).toBeLessThanOrEqual(n);
+		}
 	});
 });
