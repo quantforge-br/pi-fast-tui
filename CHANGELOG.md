@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1] - 2026-11-11
+
+### Changed
+
+- README: credits pi-open-tui, which pi-fast-tui is based on, and no longer asks to remove other packages before installing.
+
 ## [0.5.0] - 2026-11-11
 
 ### Changed
