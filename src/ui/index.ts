@@ -55,6 +55,8 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 	let lastCtx: ExtensionContext | undefined;
 	let requestFooterRender: (() => void) | undefined;
 	let workingTimer: ReturnType<typeof setInterval> | undefined;
+	// Whether the latest agent_end of the current run ended on a provider error.
+	let lastRunErrored = false;
 	let cleanupHeader: (() => void) | undefined;
 	let cleanupFooter: (() => void) | undefined;
 	let editor: ReturnType<typeof installEditor> | undefined;
@@ -250,6 +252,8 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 		lastCtx = ctx;
 		state.workingSince = undefined;
 		state.lastDoneIn = undefined;
+		state.lastOutcome = undefined;
+		lastRunErrored = false;
 		invalidateUsageCache();
 
 		ensureConfigExists();
@@ -278,18 +282,21 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 		// agent_start also covers custom-message and continuation-triggered tasks
 		// that do not emit a user message_start event.
 		peekTaskEpoch++;
-		state.workingSince = Date.now();
+		// A retry or continuation inside the same run keeps the original clock.
+		if (state.workingSince === undefined) {
+			state.workingSince = Date.now();
+			startWorkingTimer();
+		}
 		state.lastDoneIn = undefined;
-		startWorkingTimer();
+		state.lastOutcome = undefined;
+		lastRunErrored = false;
 	});
 
-	pi.on("agent_end", (_event, _ctx) => {
+	pi.on("agent_end", (event, _ctx) => {
 		if (!sessionLifecycle.isCurrent()) return;
-		stopWorkingTimer();
-		if (state.workingSince !== undefined) {
-			state.lastDoneIn = Date.now() - state.workingSince;
-			state.workingSince = undefined;
-		}
+		// The run stays working until agent_settled: Pi may still retry or continue.
+		const lastAssistant = event.messages.findLast((message) => message.role === "assistant");
+		lastRunErrored = lastAssistant?.role === "assistant" && lastAssistant.stopReason === "error";
 		requestFooterRender?.();
 	});
 
@@ -342,6 +349,15 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 	});
 
 	pi.on("agent_settled", (event, ctx) => {
+		if (sessionLifecycle.isCurrent()) {
+			stopWorkingTimer();
+			if (state.workingSince !== undefined) {
+				state.lastDoneIn = Date.now() - state.workingSince;
+				state.workingSince = undefined;
+				state.lastOutcome = event.aborted ? "aborted" : lastRunErrored ? "failed" : "done";
+			}
+			requestFooterRender?.();
+		}
 		const telemetry = turnTelemetry.handle(event);
 		if (telemetry && config.enabled && config.telemetry.enabled && isTuiContext(ctx)) {
 			const message = formatTurnTelemetry(telemetry, ctx.ui.theme, config.telemetry, config.icons.mode);

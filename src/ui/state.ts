@@ -5,11 +5,15 @@ import { emptyGitStatus } from "./git.ts";
 import type { RuntimeInfo } from "./runtime.ts";
 import { finiteOrZero, formatProviderLabel } from "./utils.ts";
 
+export type RunOutcome = "done" | "failed" | "aborted";
+
 export interface FooterState {
 	git: GitStatus;
 	runtime: RuntimeInfo | null;
 	workingSince: number | undefined;
 	lastDoneIn: number | undefined;
+	/** Outcome of the last settled run; undefined before the first run settles and while one is working. */
+	lastOutcome: RunOutcome | undefined;
 }
 
 export interface UsageTotals {
@@ -79,6 +83,7 @@ export function createInitialState(): FooterState {
 		runtime: null,
 		workingSince: undefined,
 		lastDoneIn: undefined,
+		lastOutcome: undefined,
 	};
 }
 

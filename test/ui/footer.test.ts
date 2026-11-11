@@ -304,6 +304,7 @@ function footerFixture(options: {
 		runtime: null,
 		workingSince: undefined,
 		lastDoneIn: undefined,
+		lastOutcome: undefined,
 		...options.state,
 	};
 	const handle = installFooter(
@@ -489,6 +490,7 @@ test("every icon mode provides every footer semantic", () => {
 		"git",
 		"working",
 		"done",
+		"failed",
 		"context",
 		"model",
 		"thinking",
@@ -1069,4 +1071,19 @@ test("working timer shows live TPS gated by its footer setting and sheds it firs
 	state.workingSince = undefined;
 	state.lastDoneIn = 1_000;
 	assert.doesNotMatch(line(), /tok\/s/);
+});
+
+test("timer segment renders done, failed and stopped settled runs", () => {
+	const colored = { fg: (color: string, text: string) => `<${color}>${text}` } as Theme;
+	const { component, state } = footerFixture({ theme: colored, state: { lastDoneIn: 4_000 } });
+	const line = () => component.render(160)[0]!;
+	const glyphs = resolveGlyphs("ascii");
+
+	assert.match(line(), new RegExp(`<success>\\${glyphs.done} <success>done <text>4s`));
+	state.lastOutcome = "done";
+	assert.match(line(), new RegExp(`<success>\\${glyphs.done} <success>done <text>4s`));
+	state.lastOutcome = "failed";
+	assert.ok(line().includes(`<error>${glyphs.failed} <error>failed <text>4s`), line());
+	state.lastOutcome = "aborted";
+	assert.ok(line().includes(`<muted>${glyphs.failed} <muted>stopped <text>4s`), line());
 });

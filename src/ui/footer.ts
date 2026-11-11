@@ -139,7 +139,14 @@ function renderTimerSegment(theme: Theme, state: FooterState, glyphs: IconGlyphs
 		return `${theme.fg("accent", glyphs.working)} ${theme.fg("dim", "working")} ${theme.fg("accent", formatDuration(Date.now() - state.workingSince))}`;
 	}
 	if (state.lastDoneIn !== undefined) {
-		return `${theme.fg("success", glyphs.done)} ${theme.fg("success", "done")} ${theme.fg("text", formatDuration(state.lastDoneIn))}`;
+		const duration = theme.fg("text", formatDuration(state.lastDoneIn));
+		if (state.lastOutcome === "failed") {
+			return `${theme.fg("error", glyphs.failed)} ${theme.fg("error", "failed")} ${duration}`;
+		}
+		if (state.lastOutcome === "aborted") {
+			return `${theme.fg("muted", glyphs.failed)} ${theme.fg("muted", "stopped")} ${duration}`;
+		}
+		return `${theme.fg("success", glyphs.done)} ${theme.fg("success", "done")} ${duration}`;
 	}
 	return "";
 }

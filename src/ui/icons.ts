@@ -7,6 +7,8 @@ export interface IconGlyphs {
 	git: string;
 	working: string;
 	done: string;
+	/** Footer timer segment of a run that settled with an error or was stopped. */
+	failed: string;
 	context: string;
 	model: string;
 	thinking: string;
@@ -40,6 +42,7 @@ const NERD_GLYPHS: IconGlyphs = {
 	git: "",
 	working: "",
 	done: "",
+	failed: "✘",
 	context: "",
 	model: "",
 	thinking: "",
@@ -76,6 +79,7 @@ const ASCII_GLYPHS: IconGlyphs = {
 	git: "*",
 	working: "o",
 	done: "+",
+	failed: "x",
 	context: "#",
 	model: "M",
 	thinking: "~",
@@ -115,6 +119,7 @@ const UNICODE_GLYPHS: IconGlyphs = {
 	git: "🌿",
 	working: "◷",
 	done: "✓",
+	failed: "✗",
 	context: "≡",
 	model: "💻",
 	thinking: "💡",
