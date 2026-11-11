@@ -6,6 +6,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 } from "@earendil-works/pi-tui";
+import { TEXT } from "../cards/symbols.ts";
 
 export { truncateToWidth, visibleWidth };
 
@@ -38,8 +39,10 @@ export function basenamePath(path: string): string {
 /** Truncate branch names from the end so prefixes like `fix/` stay visible. */
 export function truncateBranch(branch: string, maxLen: number): string {
 	if (branch.length <= maxLen) return branch;
-	if (maxLen <= 3) return "...".slice(0, maxLen);
-	return `${branch.slice(0, maxLen - 3)}...`;
+	const ellipsis = TEXT.ellipsis;
+	const ellipsisWidth = visibleWidth(ellipsis);
+	if (maxLen <= ellipsisWidth) return ellipsis.slice(0, Math.max(0, maxLen));
+	return `${branch.slice(0, maxLen - ellipsisWidth)}${ellipsis}`;
 }
 
 export function truncatePath(path: string, maxLen: number): string {
@@ -49,10 +52,13 @@ export function truncatePath(path: string, maxLen: number): string {
 	// returned it unchanged, so fitSegmentsByPriority's `while (totalW() > maxW)`
 	// loop never made progress and livelocked the renderer at 100% CPU.
 	if (visibleWidth(path) <= maxLen) return path;
-	if (maxLen <= 3) return "...".slice(0, maxLen);
+	if (maxLen <= 3) {
+		const ellipsis = TEXT.ellipsis;
+		return maxLen <= visibleWidth(ellipsis) ? ellipsis.slice(0, Math.max(0, maxLen)) : truncateToWidth(path, maxLen, ellipsis);
+	}
 	const sepChar = path.includes("/") ? "/" : "\\";
 	const parts = path.split(/[\\/]/);
-	if (parts.length <= 2) return truncateToWidth(path, maxLen, "...");
+	if (parts.length <= 2) return truncateToWidth(path, maxLen, TEXT.ellipsis);
 	// Keep first segment (e.g. ~) and as many trailing segments as fit.
 	const tail: string[] = [];
 	let tailLen = 0;
@@ -64,7 +70,7 @@ export function truncatePath(path: string, maxLen: number): string {
 	}
 	const head = parts[0]!;
 	const result = `${head}${sepChar}...${sepChar}${tail.join(sepChar)}`;
-	return visibleWidth(result) > maxLen ? truncateToWidth(result, maxLen, "...") : result;
+	return visibleWidth(result) > maxLen ? truncateToWidth(result, maxLen, TEXT.ellipsis) : result;
 }
 
 export function finiteOrZero(value: unknown): number {
@@ -115,7 +121,7 @@ export function formatProviderLabel(provider: string | undefined, capitalize: bo
 export function alignRight(left: string, right: string, width: number, theme: Theme): string {
 	const rightW = visibleWidth(right);
 	if (rightW > width) {
-		right = truncateToWidth(right, width, theme.fg("dim", "..."));
+		right = truncateToWidth(right, width, theme.fg("dim", TEXT.ellipsis));
 	}
 	const leftW = visibleWidth(left);
 	const rightW2 = visibleWidth(right);
@@ -125,7 +131,7 @@ export function alignRight(left: string, right: string, width: number, theme: Th
 	}
 	const availableForLeft = Math.max(0, width - rightW2 - 1);
 	const truncatedLeft =
-		availableForLeft > 0 ? truncateToWidth(left, availableForLeft, theme.fg("dim", "...")) : "";
+		availableForLeft > 0 ? truncateToWidth(left, availableForLeft, theme.fg("dim", TEXT.ellipsis)) : "";
 	return truncatedLeft ? truncatedLeft + " " + right : right;
 }
 
@@ -146,6 +152,12 @@ export interface SegmentFitOptions {
 }
 
 /**
+ * A segment with this many columns or fewer left is dropped instead of truncated, so a
+ * one-column ellipsis does not leave remnants such as `# …` that a three-dot one would drop.
+ */
+const MIN_TRUNCATED_SEGMENT_WIDTH = 3;
+
+/**
  * Pack segments into maxWidth: compact segments first, then shrink/drop the
  * lowest-priority segments (higher priority = survives longer). Returns one
  * text per input segment, preserving positions with empty strings for dropped items.
@@ -153,7 +165,7 @@ export interface SegmentFitOptions {
 export function fitSegmentsByPriority(
 	segs: readonly PrioritizedSegment[],
 	maxW: number,
-	ellipsis = "...",
+	ellipsis: string,
 	options: SegmentFitOptions = {},
 ): string[] {
 	const items = segs.map((s, index) => ({
@@ -209,7 +221,7 @@ export function fitSegmentsByPriority(
 		}
 		if (target === -1) break;
 		const avail = maxW - (nowTotal - items[target].w);
-		if (avail <= visibleWidth(ellipsis)) {
+		if (avail <= Math.max(MIN_TRUNCATED_SEGMENT_WIDTH, visibleWidth(ellipsis))) {
 			items[target].text = "";
 			items[target].w = 0;
 		} else if (avail < items[target].w) {
@@ -302,7 +314,7 @@ export function padRight(text: string, width: number, ellipsis = ""): string {
 export function center(text: string, width: number): string {
 	if (width <= 0) return "";
 	const w = visibleWidth(text);
-	if (w >= width) return truncateToWidth(text, width, "...");
+	if (w >= width) return truncateToWidth(text, width, TEXT.ellipsis);
 	return `${" ".repeat(Math.floor((width - w) / 2))}${text}`;
 }
 

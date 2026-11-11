@@ -11,6 +11,7 @@
 - ASCII icon mode: fullscreen code blocks with the Copy button are framed with `+`, `-` and `|`.
 - ASCII icon mode: the header frame, tips divider and separators are drawn in ASCII, and the logo uses `#` cells.
 - ASCII icon mode: the `/fast-tui` dialog marks the selected row with `>`, draws section rules with `-`, and its key hint names the arrows (`Up/Down`, `Left/Right`, short form `Up/Dn`, `Lt/Rt`).
+- Footer: truncated segments, branch names, session names and rows end with `…` (`...` under ASCII icons) instead of always `...`. Segments left with three columns or fewer are still dropped rather than cut to a stub.
 
 ## [0.7.0] - 2026-11-11
 

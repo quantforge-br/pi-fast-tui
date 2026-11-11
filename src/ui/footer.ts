@@ -265,7 +265,7 @@ export function renderModelInfo(theme: Theme, meta: ModelMeta, width: number): s
 	let line = theme.bold(theme.fg("text", meta.model));
 	if (meta.provider && meta.provider !== "Unknown") line += ` ${theme.fg("muted", meta.provider)}`;
 	if (meta.effort && meta.effort !== "off") line += `${theme.fg("dim", TEXT.sep)}${theme.fg(effortColor(meta.effort), meta.effort)}`;
-	return truncateToWidth(line, Math.max(0, width), theme.fg("dim", "..."));
+	return truncateToWidth(line, Math.max(0, width), theme.fg("dim", TEXT.ellipsis));
 }
 
 export interface FooterHandle {
@@ -283,7 +283,7 @@ function fitInlineSegments(
 	return fitSegmentsByPriority(
 		parts,
 		Math.max(0, width - separatorReserve),
-		theme.fg("dim", "..."),
+		theme.fg("dim", TEXT.ellipsis),
 	).filter(Boolean).join(separator);
 }
 
@@ -396,7 +396,7 @@ function naturalRowWidth(row: CollectedRow): number {
 
 function fitCollectedRow(row: CollectedRow, width: number, theme: Theme): InlineFooterLine {
 	const parts = [...row.left, ...row.right];
-	const fitted = fitSegmentsByPriority(parts, width, theme.fg("dim", "..."), {
+	const fitted = fitSegmentsByPriority(parts, width, theme.fg("dim", TEXT.ellipsis), {
 		compactOrder: "priority",
 		gapWidth: rowGapWidth(row),
 	});
@@ -441,7 +441,7 @@ function fitBottomRow(
 }
 
 function alignContributedRow(line: InlineFooterLine, width: number, theme: Theme): string {
-	if (!line.right) return truncateToWidth(line.left, width, theme.fg("dim", "..."));
+	if (!line.right) return truncateToWidth(line.left, width, theme.fg("dim", TEXT.ellipsis));
 	return alignRight(line.left, line.right, width, theme);
 }
 
@@ -520,7 +520,7 @@ function renderFooterContent(
 	const sessionName = ctx.sessionManager.getSessionName();
 	if (sessionName) {
 		const sessionPart: PrioritizedSegment = {
-			text: `${theme.fg("dim", glyphs.session)} ${theme.fg("text", truncateToWidth(sessionName, 24, theme.fg("dim", "...")))}`,
+			text: `${theme.fg("dim", glyphs.session)} ${theme.fg("text", truncateToWidth(sessionName, 24, theme.fg("dim", TEXT.ellipsis)))}`,
 			priority: 2,
 		};
 		if (segments.sessionName) {
@@ -577,7 +577,7 @@ function renderFooterContent(
 		builtins.context = allParts.at(-1)!;
 	}
 
-	const fitted = fitSegmentsByPriority(allParts, width, theme.fg("dim", "..."));
+	const fitted = fitSegmentsByPriority(allParts, width, theme.fg("dim", TEXT.ellipsis));
 	const fittedContext = contextText ? fitted.pop() ?? "" : "";
 	const contributedTop = fitContributedRow("plain", builtins, contributions, width, theme);
 	const line1 = contributedTop
@@ -628,7 +628,7 @@ function renderFooterContent(
 	const bottom = fitBottomRow("plain", buildRow2Builtins, contributions, width, theme);
 	const line2 = alignContributedRow(bottom, width, theme);
 	const mainLines: [string, string] = [line1, line2]
-		.map((line) => truncateToWidth(line, width, theme.fg("dim", "..."))) as [string, string];
+		.map((line) => truncateToWidth(line, width, theme.fg("dim", TEXT.ellipsis))) as [string, string];
 	const extensionLines = segments.extensionStatuses
 		? renderExtensionStatusLines(theme, footerData.getExtensionStatuses(), glyphs, width)
 		: [];

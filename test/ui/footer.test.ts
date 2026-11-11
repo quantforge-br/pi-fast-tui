@@ -28,6 +28,7 @@ import {
 	truncatePath,
 } from "../../src/ui/utils.ts";
 import { preserveEnvironment, temporaryDirectory } from "./fixtures/test-helpers.ts";
+import { setCardGlyphMode } from "../../src/cards/symbols.ts";
 
 const theme = {
 	fg: (_color: string, text: string) => text,
@@ -174,8 +175,18 @@ test("counts Git RM entries as renamed and modified while preserving deletions",
 // Footer layout and width fitting.
 
 test("branch truncation preserves the branch prefix", () => {
-	assert.equal(truncateBranch("fix/cwd-footer-truncation", 20), "fix/cwd-footer-tr...");
+	assert.equal(truncateBranch("fix/cwd-footer-truncation", 20), "fix/cwd-footer-trun…");
 	assert.equal(truncateBranch("main", 20), "main");
+	assert.equal(truncateBranch("main", 1), "…");
+	assert.equal(truncateBranch("main", 0), "");
+});
+
+test("branch truncation ends with the ASCII ellipsis under the ASCII glyph set", (t) => {
+	setCardGlyphMode("ascii");
+	t.after(() => setCardGlyphMode("unicode"));
+	assert.equal(truncateBranch("fix/cwd-footer-truncation", 20), "fix/cwd-footer-tr...");
+	assert.equal(truncateBranch("main", 2), "..");
+	assert.equal(truncatePath("~/projects/pi-fast-tui", 18), "~/.../pi-fast-tui");
 });
 
 test("cwd path truncation keeps head and tail segments", () => {
@@ -216,7 +227,7 @@ function runFitInChild(scenarios: readonly FitScenario[]): string[][] {
 				if (seg.truncate === "noop") return { ...seg, truncate: (text) => text };
 				return seg;
 			});
-			return fitSegmentsByPriority(segs, s.maxW);
+			return fitSegmentsByPriority(segs, s.maxW, "...");
 		});
 		console.log(JSON.stringify(out));
 	`;
@@ -265,6 +276,7 @@ test("footer compacts cwd before truncating lower-priority segments", () => {
 				{ text: "node 24.6.0", priority: 0 },
 			],
 			53,
+			"...",
 		),
 		["@ pi-fast-tui", "* fix/cwd-footer-truncation", "node 24.6.0"],
 	);
@@ -431,7 +443,7 @@ test("provides inline footer content without duplicating native rows", () => {
 	assert.ok(narrow);
 	assert.ok(visibleWidth(narrow.bottom.left) + 1 + visibleWidth(narrow.bottom.right) <= narrowWidth);
 	assert.match(stripAnsi(narrow.bottom.right), /\$/);
-	assert.match(stripAnsi(narrow.bottom.left), /\.\.\.$/);
+	assert.match(stripAnsi(narrow.bottom.left), /…$/);
 	assert.equal(visibleWidth(handle.renderInline(visibleWidth(narrow.bottom.right) + 1)!.bottom.left), 0);
 
 	config.inlineFooter = true;
@@ -915,7 +927,7 @@ test("footer truncates long session names to 24 width units", () => {
 	const out = renderFooterWithSession({ sessionName: longName, width: 200 });
 	const clean = out.replace(/\x1b\[[0-9;]*m/g, "");
 	assert.ok(!clean.includes(longName), "full name must not appear\n" + clean);
-	assert.match(clean, /x{10,}\.\.\./, "truncated name should keep a prefix and ellipsis\n" + clean);
+	assert.match(clean, /x{10,}…/, "truncated name should keep a prefix and ellipsis\n" + clean);
 });
 
 test("nerdIconSpacing adds one blank after Nerd icons only", () => {
@@ -1174,7 +1186,7 @@ test("footer row 2 sheds input breakdown, cache-hit rate and provider before shr
 	const level3 = used(level2 - 1);
 	assertRow2Items(row(level2 - 1), ["(U 27k + R 5.0k)", "c 15.6%", "OpenAI"]);
 	const truncated = row(level3 - 1);
-	assert.match(truncated, /^M g\S*\.\.\. · ~ high /);
+	assert.match(truncated, /^M g\S*… · ~ high /);
 	for (const item of ["~ high", "i 32k", "o 12", "$0.010"]) assert.ok(truncated.includes(item), `${item} missing\n${truncated}`);
 });
 
@@ -1214,4 +1226,27 @@ test("footer row 2 sheds built-in detail before using an extension compactText",
 		segment("after", { after: "model" }, "[A]"),
 	]).row(200);
 	assert.match(anchored, /^\[B\] · M OpenAI · gpt-5 · ~ high · \[A\] /);
+});
+
+test("footer truncation follows the glyph set's ellipsis and fits every width", (t) => {
+	t.after(() => setCardGlyphMode("unicode"));
+	for (const [mode, ellipsis, other] of [["unicode", "…", "..."], ["ascii", "...", "…"]] as const) {
+		setCardGlyphMode(mode);
+		const clean = stripAnsi(renderFooterWithSession({ sessionName: "x".repeat(60), width: 200 }));
+		assert.ok(clean.includes(`${"x".repeat(10)}${ellipsis}`), `${mode} session ellipsis\n${clean}`);
+		assert.ok(!clean.includes(other), `${mode} must not use ${other}\n${clean}`);
+		const { component, handle } = footerFixture({
+			contextTokens: 250,
+			cwd: () => "/work/projects/some-long-project",
+			state: { git: { ...emptyGitStatus(), branch: "feature/a-very-long-branch-name", modified: 1 }, runtime: { name: "nodejs", version: "24.6.0" } },
+		});
+		for (let width = 1; width <= 200; width++) {
+			for (const line of component.render(width)) assert.ok(visibleWidth(line) <= width, `${mode} row exceeds ${width}`);
+			const inline = handle.renderInline(width)!;
+			for (const line of [inline.top, inline.bottom]) {
+				const gap = line.left && line.right ? 1 : 0;
+				assert.ok(visibleWidth(line.left) + gap + visibleWidth(line.right) <= width, `${mode} inline exceeds ${width}`);
+			}
+		}
+	}
 });
