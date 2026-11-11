@@ -663,3 +663,32 @@ test("live TPS tracks the trailing window of the streaming message", () => {
 	tracker.handle({ type: "agent_settled", aborted: false });
 	assert.equal(tracker.getLiveTps(), null);
 });
+
+test("turn telemetry fits the width and breaks only between metrics", () => {
+	const telemetry = {
+		tps: 51.5, ttftMs: 700, totalMs: 5_700, inputTokens: 3_100, outputTokens: 293, cacheReadTokens: 4_100,
+		stallMs: 0, stallCount: 0, rateUsdPerMTokens: 1.98, generationMs: 5_000, totalTokens: 7_493,
+		costUsd: 0.0148, measurementMs: 5_000,
+	};
+	const format = (maxWidth?: number) => formatTurnTelemetry(telemetry, theme, DEFAULT_CONFIG.telemetry, "ascii", maxWidth);
+	const full = format();
+	assert.equal(full, "> TPS 51.5 tok/s | ~ TTFT 0.7s | + 5.7s | ↑ 7.2k (U 3.1k + R 4.1k) | ↓ 293 | $1.98/M");
+	const plain = full.replace(" (U 3.1k + R 4.1k)", "");
+
+	assert.equal(format(full.length), full);
+	assert.equal(format(full.length - 1), plain);
+	assert.equal(format(78), plain, "the reference run stays on one line at 78 columns");
+
+	for (const maxWidth of [1, 5, 12, 20, 30, 45, plain.length - 1]) {
+		const output = format(maxWidth);
+		const lines = output.split("\n");
+		assert.ok(lines.length > 1, `${maxWidth} columns should wrap`);
+		for (const line of lines) {
+			assert.ok(!/^\s*\||\|\s*$/.test(line), `separator at a line edge: ${JSON.stringify(line)}`);
+			const metrics = line.split(" | ");
+			assert.ok(line.length <= maxWidth || metrics.length === 1, `${JSON.stringify(line)} exceeds ${maxWidth}`);
+		}
+		// Rejoining the lines restores the one-line form, so metrics stay whole and in order.
+		assert.equal(lines.join(" | "), plain);
+	}
+});

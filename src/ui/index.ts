@@ -28,6 +28,9 @@ import {
 	type PeekState,
 } from "./peek.ts";
 
+// Pi draws notifications with one padding column on each side.
+const NOTIFY_PADDING_COLUMNS = 2;
+
 type PendingUiChange = "install" | "uninstall";
 
 export function getPendingUiChange(enabled: boolean, active: boolean): PendingUiChange | undefined {
@@ -360,7 +363,9 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 		}
 		const telemetry = turnTelemetry.handle(event);
 		if (telemetry && config.enabled && config.telemetry.enabled && isTuiContext(ctx)) {
-			const message = formatTurnTelemetry(telemetry, ctx.ui.theme, config.telemetry, config.icons.mode);
+			const columns = editor?.getTui()?.terminal.columns;
+			const maxWidth = columns === undefined ? undefined : Math.max(1, columns - NOTIFY_PADDING_COLUMNS);
+			const message = formatTurnTelemetry(telemetry, ctx.ui.theme, config.telemetry, config.icons.mode, maxWidth);
 			if (message) ctx.ui.notify(message, "info");
 		}
 		// Only clear the peek label when this task is still the current one.

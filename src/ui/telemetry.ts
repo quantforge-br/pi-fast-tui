@@ -11,6 +11,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import type { IconMode, TelemetryConfig } from "./config.ts";
 import { resolveGlyphs } from "./icons.ts";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { finiteOrZero, fmtTokens, formatDuration, formatInputBreakdown, withIcon } from "./utils.ts";
 
 const STALL_THRESHOLD_MS = 1000;
@@ -328,9 +329,13 @@ export function formatTurnTelemetry(
 	theme: Theme,
 	config: TelemetryConfig,
 	iconMode: IconMode,
+	/** Columns available to the line; undefined keeps the single unbroken line. */
+	maxWidth?: number,
 ): string {
 	const glyphs = resolveGlyphs(iconMode);
 	const parts: string[] = [];
+	// The input metric has a shorter form without the uncached/cache-read breakdown.
+	let inputIndex = -1;
 	if (config.tps) {
 		const value = telemetry.tps === null ? "—" : `${telemetry.tps.toFixed(1)} tok/s`;
 		parts.push(theme.fg(telemetry.tps === null ? "muted" : "accent", `${glyphs.speed} TPS ${value}`));
@@ -342,6 +347,7 @@ export function formatTurnTelemetry(
 		parts.push(theme.fg("success", `${glyphs.done} ${formatTurnDuration(telemetry.totalMs)}`));
 	}
 	if (config.tokens) {
+		inputIndex = parts.length;
 		parts.push(theme.fg("accent", `${glyphs.input} ${formatInputBreakdown(telemetry.inputTokens, telemetry.cacheReadTokens)}`));
 		parts.push(theme.fg("success", `${glyphs.output} ${fmtTokens(telemetry.outputTokens)}`));
 	}
@@ -351,5 +357,27 @@ export function formatTurnTelemetry(
 	if (config.cost && telemetry.rateUsdPerMTokens !== null) {
 		parts.push(theme.fg("warning", withIcon(glyphs.cost, `$${telemetry.rateUsdPerMTokens.toFixed(2)}/M`)));
 	}
-	return parts.join(` ${theme.fg("dim", "|")} `);
+	const separator = ` ${theme.fg("dim", "|")} `;
+	const full = parts.join(separator);
+	if (maxWidth === undefined || visibleWidth(full) <= maxWidth) return full;
+
+	if (inputIndex !== -1) {
+		parts[inputIndex] = theme.fg("accent", `${glyphs.input} ${fmtTokens(telemetry.inputTokens + telemetry.cacheReadTokens)}`);
+	}
+	const plain = parts.join(separator);
+	if (visibleWidth(plain) <= maxWidth) return plain;
+
+	// Break only between metrics; a metric wider than the budget gets a line of its own.
+	const lines: string[] = [];
+	let line = "";
+	for (const part of parts) {
+		if (line && visibleWidth(line + separator + part) <= maxWidth) {
+			line += separator + part;
+			continue;
+		}
+		if (line) lines.push(line);
+		line = part;
+	}
+	if (line) lines.push(line);
+	return lines.join("\n");
 }
