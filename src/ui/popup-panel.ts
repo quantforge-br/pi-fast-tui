@@ -2,8 +2,18 @@ import type { Component, TuiMouseEvent, TuiMouseEventResult } from "@earendil-wo
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { fillBackground, stripAnsi } from "./utils.ts";
 
-/** Box glyphs of the popup border. */
-const BORDER = { topLeft: "╭", topRight: "╮", bottomLeft: "╰", bottomRight: "╯", horizontal: "─", vertical: "│" } as const;
+/**
+ * Popup border glyphs. Box-drawing lines sit in the middle of their cells, so a filled
+ * background would stick out half a cell past them; one-eighth blocks hug the outer cell
+ * edge instead, so the line traces the exact edge of the filled area. Corners keep the
+ * vertical edge (a corner glyph for both edges is not widely available in fonts).
+ */
+const BORDER = {
+	top: { left: "▏", fill: "▔", right: "▕" },
+	bottom: { left: "▏", fill: "▁", right: "▕" },
+	left: "▏",
+	right: "▕",
+} as const;
 
 /** Columns of space between the border and the content. */
 export const POPUP_PADDING_X = 2;
@@ -114,8 +124,9 @@ export class PopupPanel implements Component {
 		const open = this.options.background();
 		const border = this.options.border;
 		const pad = " ".repeat(POPUP_PADDING_X);
-		const row = (inner: string) => fillBackground(open, `${border(BORDER.vertical)}${pad}${fit(inner, innerWidth)}${pad}${border(BORDER.vertical)}`);
-		const rule = (left: string, right: string) => fillBackground(open, border(`${left}${BORDER.horizontal.repeat(Math.max(0, width - 2))}${right}`));
+		const row = (inner: string) => fillBackground(open, `${border(BORDER.left)}${pad}${fit(inner, innerWidth)}${pad}${border(BORDER.right)}`);
+		const rule = (edge: { left: string; fill: string; right: string }) =>
+			fillBackground(open, border(`${edge.left}${edge.fill.repeat(Math.max(0, width - 2))}${edge.right}`));
 
 		const hint = this.options.hint ? (this.options.hintStyle ?? ((text: string) => text))(this.options.hint) : "";
 		const titleWidth = Math.max(0, innerWidth - (hint ? visibleWidth(hint) + 1 : 0));
@@ -124,15 +135,15 @@ export class PopupPanel implements Component {
 
 		const content = kept.map((index) => row(raw[index]!));
 		this.headerRows = compact ? 2 : HEADER_ROWS;
-		if (compact) return [rule(BORDER.topLeft, BORDER.topRight), row(titleRow), ...content, rule(BORDER.bottomLeft, BORDER.bottomRight)];
+		if (compact) return [rule(BORDER.top), row(titleRow), ...content, rule(BORDER.bottom)];
 		return [
-			rule(BORDER.topLeft, BORDER.topRight),
+			rule(BORDER.top),
 			row(""),
 			row(titleRow),
 			row(""),
 			...content,
 			row(""),
-			rule(BORDER.bottomLeft, BORDER.bottomRight),
+			rule(BORDER.bottom),
 		];
 	}
 
