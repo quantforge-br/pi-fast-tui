@@ -38,6 +38,10 @@ const ROUNDED: EditorShapeStyle = {
 	rightInset: 2,
 };
 
+/** Full-width rules: corners are plain horizontal cells. */
+const RULE: FrameGlyphs = { topLeft: "─", topRight: "─", bottomLeft: "─", bottomRight: "─", horizontal: "─", vertical: "" };
+const PROMPT = "❯ ";
+
 function boxShape(id: EditorShape, glyphs: FrameGlyphs): EditorShapeStyle {
 	return { ...ROUNDED, id, glyphs };
 }
@@ -48,6 +52,9 @@ const SHAPES: Partial<Record<EditorShape, EditorShapeStyle>> = {
 	heavy: boxShape("heavy", { topLeft: "┏", topRight: "┓", bottomLeft: "┗", bottomRight: "┛", horizontal: "━", vertical: "┃" }),
 	double: boxShape("double", { topLeft: "╔", topRight: "╗", bottomLeft: "╚", bottomRight: "╝", horizontal: "═", vertical: "║" }),
 	ascii: boxShape("ascii", { topLeft: "+", topRight: "+", bottomLeft: "+", bottomRight: "+", horizontal: "-", vertical: "|" }),
+	native: { id: "native", glyphs: RULE, sideRails: false, bottomBorder: true, leftInset: 0, rightInset: 0 },
+	claude: { id: "claude", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: true, leftInset: 2, rightInset: 0 },
+	rule: { id: "rule", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: false, leftInset: 2, rightInset: 0 },
 };
 
 /** Style for a shape id; unknown ids fall back to `rounded`. */

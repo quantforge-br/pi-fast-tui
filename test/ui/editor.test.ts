@@ -213,6 +213,94 @@ for (const [shape, corners, h, v] of BOX_SHAPES) {
 	});
 }
 
+test("keeps Pi's native rules without side rails", () => {
+	const editor = createFastTuiEditor({ editorShape: "native" });
+	editor.setText("x");
+
+	const lines = editor.render(20).map(stripAnsi);
+	assert.deepEqual(lines, ["─".repeat(20), "x".padEnd(20), "─".repeat(20)]);
+	editor.handleMouse(mouseEvent("click", 1, 1, { width: 20, height: 8 }));
+	assert.equal(editor.getCursor().col, 1);
+});
+
+test("draws the claude prompt between two rules", () => {
+	const editor = createFastTuiEditor({ editorShape: "claude" });
+	editor.setText("first\nsecond");
+
+	const lines = editor.render(20).map(stripAnsi);
+	assert.deepEqual(lines, ["─".repeat(20), `❯ ${"first".padEnd(18)}`, `  ${"second".padEnd(18)}`, "─".repeat(20)]);
+	for (const line of lines) assert.equal(visibleWidth(line), 20);
+	editor.handleMouse(mouseEvent("click", 4, 2, { width: 20, height: 8 }));
+	assert.deepEqual(editor.getCursor(), { line: 1, col: 2 });
+});
+
+test("draws the rule shape with only a top rule", () => {
+	const editor = createFastTuiEditor({ editorShape: "rule" });
+	editor.setText("x");
+
+	const lines = editor.render(20).map(stripAnsi);
+	assert.deepEqual(lines, ["─".repeat(20), `❯ ${"x".padEnd(18)}`]);
+	editor.handleMouse(mouseEvent("click", 2, 1, { width: 20, height: 8 }));
+	assert.equal(editor.getCursor().col, 0);
+});
+
+test("moves both scroll indicators to the top rule of the rule shape", () => {
+	const editor = createFastTuiEditor({ editorShape: "rule" });
+	editor.setText(Array.from({ length: 30 }, (_, index) => `line ${index}`).join("\n"));
+	for (let i = 0; i < 12; i++) editor.handleInput("\x1b[A");
+
+	const lines = editor.render(60).map(stripAnsi);
+	assert.match(lines[0] ?? "", /^─{4} ↑ \d+ more ↓ \d+ more ─+$/);
+	assert.equal(visibleWidth(lines[0] ?? ""), 60);
+	assert.ok(lines.slice(1).every((line) => line.startsWith("❯ ") || line.startsWith("  ")));
+	assert.ok(!lines.slice(1).some((line) => /^─+$/.test(line)));
+});
+
+for (const shape of ["native", "claude", "rule"] as const) {
+	test(`embeds the working indicator in the ${shape} top rule`, () => {
+		const editor = createFastTuiEditor({ editorShape: shape });
+		editor.setWorkingStatusIndicator({ renderInBorder: () => "◐ working", renderSpinnerInBorder: () => "◐" });
+		const top = stripAnsi(editor.render(40)[0] ?? "");
+		assert.match(top, /^─── ◐ working ─+$/);
+		assert.equal(visibleWidth(top), 40);
+	});
+}
+
+test("embeds the inline footer in the native and claude rules", () => {
+	for (const shape of ["native", "claude"] as const) {
+		const editor = createFastTuiEditor({ editorShape: shape, inlineFooter: inlineFooterStub });
+		const lines = editor.render(40).map(stripAnsi);
+		assert.match(lines[0] ?? "", /^── cwd ─+ context ──$/);
+		assert.match(lines.at(-1) ?? "", /^── model ─+ stats ──$/);
+	}
+});
+
+test("keeps the footer out of the bottom-less rule shape", () => {
+	const editor = createFastTuiEditor({ editorShape: "rule", inlineFooter: inlineFooterStub });
+	const lines = editor.render(40).map(stripAnsi);
+	assert.equal(lines[0], "─".repeat(40));
+	assert.ok(!lines.some((line) => /cwd|model/.test(line)));
+});
+
+test("maps clicks below the frame to Pi's completion rows without the frame inset", () => {
+	for (const [shape, yOffset] of [["rounded", 0], ["claude", 0], ["rule", 1]] as const) {
+		const inner = new CustomEditor(tui, editorTheme, { matches: () => false } as unknown as KeybindingsManager, { paddingX: 0 });
+		const events: TuiMouseEvent[] = [];
+		inner.handleMouse = (event) => {
+			events.push(event);
+			return undefined;
+		};
+		const editor = decorateFastTuiEditor(inner, tui, { editorShape: shape });
+		const rows = editor.render(40).length;
+		editor.handleMouse(mouseEvent("click", 5, rows, { width: 40, height: 8 }));
+		editor.handleMouse(mouseEvent("click", 5, 1, { width: 40, height: 8 }));
+		assert.equal(events[0]?.x, 5, `${shape} completion x`);
+		assert.equal(events[0]?.y, rows + yOffset, `${shape} completion y`);
+		assert.equal(events[1]?.x, 3, `${shape} content x`);
+		assert.equal(events[1]?.y, 1, `${shape} content y`);
+	}
+});
+
 test("switches the editor shape at runtime without rebuilding the editor", () => {
 	let renders = 0;
 	const hostTui = { ...tui, requestRender() { renders++; } } as TUI;

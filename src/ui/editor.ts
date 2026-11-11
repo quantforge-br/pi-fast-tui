@@ -298,8 +298,10 @@ interface FrameLayout {
 	width: number;
 	leftInset: number;
 	horizontalChrome: number;
-	/** Row where Pi's dropped bottom rule sat; rows at or below it moved up by one. */
-	droppedBottomRow: number | undefined;
+	/** First row below the frame (completion list); those rows keep Pi's own x coordinates. */
+	belowFrameRow: number;
+	/** Pi's bottom rule is not drawn, so rows below the frame sit one row higher than in Pi's layout. */
+	droppedBottomRule: boolean;
 }
 
 function renderFrame(decoration: EditorDecoration, width: number): string[] {
@@ -357,7 +359,8 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 		width,
 		leftInset: shape.leftInset,
 		horizontalChrome,
-		droppedBottomRow: shape.bottomBorder ? undefined : bottomIdx,
+		belowFrameRow: shape.bottomBorder ? bottomIdx + 1 : bottomIdx,
+		droppedBottomRule: !shape.bottomBorder,
 	};
 	return result.map((line) => truncateToWidth(line, width, ""));
 }
@@ -365,8 +368,10 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 function mapMouseEvent<T extends { x: number; y: number; width: number }>(decoration: EditorDecoration, event: T): T {
 	const frame = decoration.frame;
 	if (!decoration.active || !frame || event.width !== frame.width) return event;
-	const y = frame.droppedBottomRow !== undefined && event.y >= frame.droppedBottomRow ? event.y + 1 : event.y;
-	return { ...event, x: event.x - frame.leftInset, y, width: event.width - frame.horizontalChrome };
+	const width = event.width - frame.horizontalChrome;
+	// Completion rows are copied unshifted from Pi's render, so only their row index moves.
+	if (event.y >= frame.belowFrameRow) return { ...event, y: frame.droppedBottomRule ? event.y + 1 : event.y, width };
+	return { ...event, x: event.x - frame.leftInset, width };
 }
 
 /**
