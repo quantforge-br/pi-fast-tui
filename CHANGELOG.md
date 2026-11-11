@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The `opencode` shape ends with a padding row, so its info row no longer touches the footer below.
+
 ## [0.3.0] - 2026-11-10
 
 ### Added

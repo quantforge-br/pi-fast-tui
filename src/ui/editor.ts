@@ -303,6 +303,8 @@ interface FrameLayout {
 	width: number;
 	leftInset: number;
 	horizontalChrome: number;
+	/** First chrome row after the content; chrome rows up to `belowFrameRow` map onto Pi's bottom rule. */
+	contentEndRow: number;
 	/** First row below the frame (completion list); those rows keep Pi's own x coordinates. */
 	belowFrameRow: number;
 	/** Rows to add to a y at or below `belowFrameRow` to reach Pi's layout (frames can drop or add chrome rows). */
@@ -339,7 +341,8 @@ function panelStatus(width: number, scrollLabel: string | undefined, indicator: 
 
 /**
  * Panel shapes: an accent rail beside a filled block holding a padding row with the
- * indicators, Pi's content rows, a blank row and an info row (model or the footer's second line).
+ * indicators, Pi's content rows, a blank row, an info row (model or the footer's second line)
+ * and a bottom padding row that keeps the info row off whatever is drawn below the editor.
  */
 function renderPanel(
 	decoration: EditorDecoration,
@@ -366,6 +369,7 @@ function renderPanel(
 	result.push(row(footer
 		? spreadRow(footer.bottom.left, footer.bottom.right, contentWidth)
 		: decoration.inlineFooter?.renderInfo?.(contentWidth) ?? ""));
+	result.push(row(""));
 	return result;
 }
 
@@ -398,8 +402,15 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 	const embedFooter = inlineFooter && canEmbedInlineFooter(shape);
 	if (shape.panel) {
 		result.push(...renderPanel(decoration, width, baseLines, bottomIdx, topScrollLabel, embedFooter));
-		// The panel adds a blank and an info row in place of Pi's bottom rule.
-		decoration.frame = { width, leftInset: shape.leftInset, horizontalChrome, belowFrameRow: bottomIdx + 1, belowFrameShift: -1 };
+		// The blank, info and bottom padding rows replace Pi's single bottom rule.
+		decoration.frame = {
+			width,
+			leftInset: shape.leftInset,
+			horizontalChrome,
+			contentEndRow: bottomIdx,
+			belowFrameRow: bottomIdx + 3,
+			belowFrameShift: -2,
+		};
 		for (let i = bottomIdx + 1; i < baseLines.length; i++) result.push(baseLines[i]!);
 		return result.map((line) => truncateToWidth(line, width, ""));
 	}
@@ -431,6 +442,7 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 		width,
 		leftInset: shape.leftInset,
 		horizontalChrome,
+		contentEndRow: bottomIdx,
 		belowFrameRow: shape.bottomBorder ? bottomIdx + 1 : bottomIdx,
 		// Pi's bottom rule is not drawn, so rows below the frame sit one row higher than in Pi's layout.
 		belowFrameShift: shape.bottomBorder ? 0 : 1,
@@ -444,7 +456,8 @@ function mapMouseEvent<T extends { x: number; y: number; width: number }>(decora
 	const width = event.width - frame.horizontalChrome;
 	// Completion rows are copied unshifted from Pi's render, so only their row index moves.
 	if (event.y >= frame.belowFrameRow) return { ...event, y: event.y + frame.belowFrameShift, width };
-	return { ...event, x: event.x - frame.leftInset, width };
+	const y = Math.min(event.y, frame.contentEndRow);
+	return { ...event, x: event.x - frame.leftInset, y, width };
 }
 
 /**

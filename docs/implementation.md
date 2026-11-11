@@ -24,7 +24,7 @@ Factories registered through the current `ctx.ui.setEditorComponent()` API can r
 
 Block mode uses the editor's existing cursor behavior. Bar and underline modes enable the terminal hardware cursor and request its shape with terminal escape sequences. Terminal support is required; cleanup restores the prior hardware-cursor visibility.
 
-The frame is drawn from a shape style in [editor-shapes.ts](../src/ui/editor-shapes.ts): border glyphs, whether side rails are drawn, an optional prompt, whether the bottom rule is kept, and the left/right insets. The mouse offset is derived from the same insets. Shapes without a bottom rule move the scroll indicators to the top rule, shift rows below the frame up by one for mouse mapping, and report that the footer cannot be embedded. Panel shapes (`opencode`) replace both rules with a padding row, a blank row, and an info row on a filled background; the background is re-opened after any SGR reset inside a row, and rows below the panel shift down by one for mouse mapping.
+The frame is drawn from a shape style in [editor-shapes.ts](../src/ui/editor-shapes.ts): border glyphs, whether side rails are drawn, an optional prompt, whether the bottom rule is kept, and the left/right insets. The mouse offset is derived from the same insets. Shapes without a bottom rule move the scroll indicators to the top rule, shift rows below the frame up by one for mouse mapping, and report that the footer cannot be embedded. Panel shapes (`opencode`) replace both rules with a top padding row, a blank row, an info row, and a bottom padding row on a filled background; the background is re-opened after any SGR reset inside a row. For mouse mapping, the rows after the content map onto Pi's bottom rule and rows below the panel shift up by two.
 
 [footer.ts](../src/ui/footer.ts) and [utils.ts](../src/ui/utils.ts) fit content by visible terminal width. Without contributed segments, the first row tries compact forms (directory basename, context percentage, timer without live TPS) before shrinking or dropping runtime/context, then Git, session name, hostname/timer, and finally the directory. The second row prioritizes statistics over the model label.
 
@@ -121,7 +121,7 @@ Agent 运行期间，工作计时器每 250 毫秒请求一次重绘。Git 和�
 
 块状模式保留编辑器现有光标行为；竖线和下划线模式开启终端硬件光标，并通过终端转义序列请求形状，因此需要终端支持。清理时恢复先前的硬件光标可见性。
 
-边框按 [editor-shapes.ts](../src/ui/editor-shapes.ts) 中的样式绘制：边框字符、是否绘制左右边线、可选提示符、是否保留下横线以及左右缩进。鼠标偏移由同一组缩进计算。没有下横线的样式会把滚动提示移到上横线，鼠标映射时边框下方的行上移一行，并告知底栏无法嵌入。面板样式（`opencode`）用填充背景上的留白行、空行和信息行替换上下横线；行内出现 SGR 重置后会重新打开背景，鼠标映射时面板下方的行下移一行。
+边框按 [editor-shapes.ts](../src/ui/editor-shapes.ts) 中的样式绘制：边框字符、是否绘制左右边线、可选提示符、是否保留下横线以及左右缩进。鼠标偏移由同一组缩进计算。没有下横线的样式会把滚动提示移到上横线，鼠标映射时边框下方的行上移一行，并告知底栏无法嵌入。面板样式（`opencode`）用填充背景上的顶部留白行、空行、信息行和底部留白行替换上下横线；行内出现 SGR 重置后会重新打开背景。鼠标映射时，内容之后的各行对应 Pi 的下横线，面板下方的行上移两行。
 
 [footer.ts](../src/ui/footer.ts) 与 [utils.ts](../src/ui/utils.ts) 按终端可见宽度排版。没有扩展嵌入片段时，第一行先尝试目录末级名称、上下文百分比、去除实时 TPS 的计时器等紧凑形式，再缩短或移除运行环境/上下文、Git、会话名、主机名/计时器，最后才是当前目录。第二行优先保留统计数据，再缩短模型标签。
 
