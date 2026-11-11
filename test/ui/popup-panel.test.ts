@@ -4,6 +4,7 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 import test from "./fixtures/node-test.ts";
 import { isHorizontalRule, PopupPanel } from "../../src/ui/popup-panel.ts";
 import { stripAnsi } from "../../src/ui/utils.ts";
+import { setCardGlyphMode } from "../../src/cards/symbols.ts";
 
 const BG = "\x1b[48;5;236m";
 
@@ -176,4 +177,16 @@ test("drops trailing blank content rows unless asked to keep them", () => {
 			.map((line) => stripAnsi(line));
 	assert.equal(rows(true).length, rows(false).length + 2);
 	assert.match(rows(true).at(-3)!, /^▕ +▏$/);
+});
+
+test("the ASCII glyph set draws a plain box and clips with three dots", (t) => {
+	setCardGlyphMode("ascii");
+	t.after(() => setCardGlyphMode("unicode"));
+	const width = 40;
+	const lines = panel(new FakeMenu(["x".repeat(60), "short"])).render(width).map(stripAnsi);
+	assert.match(lines[0]!, /^<\+><-+><\+>$/);
+	assert.match(lines.at(-1)!, /^<\+><-+><\+>$/);
+	for (const line of lines.slice(1, -1)) assert.match(line, /^<\|>.*<\|>$/);
+	assert.ok(lines.some((line) => line.includes("x...")));
+	for (const line of lines) assert.match(line, /^[\x00-\x7F]*$/);
 });

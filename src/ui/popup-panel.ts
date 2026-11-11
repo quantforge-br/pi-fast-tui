@@ -1,5 +1,6 @@
 import type { Component, TuiMouseEvent, TuiMouseEventResult } from "@earendil-works/pi-tui";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { cardGlyphMode, TEXT } from "../cards/symbols.ts";
 import { fillBackground, stripAnsi } from "./utils.ts";
 
 /**
@@ -9,12 +10,25 @@ import { fillBackground, stripAnsi } from "./utils.ts";
  * the middle of their cells and leave half a cell on one side or the other). Corner cells stay
  * blank: the lines meet at the fill's corner, leaving only a one-eighth notch.
  */
-const BORDER = {
+const UNICODE_BORDER = {
 	top: { left: " ", fill: "▁", right: " " },
 	bottom: { left: " ", fill: "▔", right: " " },
 	left: "▕",
 	right: "▏",
 } as const;
+
+/** The ASCII glyph set draws a plain box: `+` corners, `-` rules and `|` sides. */
+const ASCII_BORDER = {
+	top: { left: "+", fill: "-", right: "+" },
+	bottom: { left: "+", fill: "-", right: "+" },
+	left: "|",
+	right: "|",
+} as const;
+
+/** The border for the active card glyph set, read at render time. */
+function popupBorder(): typeof UNICODE_BORDER | typeof ASCII_BORDER {
+	return cardGlyphMode() === "ascii" ? ASCII_BORDER : UNICODE_BORDER;
+}
 
 /** Columns of space between the border and the content. */
 export const POPUP_PADDING_X = 2;
@@ -62,7 +76,7 @@ export function isHorizontalRule(line: string): boolean {
 }
 
 function fit(line: string, width: number): string {
-	const clipped = truncateToWidth(line, width, "…");
+	const clipped = truncateToWidth(line, width, TEXT.ellipsis);
 	return clipped + " ".repeat(Math.max(0, width - visibleWidth(clipped)));
 }
 
@@ -129,13 +143,16 @@ export class PopupPanel implements Component {
 		const open = this.options.background();
 		const border = this.options.border;
 		const pad = " ".repeat(POPUP_PADDING_X);
+		const BORDER = popupBorder();
 		const row = (inner: string) => `${border(BORDER.left)}${fillBackground(open, `${pad}${fit(inner, innerWidth)}${pad}`)}${border(BORDER.right)}`;
+		// Blank corner cells stay unstyled; drawn corners take the border color.
+		const corner = (glyph: string) => (glyph === " " ? glyph : border(glyph));
 		const rule = (edge: { left: string; fill: string; right: string }) =>
-			`${edge.left}${border(edge.fill.repeat(Math.max(0, width - 2)))}${edge.right}`;
+			`${corner(edge.left)}${border(edge.fill.repeat(Math.max(0, width - 2)))}${corner(edge.right)}`;
 
 		const hint = this.options.hint ? (this.options.hintStyle ?? ((text: string) => text))(this.options.hint) : "";
 		const titleWidth = Math.max(0, innerWidth - (hint ? visibleWidth(hint) + 1 : 0));
-		const title = truncateToWidth((this.options.titleStyle ?? ((text: string) => text))(titleText), titleWidth, "…");
+		const title = truncateToWidth((this.options.titleStyle ?? ((text: string) => text))(titleText), titleWidth, TEXT.ellipsis);
 		const titleRow = `${title}${" ".repeat(Math.max(0, innerWidth - visibleWidth(title) - visibleWidth(hint)))}${hint}`;
 
 		const content = kept.map((index) => row(raw[index]!));
