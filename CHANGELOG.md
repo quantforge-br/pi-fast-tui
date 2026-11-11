@@ -10,6 +10,7 @@
 - Cost no longer shows a doubled dollar sign under the `unicode` and `ascii` icon sets: the footer reads `$0.081` and the telemetry rate `$1.66/M`. The Nerd Font set keeps its cost icon.
 - Turn telemetry fits the terminal width: when the line is too wide it first drops the input breakdown `(U … + R …)`, then wraps onto several lines, breaking only between metrics.
 - Header: terminals shorter than 30 rows get a compact five-row header (version title, model and thinking level, cwd, commands) without the logo; it switches back when the terminal grows. The full header leaves a blank column between the tips divider and the right border.
+- Grep, Find and Ls cards: rows longer than the card wrap with a hanging indent, under the tree rail (and, for grep lines, under the line-number gutter) instead of at the first column. Collapsed cards still show the same number of logical rows.
 
 ## [0.5.1] - 2026-11-11
 

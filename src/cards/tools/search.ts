@@ -4,6 +4,7 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import type { CardBuilder, CardInput, CardSnapshot } from "../card.ts";
 import { plural } from "../format.ts";
 import { TREE } from "../symbols.ts";
+import { wrapHanging } from "../wrap.ts";
 import { lines, pathArg, resultText, splitNotice, stringArg } from "./common.ts";
 
 /** Result rows a collapsed search card shows. */
@@ -41,20 +42,23 @@ export function parseGrep(text: string): GrepFile[] | undefined {
 	return files;
 }
 
-function grepTree(files: GrepFile[], theme: Theme, expanded: boolean, expandHint: string): string[] {
+function grepTree(files: GrepFile[], theme: Theme, expanded: boolean, expandHint: string, rowWidth: number): string[] {
 	const width = String(Math.max(...files.flatMap((file) => file.lines.map((line) => line.line)))).length;
 	const rows: string[] = [];
 	let shown = 0;
 	const total = files.reduce((sum, file) => sum + file.lines.filter((line) => line.match).length, 0);
+	const rail = `${theme.fg("dim", TREE.vertical)}  `;
+	const gutterRail = `${theme.fg("dim", TREE.vertical)} `;
+	const blankGutter = `${rail}${" ".repeat(width + 1)}${gutterRail}`;
 	for (const file of files) {
 		if (!expanded && rows.length >= SEARCH_PREVIEW_LINES) break;
-		rows.push(`${theme.fg("dim", TREE.branch)} ${theme.fg("accent", file.path)}`);
+		rows.push(wrapHanging(`${theme.fg("dim", TREE.branch)} `, theme.fg("accent", file.path), rowWidth, rail));
 		for (const line of file.lines) {
 			if (!expanded && rows.length >= SEARCH_PREVIEW_LINES) break;
 			const number = String(line.line).padStart(width);
 			const marker = line.match ? theme.fg("accent", "*") : " ";
 			const body = theme.fg(line.match ? "toolOutput" : "dim", line.text);
-			rows.push(`${theme.fg("dim", TREE.vertical)}  ${marker}${theme.fg("dim", `${number}${TREE.vertical}`)} ${body}`);
+			rows.push(wrapHanging(`${rail}${marker}${theme.fg("dim", number)}${gutterRail}`, body, rowWidth, blankGutter));
 			if (line.match) shown++;
 		}
 	}
@@ -64,11 +68,19 @@ function grepTree(files: GrepFile[], theme: Theme, expanded: boolean, expandHint
 	return rows;
 }
 
-function listTree(items: string[], theme: Theme, expanded: boolean, expandHint: string, style: (item: string) => string): string[] {
+function listTree(
+	items: string[],
+	theme: Theme,
+	expanded: boolean,
+	expandHint: string,
+	rowWidth: number,
+	style: (item: string) => string,
+): string[] {
 	const shown = expanded ? items : items.slice(0, SEARCH_PREVIEW_LINES);
 	const rows = shown.map((item, index) => {
 		const last = index === shown.length - 1 && shown.length === items.length;
-		return `${theme.fg("dim", last ? TREE.last : TREE.branch)} ${style(item)}`;
+		const continuation = last ? "   " : `${theme.fg("dim", TREE.vertical)}  `;
+		return wrapHanging(`${theme.fg("dim", last ? TREE.last : TREE.branch)} `, style(item), rowWidth, continuation);
 	});
 	const hidden = items.length - shown.length;
 	if (hidden > 0) rows.push(`${theme.fg("dim", `${TREE.last} … ${hidden} more (`)}${expandHint}${theme.fg("dim", ")")}`);
@@ -111,7 +123,7 @@ export const grepCard: CardBuilder = (input) => {
 		const matches = files.reduce((sum, file) => sum + file.lines.filter((line) => line.match).length, 0);
 		return {
 			meta: `${plural(matches, "match", "matches")} · ${plural(files.length, "file")}`,
-			rows: grepTree(files, input.theme, input.expanded, input.expandHint),
+			rows: grepTree(files, input.theme, input.expanded, input.expandHint, input.inlineWidth),
 		};
 	});
 };
@@ -121,7 +133,7 @@ export const findCard: CardBuilder = (input) => {
 	const pattern = stringArg(input.args, "pattern") ?? "…";
 	return searchCard(input, "Find", where(input, pattern), /^No files found/, (text) => {
 		const items = lines(text).filter(Boolean);
-		return { meta: plural(items.length, "file"), rows: listTree(items, input.theme, input.expanded, input.expandHint, (item) => input.theme.fg("toolOutput", item)) };
+		return { meta: plural(items.length, "file"), rows: listTree(items, input.theme, input.expanded, input.expandHint, input.inlineWidth, (item) => input.theme.fg("toolOutput", item)) };
 	});
 };
 
@@ -131,6 +143,6 @@ export const lsCard: CardBuilder = (input) => {
 	return searchCard(input, "Ls", pathArg(input, "path", "."), /^\(empty directory\)$/, (text) => {
 		const items = lines(text).filter(Boolean);
 		const style = (item: string) => (item.endsWith("/") ? theme.fg("accent", item) : theme.fg("toolOutput", item));
-		return { meta: plural(items.length, "entry", "entries"), rows: listTree(items, theme, input.expanded, input.expandHint, style) };
+		return { meta: plural(items.length, "entry", "entries"), rows: listTree(items, theme, input.expanded, input.expandHint, input.inlineWidth, style) };
 	});
 };

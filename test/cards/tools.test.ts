@@ -5,7 +5,7 @@ import { bashCard, parseBashOutput } from "../../src/cards/tools/bash.ts";
 import { splitNotice } from "../../src/cards/tools/common.ts";
 import { diffCounts, editCard, editPairs } from "../../src/cards/tools/edit.ts";
 import { readCard, readTarget } from "../../src/cards/tools/read.ts";
-import { findCard, grepCard, lsCard, parseGrep } from "../../src/cards/tools/search.ts";
+import { findCard, grepCard, lsCard, parseGrep, SEARCH_PREVIEW_LINES } from "../../src/cards/tools/search.ts";
 import { writeCard } from "../../src/cards/tools/write.ts";
 import { draw, newRow, type Row, text } from "./row.ts";
 
@@ -192,6 +192,25 @@ describe("grep", () => {
 		expect(draw(grep, settled({ pattern: "zzz" }, "No matches found"))).toBe(" ✔ Grep: zzz No matches found");
 		expect(draw(grep, settled({ pattern: "(" }, "regex parse error", { isError: true }))).toContain("regex parse error");
 	});
+	it("wraps long rows under the tree rail and the line-number gutter", () => {
+		const long = `src/config/a/very/long/path/to/some/file.ts:77: export const value77 = "${"x".repeat(30)}";`;
+		const rows = draw(grep, settled({ pattern: "v" }, long), 40).split("\n");
+		expect(rows.slice(1)).toEqual([
+			" ├─ src/config/a/very/long/path/to/some",
+			" │  /file.ts",
+			" │  *77│ export const value77 =",
+			' │     │ "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+			' │     │ x";',
+		]);
+	});
+
+	it("caps wrapped matches by logical row and keeps the hidden count", () => {
+		const many = Array.from({ length: 20 }, (_, index) => `f.ts:${index + 1}: hit ${"h".repeat(60)}`).join("\n");
+		const rows = draw(grep, settled({ pattern: "hit" }, many), 40).split("\n");
+		expect(rows.filter((row) => /^ │  \*\s*\d+│ hit/.test(row))).toHaveLength(SEARCH_PREVIEW_LINES - 1);
+		expect(rows.join(" ")).toContain(`└─ … ${20 - SEARCH_PREVIEW_LINES + 1} more matches (ctrl+o to`);
+		expect(rows.filter((row) => row.startsWith(" │     │ h"))).toHaveLength(2 * (SEARCH_PREVIEW_LINES - 1));
+	});
 });
 
 describe("find and ls", () => {
@@ -208,6 +227,21 @@ describe("find and ls", () => {
 		expect(drawn).toContain("└─ … 4 more (ctrl+o to expand)");
 		expect(draw(ls, settled({}, "(empty directory)"))).toBe(" ✔ Ls: . (empty directory)");
 	});
+	it("wraps long items under their connector", () => {
+		const output = `${"a/".repeat(25)}x.ts\n${"b/".repeat(25)}y/`;
+		expect(draw(find, settled({ pattern: "*" }, output), 40).split("\n").slice(1)).toEqual([
+			" ├─ a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a",
+			" │  /a/a/a/a/a/a/a/x.ts",
+			" └─ b/b/b/b/b/b/b/b/b/b/b/b/b/b/b/b/b/b",
+			"    /b/b/b/b/b/b/b/y/",
+		]);
+		expect(draw(ls, settled({}, output), 40).split("\n").slice(1)).toEqual([
+			" ├─ a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a/a",
+			" │  /a/a/a/a/a/a/a/x.ts",
+			" └─ b/b/b/b/b/b/b/b/b/b/b/b/b/b/b/b/b/b",
+			"    /b/b/b/b/b/b/b/y/",
+		]);
+	});
 });
 
 describe("notices", () => {
@@ -222,7 +256,9 @@ describe("widths", () => {
 		const rows: [ReturnType<typeof createCardRenderers>, Row][] = [
 			[bash, settled({ command: "x".repeat(200) }, "y".repeat(300))],
 			[read, settled({ path: "a.ts" }, "z".repeat(300))],
-			[grep, settled({ pattern: "p" }, `f.ts:1: ${"w".repeat(300)}`)],
+			[grep, settled({ pattern: "p" }, `${"d/".repeat(40)}f.ts:1: ${"w".repeat(300)}`)],
+			[find, settled({ pattern: "*" }, `${"d/".repeat(40)}f.ts\n${"e".repeat(90)}`)],
+			[ls, settled({}, `${"d".repeat(90)}/\n${"e".repeat(90)}`)],
 		];
 		for (const [renderers, row] of rows) {
 			draw(renderers, row, 40);

@@ -33,6 +33,8 @@ export interface CardInput {
 	expandHint: string;
 	/** Width for body lines inside the card. */
 	contentWidth: number;
+	/** Width for body rows of an inline card. */
+	inlineWidth: number;
 	theme: Theme;
 	/** What another renderer in the chain would draw for this call, for cards that wrap it. */
 	base: BaseComponents;
@@ -268,6 +270,7 @@ class Card implements Component {
 			spinnerFrame: running ? frame : undefined,
 			expandHint: view.expandHint,
 			contentWidth: frameContentWidth(inner),
+			inlineWidth: inner,
 			theme: this.theme,
 			base: { call: state.baseCall, result: state.baseResult },
 		};
