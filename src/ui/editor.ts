@@ -5,7 +5,8 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { Component, Container, EditorComponent, TUI } from "@earendil-works/pi-tui";
 import { CURSOR_MARKER, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { CursorStyle } from "./config.ts";
+import type { CursorStyle, EditorShape } from "./config.ts";
+import { getEditorShapeStyle, type EditorShapeStyle, type FrameGlyphs } from "./editor-shapes.ts";
 import { findBottomBorderIndex, isEditorBorderLine, stripAnsi } from "./utils.ts";
 
 function fillLine(content: string, width: number): string {
@@ -19,8 +20,6 @@ const CURSOR_STYLE_SEQUENCES: Partial<Record<CursorStyle, string>> = {
 	underline: "\x1b[4 q",
 };
 const DEFAULT_CURSOR_STYLE_SEQUENCE = "\x1b[0 q";
-const EDITOR_FRAME_LEFT_INSET = 2;
-const EDITOR_FRAME_HORIZONTAL_CHROME = EDITOR_FRAME_LEFT_INSET * 2;
 
 type EditorFactory = NonNullable<Parameters<ExtensionContext["ui"]["setEditorComponent"]>[0]>;
 
@@ -100,24 +99,35 @@ function configureCursor(tui: TUI, cursorStyle: CursorStyle): void {
 	if (sequence) tui.terminal.write(sequence);
 }
 
-function roundedBorder(
+const SCROLL_INDICATOR = /([↑↓]\s+\d+\s+more)/;
+
+/** The `↑ N more` / `↓ N more` label Pi draws in its editor rules, if any. */
+function scrollLabelOf(sourceLine: string | undefined): string | undefined {
+	return sourceLine ? stripAnsi(sourceLine).match(SCROLL_INDICATOR)?.[1] : undefined;
+}
+
+function borderCorners(glyphs: FrameGlyphs, kind: "top" | "bottom"): readonly [string, string] {
+	return kind === "top" ? [glyphs.topLeft, glyphs.topRight] : [glyphs.bottomLeft, glyphs.bottomRight];
+}
+
+function frameBorder(
 	width: number,
 	kind: "top" | "bottom",
+	glyphs: FrameGlyphs,
 	paint: (s: string) => string,
-	sourceLine?: string,
+	scrollLabel?: string,
 	indicator?: WorkingStatusIndicator,
 ): string {
-	if (width < 2) return paint(truncateToWidth(kind === "top" ? "╭╮" : "╰╯", width, ""));
-	const corners = kind === "top" ? (["╭", "╮"] as const) : (["╰", "╯"] as const);
+	const corners = borderCorners(glyphs, kind);
+	if (width < 2) return paint(truncateToWidth(corners.join(""), width, ""));
+	const h = glyphs.horizontal;
 
 	if (kind === "top" && indicator) {
-		const plain = sourceLine ? stripAnsi(sourceLine) : "";
-		const scrollMatch = plain.match(/([↑↓]\s+\d+\s+more)/);
 		const contentWidth = width - 2;
 		let status = indicator.renderInBorder(Math.max(1, contentWidth - 5));
 		let statusWidth = visibleWidth(status);
 		if (statusWidth > 0) {
-			const overflowLabel = scrollMatch ? ` ${scrollMatch[1]} ` : undefined;
+			const overflowLabel = scrollLabel ? ` ${scrollLabel} ` : undefined;
 			const overflowLabelWidth = overflowLabel ? visibleWidth(overflowLabel) : 0;
 			const overflowStart = Math.floor((contentWidth - overflowLabelWidth) / 2);
 			const canFitOverflow = () => overflowLabel !== undefined
@@ -129,29 +139,25 @@ function roundedBorder(
 			}
 			if (canFitOverflow()) {
 				const leftBlockWidth = 3 + statusWidth + 1;
-				return `${paint(`${corners[0]}── `)}${status}${paint(` ${"─".repeat(overflowStart - leftBlockWidth)}${overflowLabel}${"─".repeat(contentWidth - overflowStart - overflowLabelWidth)}${corners[1]}`)}`;
+				return `${paint(`${corners[0]}${h}${h} `)}${status}${paint(` ${h.repeat(overflowStart - leftBlockWidth)}${overflowLabel}${h.repeat(contentWidth - overflowStart - overflowLabelWidth)}${corners[1]}`)}`;
 			}
 			if (contentWidth >= statusWidth + 5) {
-				return `${paint(`${corners[0]}── `)}${status}${paint(` ${"─".repeat(contentWidth - statusWidth - 4)}${corners[1]}`)}`;
+				return `${paint(`${corners[0]}${h}${h} `)}${status}${paint(` ${h.repeat(contentWidth - statusWidth - 4)}${corners[1]}`)}`;
 			}
 			status = indicator.renderSpinnerInBorder(contentWidth);
 			statusWidth = visibleWidth(status);
 			const prefixWidth = Math.min(3, Math.max(0, contentWidth - statusWidth));
-			return `${paint(`${corners[0]}${"─".repeat(prefixWidth)}`)}${status}${paint(`${"─".repeat(Math.max(0, contentWidth - prefixWidth - statusWidth))}${corners[1]}`)}`;
+			return `${paint(`${corners[0]}${h.repeat(prefixWidth)}`)}${status}${paint(`${h.repeat(Math.max(0, contentWidth - prefixWidth - statusWidth))}${corners[1]}`)}`;
 		}
 	}
 
-	if (sourceLine) {
-		const plain = stripAnsi(sourceLine);
-		const scrollMatch = plain.match(/([↑↓]\s+\d+\s+more)/);
-		if (scrollMatch) {
-			const label = `─── ${scrollMatch[1]} `;
-			const fill = Math.max(0, width - 2 - visibleWidth(label));
-			return paint(`${corners[0]}${label}${"─".repeat(fill)}${corners[1]}`);
-		}
+	if (scrollLabel) {
+		const label = `${h.repeat(3)} ${scrollLabel} `;
+		const fill = Math.max(0, width - 2 - visibleWidth(label));
+		return paint(`${corners[0]}${label}${h.repeat(fill)}${corners[1]}`);
 	}
 
-	return paint(`${corners[0]}${"─".repeat(Math.max(0, width - 2))}${corners[1]}`);
+	return paint(`${corners[0]}${h.repeat(Math.max(0, width - 2))}${corners[1]}`);
 }
 
 function trimTrailingSpaces(text: string): string {
@@ -163,19 +169,19 @@ function trimTrailingSpaces(text: string): string {
 function inlineBorder(
 	width: number,
 	kind: "top" | "bottom",
+	glyphs: FrameGlyphs,
 	paint: (s: string) => string,
 	renderLine: (width: number) => InlineFooterLine | undefined,
-	sourceLine?: string,
+	scrollLabel?: string,
 	indicator?: WorkingStatusIndicator,
 ): string {
-	if (width < 2) return paint(truncateToWidth(kind === "top" ? "╭╮" : "╰╯", width, ""));
+	const corners = borderCorners(glyphs, kind);
+	if (width < 2) return paint(truncateToWidth(corners.join(""), width, ""));
 
-	const corners = kind === "top" ? (["╭", "╮"] as const) : (["╰", "╯"] as const);
+	const h = glyphs.horizontal;
 	const contentWidth = width - 2;
-	const plain = sourceLine ? stripAnsi(sourceLine) : "";
-	const scrollMatch = plain.match(/([↑↓]\s+\d+\s+more)/);
-	const right = scrollMatch ? paint(` ${scrollMatch[1]} `) : "";
-	let left = paint("─");
+	const right = scrollLabel ? paint(` ${scrollLabel} `) : "";
+	let left = paint(h);
 
 	if (kind === "top" && indicator) {
 		const statusBudget = Math.max(1, contentWidth - visibleWidth(right) - 7);
@@ -183,26 +189,27 @@ function inlineBorder(
 		if (visibleWidth(status) > statusBudget) status = indicator.renderSpinnerInBorder(statusBudget);
 		const leftBudget = Math.max(0, contentWidth - visibleWidth(right) - 1);
 		status = truncateToWidth(status, Math.max(0, leftBudget - 4), "");
-		if (visibleWidth(status) > 0) left = `${paint("── ")}${status}${paint(" ")}`;
+		if (visibleWidth(status) > 0) left = `${paint(`${h}${h} `)}${status}${paint(" ")}`;
 	}
 
 	const lineBudget = Math.max(0, contentWidth - visibleWidth(left) - visibleWidth(right) - 6);
 	const line = renderLine(lineBudget);
-	if (!line) return roundedBorder(width, kind, paint, sourceLine, indicator);
+	if (!line) return frameBorder(width, kind, glyphs, paint, scrollLabel, indicator);
 	const leftContent = trimTrailingSpaces(line.left);
 	const rightContent = trimTrailingSpaces(line.right);
 	if (visibleWidth(leftContent) === 0 && visibleWidth(rightContent) === 0) {
-		return roundedBorder(width, kind, paint, sourceLine, indicator);
+		return frameBorder(width, kind, glyphs, paint, scrollLabel, indicator);
 	}
 
 	const leftCell = leftContent ? ` ${leftContent} ` : "";
 	const rightCell = rightContent ? ` ${rightContent} ` : "";
 	const fill = Math.max(1, contentWidth - visibleWidth(left) - visibleWidth(leftCell) - visibleWidth(rightCell) - visibleWidth(right) - 1);
-	return `${paint(corners[0])}${left}${leftCell}${paint("─".repeat(fill))}${rightCell}${right}${paint("─")}${paint(corners[1])}`;
+	return `${paint(corners[0])}${left}${leftCell}${paint(h.repeat(fill))}${rightCell}${right}${paint(h)}${paint(corners[1])}`;
 }
 
 interface FastTuiEditorOptions {
 	cursorStyle?: CursorStyle;
+	editorShape?: EditorShape;
 	inlineFooter?: InlineFooterRenderer;
 }
 
@@ -211,6 +218,7 @@ interface FastTuiEditorDecoration {
 	embedWorkingStatus?: boolean;
 	setWorkingStatusIndicator(indicator: WorkingStatusIndicator | undefined): void;
 	setCursorStyle(cursorStyle: CursorStyle, blockHardwareCursor?: boolean): void;
+	setEditorShape(shape: EditorShape): void;
 }
 
 type FrameableEditor = EditorComponent & Pick<CustomEditor,
@@ -233,8 +241,9 @@ interface EditorDecoration {
 	previewHardwareCursor: boolean;
 	inlineFooter: InlineFooterRenderer | undefined;
 	indicator: WorkingStatusIndicator | undefined;
+	shape: EditorShapeStyle;
 	baseRender: (width: number) => string[];
-	framedWidth: number | undefined;
+	frame: FrameLayout | undefined;
 	active: boolean;
 	cleanup(): void;
 }
@@ -284,42 +293,80 @@ function renderWithCursor(decoration: EditorDecoration, width: number): string[]
 	});
 }
 
-function renderFrame(decoration: EditorDecoration, width: number): string[] {
-	decoration.framedWidth = undefined;
-	if (width < EDITOR_FRAME_HORIZONTAL_CHROME) return renderWithCursor(decoration, width);
+/** Layout of the last framed render; mouse events at that width are mapped through it. */
+interface FrameLayout {
+	width: number;
+	leftInset: number;
+	horizontalChrome: number;
+	/** Row where Pi's dropped bottom rule sat; rows at or below it moved up by one. */
+	droppedBottomRow: number | undefined;
+}
 
-	const innerWidth = Math.max(0, width - EDITOR_FRAME_HORIZONTAL_CHROME);
+function renderFrame(decoration: EditorDecoration, width: number): string[] {
+	decoration.frame = undefined;
+	const shape = decoration.shape;
+	const horizontalChrome = shape.leftInset + shape.rightInset;
+	if (width < Math.max(2, horizontalChrome)) return renderWithCursor(decoration, width);
+
+	const innerWidth = Math.max(0, width - horizontalChrome);
 	const baseLines = renderWithCursor(decoration, innerWidth);
 	const bottomIdx = findBottomBorderIndex(baseLines);
 	if (bottomIdx <= 1 || !isEditorBorderLine(baseLines[0] ?? "") || !isEditorBorderLine(baseLines[bottomIdx] ?? "")) {
 		return renderWithCursor(decoration, width);
 	}
 	const borderPaint = (text: string) => decoration.editor.borderColor(text);
-	const rail = borderPaint("│");
+	const glyphs = shape.glyphs;
 
 	const result: string[] = [];
 	const inlineFooter = decoration.inlineFooter?.enabled() === true;
 	const renderInlineLine = (kind: "top" | "bottom", budget: number): InlineFooterLine | undefined =>
 		decoration.inlineFooter?.render(budget)?.[kind];
-	result.push(inlineFooter
-		? inlineBorder(width, "top", borderPaint, (budget) => renderInlineLine("top", budget), baseLines[0], decoration.indicator)
-		: roundedBorder(width, "top", borderPaint, baseLines[0], decoration.indicator));
+	const topLabel = scrollLabelOf(baseLines[0]);
+	const bottomLabel = scrollLabelOf(baseLines[bottomIdx]);
+	// Without a bottom border, the `↓ N more` label moves up to the top rule.
+	const topScrollLabel = shape.bottomBorder
+		? topLabel
+		: [topLabel, bottomLabel].filter((label) => label !== undefined).join(" ") || undefined;
+	// Bottom-less shapes cannot hold the footer's second row, so the footer stays separate.
+	const embedFooter = inlineFooter && shape.bottomBorder;
+	result.push(embedFooter
+		? inlineBorder(width, "top", glyphs, borderPaint, (budget) => renderInlineLine("top", budget), topScrollLabel, decoration.indicator)
+		: frameBorder(width, "top", glyphs, borderPaint, topScrollLabel, decoration.indicator));
 
+	const rail = borderPaint(glyphs.vertical);
+	const prompt = shape.prompt === undefined ? undefined : borderPaint(shape.prompt);
+	const promptIndent = " ".repeat(shape.leftInset);
 	for (let i = 1; i < bottomIdx; i++) {
-		const line = baseLines[i] ?? "";
-		result.push(`${rail} ${fillLine(line, innerWidth)} ${rail}`);
+		const line = fillLine(baseLines[i] ?? "", innerWidth);
+		if (shape.sideRails) result.push(`${rail} ${line} ${rail}`);
+		else if (prompt !== undefined) result.push(`${i === 1 ? prompt : promptIndent}${line}`);
+		else result.push(line);
 	}
 
-	result.push(inlineFooter
-		? inlineBorder(width, "bottom", borderPaint, (budget) => renderInlineLine("bottom", budget), baseLines[bottomIdx])
-		: roundedBorder(width, "bottom", borderPaint, baseLines[bottomIdx]));
+	if (shape.bottomBorder) {
+		result.push(embedFooter
+			? inlineBorder(width, "bottom", glyphs, borderPaint, (budget) => renderInlineLine("bottom", budget), bottomLabel)
+			: frameBorder(width, "bottom", glyphs, borderPaint, bottomLabel));
+	}
 
 	for (let i = bottomIdx + 1; i < baseLines.length; i++) {
 		result.push(baseLines[i]!);
 	}
 
-	decoration.framedWidth = width;
+	decoration.frame = {
+		width,
+		leftInset: shape.leftInset,
+		horizontalChrome,
+		droppedBottomRow: shape.bottomBorder ? undefined : bottomIdx,
+	};
 	return result.map((line) => truncateToWidth(line, width, ""));
+}
+
+function mapMouseEvent<T extends { x: number; y: number; width: number }>(decoration: EditorDecoration, event: T): T {
+	const frame = decoration.frame;
+	if (!decoration.active || !frame || event.width !== frame.width) return event;
+	const y = frame.droppedBottomRow !== undefined && event.y >= frame.droppedBottomRow ? event.y + 1 : event.y;
+	return { ...event, x: event.x - frame.leftInset, y, width: event.width - frame.horizontalChrome };
 }
 
 /**
@@ -341,6 +388,7 @@ export function decorateFastTuiEditor<T extends FrameableEditor>(
 	const baseSetPaddingX = editor.setPaddingX.bind(editor);
 	const baseSetWorkingStatus = decorated.setWorkingStatusIndicator?.bind(editor);
 	const baseSetCursorStyle = decorated.setCursorStyle?.bind(editor);
+	const baseSetEditorShape = decorated.setEditorShape?.bind(editor);
 	let padding = editor.getPaddingX();
 	const decoration: EditorDecoration = {
 		tui,
@@ -349,8 +397,9 @@ export function decorateFastTuiEditor<T extends FrameableEditor>(
 		previewHardwareCursor: false,
 		inlineFooter: options.inlineFooter,
 		indicator: undefined,
+		shape: getEditorShapeStyle(options.editorShape),
 		baseRender: editor.render.bind(editor),
-		framedWidth: undefined,
+		frame: undefined,
 		active: true,
 		cleanup() {
 			if (!decoration.active) return;
@@ -385,14 +434,15 @@ export function decorateFastTuiEditor<T extends FrameableEditor>(
 		if (decoration.active) applyCursorStyle(decoration, style, hardware);
 		else baseSetCursorStyle?.(style, hardware);
 	});
+	patch("setEditorShape", (shape) => {
+		if (!decoration.active) return baseSetEditorShape?.(shape);
+		decoration.shape = getEditorShapeStyle(shape);
+		tui.requestRender();
+	});
 	patch("render", (width) => decoration.active
 		? renderFrame(decoration, width)
 		: decoration.baseRender(width));
-	patch("handleMouse", (event) => baseHandleMouse(
-		decoration.active && event.width === decoration.framedWidth
-			? { ...event, x: event.x - EDITOR_FRAME_LEFT_INSET, width: event.width - EDITOR_FRAME_HORIZONTAL_CHROME }
-			: event,
-	));
+	patch("handleMouse", (event) => baseHandleMouse(mapMouseEvent(decoration, event)));
 	patch("setPaddingX", (nextPadding) => {
 		padding = nextPadding;
 		baseSetPaddingX(decoration.active ? 0 : nextPadding);
@@ -442,12 +492,14 @@ export function installEditor(
 	ctx: ExtensionContext,
 	cursorStyle: CursorStyle = "block",
 	inlineFooter?: InlineFooterRenderer,
+	editorShape: EditorShape = "rounded",
 ) {
 	let activeTui: TUI | undefined;
 	let activeEditor: (FrameableEditor & FastTuiEditorDecoration) | undefined;
 	let enabled = true;
 	let previousHardwareCursor: boolean | undefined;
 	let currentCursorStyle = cursorStyle;
+	let currentEditorShape = editorShape;
 	let hiddenThinkingTarget: HiddenThinkingLabelComponent | undefined;
 	let restoreHiddenThinkingRender: (() => void) | undefined;
 	let buildHiddenThinkingLabel: ((width: number) => string) | undefined;
@@ -525,7 +577,11 @@ export function installEditor(
 			// Capabilities alone do not guarantee that the first and bottom rows are replaceable borders.
 			if (bottom > 1 && isEditorBorderLine(lines[0] ?? "") && isEditorBorderLine(lines[bottom] ?? "")) {
 				previousHardwareCursor = tui.getShowHardwareCursor?.();
-				activeEditor = decorateFastTuiEditor(editor, tui, { cursorStyle: currentCursorStyle, inlineFooter });
+				activeEditor = decorateFastTuiEditor(editor, tui, {
+					cursorStyle: currentCursorStyle,
+					editorShape: currentEditorShape,
+					inlineFooter,
+				});
 			}
 		}
 		mountedRender = editor.render;
@@ -599,6 +655,8 @@ export function installEditor(
 	}
 	return {
 		isFramed: () => enabled && activeEditor !== undefined,
+		/** Whether the footer can move into the frame: it needs both a top and a bottom border. */
+		canEmbedFooter: () => enabled && activeEditor !== undefined && getEditorShapeStyle(currentEditorShape).bottomBorder,
 		/** `build` receives the hidden-thinking text width and runs again whenever that width changes. */
 		setLatestHiddenThinkingLabel(build: (width: number) => string): void {
 			const tui = getActiveTui();
@@ -614,6 +672,10 @@ export function installEditor(
 		setCursorStyle(nextCursorStyle: CursorStyle): void {
 			currentCursorStyle = nextCursorStyle;
 			activeEditor?.setCursorStyle(nextCursorStyle, previousHardwareCursor);
+		},
+		setEditorShape(nextEditorShape: EditorShape): void {
+			currentEditorShape = nextEditorShape;
+			activeEditor?.setEditorShape(nextEditorShape);
 		},
 		cleanup(): void {
 			if (!enabled) return;
