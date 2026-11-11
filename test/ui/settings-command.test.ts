@@ -660,6 +660,22 @@ test("shows the widest key hint that fits on one row", async () => {
 	}
 });
 
+test("counts only settings in the scroll indicator and spaces the section rule from its label", async () => {
+	const settings = await openSettings();
+	settings.terminal.rows = 12;
+	settings.press("\t", 2);
+	const counter = () => settings.component.render(80).map((line) => line.trim()).find((line) => /^\(\d+\/\d+\)$/.test(line));
+	assert.equal(counter(), "(1/16)");
+	settings.press("\x1b[B", 15);
+	assert.match(selectedLine(settings.component), /Extra space after Nerd icons/);
+	assert.equal(counter(), "(16/16)");
+	settings.press("\x1b[Z", 2);
+	const lines = settings.component.render(80);
+	const header = lines.find((line) => line.includes("Extension") && line.includes("──"))!;
+	assert.match(header, /── Extension ─+/);
+	for (const line of lines) assert.ok(visibleWidth(line) <= 80);
+});
+
 // Width, height, and localization.
 test("keeps localized settings and values within narrow widths", async () => {
 	const config = classicConfig();

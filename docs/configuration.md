@@ -21,7 +21,7 @@ You only need to specify values you want to change; missing fields inherit [the 
 | Footer | Location, Git, Runtime, Usage, Other |
 | Telemetry | Enabled (standalone master switch), Measurements |
 
-Tab/Shift+Tab switches tabs; ↑/↓ or Page Up/Page Down moves between settings; → (or Enter/Space) changes a value to the next one and ← to the previous one; Esc/q closes the dialog. Dim section headings occupy rows but cannot be selected or changed. The scroll position counts both headings and settings.
+Tab/Shift+Tab switches tabs; ↑/↓ or Page Up/Page Down moves between settings; → (or Enter/Space) changes a value to the next one and ← to the previous one; Esc/q closes the dialog. Dim section headings occupy rows but cannot be selected or changed. The scroll position counts settings only.
 
 **Tool view** cycles Cards → Compact → Native. **Compact extension tools** appears only while **Tool view** is Compact. Switching to another mode hides it while retaining its value. Installing or removing the UI through the **Enabled** switch is deferred until the dialog closes. Existing configuration files need no migration.
 
@@ -140,7 +140,7 @@ For wide Nerd glyphs that consume the gap before a label, enable **Footer → Ot
 | 底栏 | 位置、Git、运行环境、用量、其他 |
 | 遥测 | 启用（独立总开关）、测量指标 |
 
-Tab/Shift+Tab 切页，↑/↓ 或 Page Up/Page Down 移动，→（或 Enter/Space）切换到下一个值，← 切换到上一个值，Esc/q 关闭。暗色分组标题占一行，但不能选中或修改；滚动位置同时统计标题行和设置行。
+Tab/Shift+Tab 切页，↑/↓ 或 Page Up/Page Down 移动，→（或 Enter/Space）切换到下一个值，← 切换到上一个值，Esc/q 关闭。暗色分组标题占一行，但不能选中或修改；滚动位置只统计设置行。
 
 **工具视图**按卡片 → 紧凑 → 原生循环切换。**紧凑显示扩展工具**仅在**工具视图**为紧凑时显示；切换到其他模式后隐藏，但保留开关值。通过**启用**开关安装或移除界面会延迟到窗口关闭后执行。现有配置文件无需迁移。
 

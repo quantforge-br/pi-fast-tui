@@ -464,6 +464,12 @@ class SectionedSettingsList {
 		if (index >= 0) this.selectList.setSelectedIndex(index);
 	}
 
+	/** Index of the selected setting among the settings, section headers not counted. */
+	private selectedSettingIndex(): number {
+		const selected = this.getSelectedItem();
+		return Math.max(0, this.items.findIndex((item) => item.value === selected?.value));
+	}
+
 	private selectedRowIndex(): number {
 		const selected = this.getSelectedItem();
 		return this.rows.findIndex((row) => row.kind === "setting" && row.item.id === selected?.value);
@@ -482,14 +488,14 @@ class SectionedSettingsList {
 		let itemIndex = 0;
 		const lines = this.rows.map((row) => {
 			if (row.kind === "setting") return settingLines[itemIndex++]!;
-			const label = truncateToWidth(`  ──${row.label} `, width, "");
+			const label = truncateToWidth(`  ── ${row.label} `, width, "");
 			return this.theme.fg("dim", label + "─".repeat(Math.max(0, width - visibleWidth(label))));
 		});
 		const { start, end } = this.visibleRange();
 		const visible = lines.slice(start, end);
 		if (this.showScrollInfo) {
 			visible.push(this.theme.fg("dim", truncateToWidth(
-				`  (${this.selectedRowIndex() + 1}/${this.rows.length})`, width, "",
+				`  (${this.selectedSettingIndex() + 1}/${this.items.length})`, width, "",
 			)));
 		}
 		return visible;
