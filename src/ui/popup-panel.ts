@@ -3,16 +3,16 @@ import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { fillBackground, stripAnsi } from "./utils.ts";
 
 /**
- * Popup border glyphs. Box-drawing lines sit in the middle of their cells, so a filled
- * background would stick out half a cell past them; one-eighth blocks hug the outer cell
- * edge instead, so the line traces the exact edge of the filled area. Corners keep the
- * vertical edge (a corner glyph for both edges is not widely available in fonts).
+ * Popup border glyphs: light box-drawing lines, equally thin on every side and joined at the
+ * corners. They sit in the middle of their cells, so the border cells keep the terminal
+ * background and only the area inside the border is filled; a filled border cell would
+ * stick out half a cell past the line.
  */
 const BORDER = {
-	top: { left: "▏", fill: "▔", right: "▕" },
-	bottom: { left: "▏", fill: "▁", right: "▕" },
-	left: "▏",
-	right: "▕",
+	top: { left: "┌", fill: "─", right: "┐" },
+	bottom: { left: "└", fill: "─", right: "┘" },
+	left: "│",
+	right: "│",
 } as const;
 
 /** Columns of space between the border and the content. */
@@ -124,9 +124,9 @@ export class PopupPanel implements Component {
 		const open = this.options.background();
 		const border = this.options.border;
 		const pad = " ".repeat(POPUP_PADDING_X);
-		const row = (inner: string) => fillBackground(open, `${border(BORDER.left)}${pad}${fit(inner, innerWidth)}${pad}${border(BORDER.right)}`);
+		const row = (inner: string) => `${border(BORDER.left)}${fillBackground(open, `${pad}${fit(inner, innerWidth)}${pad}`)}${border(BORDER.right)}`;
 		const rule = (edge: { left: string; fill: string; right: string }) =>
-			fillBackground(open, border(`${edge.left}${edge.fill.repeat(Math.max(0, width - 2))}${edge.right}`));
+			border(`${edge.left}${edge.fill.repeat(Math.max(0, width - 2))}${edge.right}`);
 
 		const hint = this.options.hint ? (this.options.hintStyle ?? ((text: string) => text))(this.options.hint) : "";
 		const titleWidth = Math.max(0, innerWidth - (hint ? visibleWidth(hint) + 1 : 0));

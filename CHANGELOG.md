@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The popup border is now drawn with light box-drawing lines (`┌─┐│└┘`): equally thin on every side and joined at the corners. The border cells keep the terminal background, so the fill stays inside the line. The previous one-eighth blocks left a gap at each corner and looked thicker on the top and bottom than on the sides.
+
 ## [0.4.0] - 2026-11-11
 
 ### Added

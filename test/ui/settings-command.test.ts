@@ -612,9 +612,9 @@ test("opens /fast-tui as a centered popup panel when popup menus are on", async 
 	assert.equal(settings.overlayOptions()?.width, 100);
 	settings.terminal.columns = 80;
 	const lines = settings.component.render(60).map((line) => line.replace(/\x1b\[[0-9;]*m/g, ""));
-	assert.match(lines[0]!, /^▏▔+▕$/);
-	assert.match(lines[2]!, /^▏ {2}Fast TUI Settings +esc {2}▕$/);
-	assert.match(lines.at(-1)!, /^▏▁+▕$/);
+	assert.match(lines[0]!, /^┌─+┐$/);
+	assert.match(lines[2]!, /^│ {2}Fast TUI Settings +esc {2}│$/);
+	assert.match(lines.at(-1)!, /^└─+┘$/);
 	assert.equal(lines.filter((line) => line.includes("Fast TUI Settings")).length, 1);
 	for (const line of lines) assert.equal(visibleWidth(line), 60);
 	settings.press("\t");
@@ -641,7 +641,7 @@ test("keeps the popup within short terminals with the selection visible", async 
 test("keeps the classic /fast-tui overlay when popup menus are off", async () => {
 	const settings = await openSettings();
 	assert.equal(settings.overlayOptions(), undefined);
-	assert.doesNotMatch(settings.component.render(80)[0]!, /▔/);
+	assert.doesNotMatch(settings.component.render(80)[0]!, /┌/);
 });
 
 test("relayouts on height and width changes without losing the selection", async () => {
