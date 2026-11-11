@@ -35,6 +35,7 @@ Tab/Shift+Tab or ←/→ switches tabs; ↑/↓ or Page Up/Page Down moves betwe
 | `copyButtons` | `true` | Code-block and user-message Copy labels in fullscreen mode |
 | `settingsLanguage` | `"en"` | `"en"` or `"zh"`; changes the settings interface language |
 | `cursorStyle` | `"block"` | `"block"`, `"bar"`, or `"underline"`; the latter two need terminal cursor-shape support |
+| `editorShape` | `"rounded"` | `"rounded"`, `"square"`, `"heavy"`, `"double"`, `"ascii"`, `"native"`, `"claude"`, or `"rule"`; see [Editor shapes](#editor-shapes) |
 | `icons.mode` | `"auto"` | `"auto"`, `"nerd"`, `"unicode"`, or `"ascii"`; see [Icons](#icons). Cards draw Unicode box glyphs unless the mode is `"ascii"` |
 | `thinkingPeek.lines` | `1` | `0` (off), `1`, or `2`; visible while Pi's Hide thinking setting is on and reasoning is streamed |
 | `toolView.mode` | `"cards"` | `"cards"`, `"compact"`, or `"native"`; selected when Pi creates each tool row |
@@ -42,6 +43,23 @@ Tab/Shift+Tab or ←/→ switches tabs; ↑/↓ or Page Up/Page Down moves betwe
 | `toolView.exclude` | `[]` | Exact tool names that keep native rendering, including built-ins; edited in the JSON file only |
 
 For example, `"toolView": { "mode": "compact", "extensionTools": true, "exclude": ["edit", "subagent_wait"] }` enables compact rendering while preserving those two tools' native cards. Exclusions apply in every mode, so excluded tools also skip the cards. Use `/reload` or a new session to rebuild existing rows with the new tool-view settings.
+
+### Editor shapes
+
+`editorShape` selects how the input box is drawn. **Appearance → Editor → Input shape** cycles through the shapes and applies the change to the mounted editor immediately.
+
+| Value | Frame | Notes |
+| --- | --- | --- |
+| `"rounded"` | `╭╮│╰╯` | Default; same look as earlier releases |
+| `"square"` | `┌┐│└┘` | |
+| `"heavy"` | `┏┓┃┗┛` and `━` | |
+| `"double"` | `╔╗║╚╝` and `═` | |
+| `"ascii"` | `+`, `-`, `\|` | For terminals or fonts without box-drawing glyphs |
+| `"native"` | Pi's top and bottom rules | No side rails or extra inset; text uses the full width |
+| `"claude"` | Top and bottom rules | `❯ ` before the first line; later lines are indented to match |
+| `"rule"` | Top rule only | `❯ ` prompt like `claude`; both `↑/↓ N more` scroll indicators move to the top rule |
+
+The working indicator, cursor style, completion list, and mouse positions work with every shape. **Footer in editor border** needs a bottom border, so with `"rule"` the footer stays in its separate rows even when `inlineFooter` is `true`. Unknown values fall back to `"rounded"`.
 
 ### Footer options
 
@@ -130,6 +148,7 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | `copyButtons` | `true` | 全屏模式中代码块和用户消息的复制标签 |
 | `settingsLanguage` | `"en"` | `"en"` 或 `"zh"`，控制设置界面的语言 |
 | `cursorStyle` | `"block"` | `"block"`、`"bar"` 或 `"underline"`，后两种需要终端支持光标形状控制 |
+| `editorShape` | `"rounded"` | `"rounded"`、`"square"`、`"heavy"`、`"double"`、`"ascii"`、`"native"`、`"claude"` 或 `"rule"`，见[输入框样式](#输入框样式) |
 | `icons.mode` | `"auto"` | `"auto"`、`"nerd"`、`"unicode"` 或 `"ascii"`，见[图标](#图标)。除 `"ascii"` 外，卡片使用 Unicode 边框字符 |
 | `thinkingPeek.lines` | `1` | `0`（关闭）、`1` 或 `2`；Pi 开启 Hide thinking 且模型输出推理时可见 |
 | `toolView.mode` | `"cards"` | `"cards"`、`"compact"` 或 `"native"`，每条工具行创建时确定 |
@@ -137,6 +156,23 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | `toolView.exclude` | `[]` | 保持原生渲染的完整工具名，可包含内置工具；仅在 JSON 文件中编辑 |
 
 例如 `"toolView": { "mode": "compact", "extensionTools": true, "exclude": ["edit", "subagent_wait"] }` 会启用紧凑模式，并让这两个工具保留原生卡片。排除列表在所有模式下生效，被排除的工具也不会绘制为卡片。执行 `/reload` 或新开会话，可让已有工具行按新设置重建。
+
+### 输入框样式
+
+`editorShape` 决定输入框的绘制方式。**外观 → 输入框 → 输入框样式**可循环切换，修改会立即作用于当前编辑器，无需重启。
+
+| 值 | 边框 | 说明 |
+| --- | --- | --- |
+| `"rounded"` | `╭╮│╰╯` | 默认值，与旧版本外观一致 |
+| `"square"` | `┌┐│└┘` | |
+| `"heavy"` | `┏┓┃┗┛` 与 `━` | |
+| `"double"` | `╔╗║╚╝` 与 `═` | |
+| `"ascii"` | `+`、`-`、`\|` | 适合不支持制表符的终端或字体 |
+| `"native"` | Pi 原生的上下横线 | 无左右边线和额外缩进，文本使用完整宽度 |
+| `"claude"` | 上下横线 | 第一行前显示 `❯ `，后续行对齐缩进 |
+| `"rule"` | 仅上横线 | 与 `claude` 相同的 `❯ ` 提示符；`↑/↓ N more` 滚动提示都移到上横线 |
+
+工作指示、光标样式、补全列表和鼠标位置在所有样式下均正常工作。**底栏嵌入输入框**需要下边框，因此 `"rule"` 样式下即使 `inlineFooter` 为 `true`，底栏仍独立显示。未知值回退为 `"rounded"`。
 
 ### 底栏选项
 
@@ -206,6 +242,7 @@ The complete default configuration is shared by both language references. Set `s
   "copyButtons": true,
   "settingsLanguage": "en",
   "cursorStyle": "block",
+  "editorShape": "rounded",
   "icons": {
     "mode": "auto"
   },

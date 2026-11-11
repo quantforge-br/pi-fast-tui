@@ -19,7 +19,7 @@ pi-fast-tui merges two packages into one extension: [pi-open-tui](https://www.np
 
 - **Pi header** with model, thinking level, working directory, and useful slash-command hints
 - **Responsive footer** with Git state, detected runtime, context usage, tokens, cost, and extension status
-- **Framed editor** with block, bar, and underline cursors, preserving compatible editors from other extensions
+- **Framed editor** with eight input shapes (rounded, square, heavy, double, ASCII, native, Claude, and rule) and block, bar, and underline cursors, preserving compatible editors from other extensions
 - **Project awareness** for 50+ runtimes and detailed Git state, including ahead/behind, staged, modified, untracked, stash, and detached HEAD
 - **Turn telemetry** with generation speed, time to first token, duration, stalls, tokens, and cost rate
 - **Thinking peek** with a live preview of hidden reasoning while the model works
@@ -70,7 +70,7 @@ Settings are stored in `fast-tui.json` inside Pi's agent directory (default: `~/
 | Copy buttons | General → Messages & tools | On, fullscreen only |
 | Tool view | General → Messages & tools | Cards |
 | Footer in editor border | General → Footer | Off |
-| Icons and cursor style | Appearance | Auto icons, block cursor |
+| Icons, cursor style, and input shape | Appearance | Auto icons, block cursor, rounded shape |
 | Footer fields and telemetry measurements | Footer / Telemetry | Individually configurable |
 
 **Tool view** cycles through Cards, Compact, and Native. Selecting Compact reveals **Compact extension tools** as a child setting; switching to another mode hides it and retains its value. The [configuration reference](./docs/configuration.md#english) contains the complete JSON defaults, every option, and tool exclusions.
@@ -81,7 +81,22 @@ The header provides model and project context with command hints. The two main f
 
 Footer token and cost totals include assistant responses, tool-reported usage, compaction and branch summaries, and cache warming. The cache-hit percentage describes the latest assistant response. Other extensions can use separate status rows or [contribute text directly to the main footer](./docs/footer-segments.md).
 
-Enable **Footer in editor border** to move the two main rows into the editor's top and bottom borders. Extension status rows remain below the editor. Compatible editors keep their input behavior, completion, and ghost text; editors that cannot be framed retain a separate footer. See [editor compatibility and layout](./docs/implementation.md#editor-and-layout) for the integration boundaries.
+**Appearance → Editor → Input shape** changes the editor frame without a restart:
+
+| Shape | Look |
+| --- | --- |
+| `rounded` (default) | `╭─╮` / `│ │` / `╰─╯` |
+| `square` | `┌─┐` / `│ │` / `└─┘` |
+| `heavy` | `┏━┓` / `┃ ┃` / `┗━┛` |
+| `double` | `╔═╗` / `║ ║` / `╚═╝` |
+| `ascii` | `+-+` / `\| \|` / `+-+` |
+| `native` | Pi's own top and bottom rules, no side rails |
+| `claude` | Top and bottom rules with a `❯ ` prompt on the first line |
+| `rule` | Top rule only, with the `❯ ` prompt; scroll indicators move to that rule |
+
+The shapes were inspired by oh-my-pi's `composer.shape`. In `fast-tui.json` the key is `editorShape`. See the [configuration reference](./docs/configuration.md#editor-shapes) for details.
+
+Enable **Footer in editor border** to move the two main rows into the editor's top and bottom borders. Extension status rows remain below the editor. Compatible editors keep their input behavior, completion, and ghost text; editors that cannot be framed retain a separate footer. The `rule` shape has no bottom border, so it also keeps the footer separate. See [editor compatibility and layout](./docs/implementation.md#editor-and-layout) for the integration boundaries.
 
 ## Turn telemetry
 

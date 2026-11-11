@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `editorShape` setting with eight input shapes inspired by oh-my-pi's `composer.shape`: `rounded` (default), `square`, `heavy`, `double`, `ascii`, `native`, `claude` and `rule`. **Appearance → Editor → Input shape** switches it without a restart.
+- The `claude` and `rule` shapes draw a `❯ ` prompt. The `rule` shape keeps only the top rule and shows both scroll indicators there.
+
+### Changed
+
+- The footer stays out of the editor when the shape has no bottom border (`rule`), even with **Footer in editor border** on.
+
 ## [0.1.0] - 2026-11-10
 
 First release. pi-fast-tui merges pi-open-tui 0.4.4 and pi-omp-tools 0.1.0 into one extension and replaces both of them, along with pi-codemode-render.
