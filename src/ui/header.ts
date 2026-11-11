@@ -12,6 +12,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 } from "./utils.ts";
+import { BOX, cardGlyphMode, TEXT } from "../cards/symbols.ts";
 
 const LOGO = [
 	"            ",
@@ -26,8 +27,10 @@ const LOGO = [
 /** Terminals with fewer rows than this get the compact header. */
 export const COMPACT_HEADER_BELOW_ROWS = 30;
 
+/** The logo, with `#` cells under the ASCII glyph set. */
 function renderLogo(paintBrand: (text: string) => string): string[] {
-	return LOGO.map((line) => line.replace(/███/g, paintBrand));
+	const cell = cardGlyphMode() === "ascii" ? "#" : "█";
+	return LOGO.map((line) => line.replace(/███/g, (block) => paintBrand(block.replace(/█/g, cell))));
 }
 
 function borderLine(
@@ -39,25 +42,25 @@ function borderLine(
 ): string {
 	if (width <= 1) return "";
 	if (width < 8 || label.length === 0) {
-		return paint(truncateToWidth(left + "─".repeat(Math.max(0, width - 2)) + right, width, ""));
+		return paint(truncateToWidth(left + BOX.horizontal.repeat(Math.max(0, width - 2)) + right, width, ""));
 	}
 
-	const before = "─── ";
-	const after = " ─────";
+	const before = `${BOX.horizontal.repeat(3)} `;
+	const after = ` ${BOX.horizontal.repeat(5)}`;
 	const fixedWidth = visibleWidth(before) + visibleWidth(label) + visibleWidth(after);
 	const fill = Math.max(0, width - 2 - fixedWidth);
-	return `${paint(left)}${paint(before)}${label}${paint(after)}${paint("─".repeat(fill))}${paint(right)}`;
+	return `${paint(left)}${paint(before)}${label}${paint(after)}${paint(BOX.horizontal.repeat(fill))}${paint(right)}`;
 }
 
 function boxedLine(content: string, width: number, paint: (text: string) => string): string {
 	if (width <= 2) return truncateToWidth(content, width, "");
-	return `${paint("│")}${padRight(content, width - 2)}${paint("│")}`;
+	return `${paint(BOX.vertical)}${padRight(content, width - 2)}${paint(BOX.vertical)}`;
 }
 
-/** One padding column on each side, content left-aligned and cut with `…`. */
+/** One padding column on each side, content left-aligned and cut with the glyph-set ellipsis. */
 function paddedLine(content: string, width: number, paint: (text: string) => string): string {
 	const inner = Math.max(0, width - 4);
-	return boxedLine(` ${padRight(content, inner, "…")} `, width, paint);
+	return boxedLine(` ${padRight(content, inner, TEXT.ellipsis)} `, width, paint);
 }
 
 function twoColumn(
@@ -67,7 +70,7 @@ function twoColumn(
 	rightWidth: number,
 	paint: (text: string) => string,
 ): string {
-	return `${padRight(left, leftWidth)} ${paint("│")} ${padRight(right, rightWidth, "…")}`;
+	return `${padRight(left, leftWidth)} ${paint(BOX.vertical)} ${padRight(right, rightWidth, TEXT.ellipsis)}`;
 }
 
 export class FastTuiHeader implements Component {
@@ -103,11 +106,11 @@ export class FastTuiHeader implements Component {
 
 		if (this.tui.terminal.rows < COMPACT_HEADER_BELOW_ROWS) {
 			return [
-				borderLine("╭", title, "╮", width, paint),
-				paddedLine(muted(`${model} · ${effort}`), width, paint),
+				borderLine(BOX.topLeft, title, BOX.topRight, width, paint),
+				paddedLine(muted(`${model}${TEXT.sep}${effort}`), width, paint),
 				paddedLine(dim(cwd), width, paint),
-				paddedLine(muted(this.tipCommands.join(" · ")), width, paint),
-				borderLine("╰", "", "╯", width, paint),
+				paddedLine(muted(this.tipCommands.join(TEXT.sep)), width, paint),
+				borderLine(BOX.bottomLeft, "", BOX.bottomRight, width, paint),
 			].map((line) => truncateToWidth(line, width, ""));
 		}
 
@@ -117,12 +120,12 @@ export class FastTuiHeader implements Component {
 		const leftLines = [
 			...renderLogo(paint).map((line) => center(line, leftWidth)),
 			center(bold("Let's build something great"), leftWidth),
-			center(muted(`${model} · ${effort}`), leftWidth),
+			center(muted(`${model}${TEXT.sep}${effort}`), leftWidth),
 			center(dim(cwd), leftWidth),
 		];
 
 		// One column short of the tips column, so the divider never touches the right border.
-		const tipDivider = paint("─".repeat(Math.max(8, Math.min(rightWidth - 1, 22))));
+		const tipDivider = paint(BOX.horizontal.repeat(Math.max(8, Math.min(rightWidth - 1, 22))));
 		const [cmd0 = "", cmd1 = "", cmd2 = "", cmd3 = ""] = this.tipCommands;
 		const tipLines = [
 			"",
@@ -137,14 +140,14 @@ export class FastTuiHeader implements Component {
 			"",
 		];
 
-		const lines = [borderLine("╭", title, "╮", width, paint)];
+		const lines = [borderLine(BOX.topLeft, title, BOX.topRight, width, paint)];
 		for (let i = 0; i < leftLines.length; i++) {
 			const content = useTips
 				? twoColumn(leftLines[i] ?? "", tipLines[i] ?? "", leftWidth, rightWidth, paint)
 				: padRight(leftLines[i] ?? "", leftWidth);
 			lines.push(boxedLine(content, width, paint));
 		}
-		lines.push(borderLine("╰", "", "╯", width, paint));
+		lines.push(borderLine(BOX.bottomLeft, "", BOX.bottomRight, width, paint));
 		return lines.map((line) => truncateToWidth(line, width, ""));
 	}
 

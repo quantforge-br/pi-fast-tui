@@ -9,6 +9,7 @@
 - ASCII icon mode: footer token counts read `i`/`o` instead of `↑`/`↓`, and footer, compact-row and thinking-peek separators, ellipses and minus signs are drawn in ASCII (` | `, `...`, `-`). The thinking peek spinner uses the card spinner frames.
 - ASCII icon mode: popups draw a plain `+`, `-`, `|` box and clip titles and rows with `...`.
 - ASCII icon mode: fullscreen code blocks with the Copy button are framed with `+`, `-` and `|`.
+- ASCII icon mode: the header frame, tips divider and separators are drawn in ASCII, and the logo uses `#` cells.
 
 ## [0.7.0] - 2026-11-11
 

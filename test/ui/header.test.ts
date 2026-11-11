@@ -4,6 +4,7 @@ import { VERSION, type ExtensionAPI, type ExtensionContext } from "@earendil-wor
 import { visibleWidth, type TUI } from "@earendil-works/pi-tui";
 import { COMPACT_HEADER_BELOW_ROWS, FastTuiHeader } from "../../src/ui/header.ts";
 import { stripAnsi } from "../../src/ui/utils.ts";
+import { setCardGlyphMode } from "../../src/cards/symbols.ts";
 
 function createHeader(options: { rows: number; cwd?: string; commands?: string[] }) {
 	const terminal = { rows: options.rows, columns: 80 };
@@ -74,4 +75,17 @@ test("full header leaves a blank column between the tips divider and the right b
 	const divider = lines.find((line) => /│ ─{8,} *│$/.test(line));
 	assert.ok(divider, lines.join("\n"));
 	assert.match(divider, /─ +│$/);
+});
+
+test("the ASCII glyph set draws the full and compact headers in ASCII", (t) => {
+	setCardGlyphMode("ascii");
+	t.after(() => setCardGlyphMode("unicode"));
+	const full = createHeader({ rows: 40 }).render(100);
+	assert.match(full[0]!, /^\+--- Pi v\S+ -+\+$/);
+	assert.ok(full.some((line) => line.includes("#########")), "the logo is drawn with # cells");
+	assert.ok(full.some((line) => line.includes("mock/mock-model | medium effort")));
+	const compact = createHeader({ rows: 20, cwd: `/work/${"deep/".repeat(20)}project` }).render(40);
+	assert.match(compact[2]!, /\.\.\. \|$/);
+	assert.match(compact[3]!, /^\| \/fast-tui \| /);
+	for (const line of [...full, ...compact]) assert.match(line, /^[\x00-\x7F]*$/);
 });
