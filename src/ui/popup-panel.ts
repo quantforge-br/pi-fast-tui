@@ -74,6 +74,11 @@ export class PopupPanel implements Component {
 		});
 		// Pi pads its menus with blank rows inside the rules; the panel has its own padding.
 		while (kept.length > 0 && stripAnsi(raw[kept[0]!]!).trim() === "") kept.shift();
+		// Menus that print their own title would repeat the panel title.
+		if (kept.length > 0 && stripAnsi(raw[kept[0]!]!).trim() === this.options.title) {
+			kept.shift();
+			while (kept.length > 0 && stripAnsi(raw[kept[0]!]!).trim() === "") kept.shift();
+		}
 		while (kept.length > 0 && stripAnsi(raw[kept.at(-1)!]!).trim() === "") kept.pop();
 		const maxRows = this.options.maxRows?.();
 		if (maxRows !== undefined) kept.splice(Math.max(0, maxRows - HEADER_ROWS - FOOTER_ROWS));

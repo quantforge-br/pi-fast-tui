@@ -2,6 +2,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { type FastTuiConfig, DEFAULT_CONFIG, ensureConfigExists, loadConfig, saveConfig } from "./config.ts";
 import { installCopyButtons, markCopyScope } from "./copy-buttons.ts";
 import { installEditor } from "./editor.ts";
+import { installPopupMenus } from "./popup-menus.ts";
 import { installFooter, renderModelInfo } from "./footer.ts";
 import { createFooterSegments } from "./footer-segments.ts";
 import { installHeader } from "./header.ts";
@@ -58,6 +59,7 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 	let cleanupFooter: (() => void) | undefined;
 	let editor: ReturnType<typeof installEditor> | undefined;
 	let copyButtons: ReturnType<typeof installCopyButtons> | undefined;
+	let popupMenus: ReturnType<typeof installPopupMenus> | undefined;
 	let pendingUiChange: PendingUiChange | undefined;
 	const footerSegments = createFooterSegments(pi.events, () => requestFooterRender?.());
 
@@ -154,6 +156,11 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 				getTheme: () => ctx.ui.theme,
 				isEnabled: () => config.copyButtons,
 			});
+			popupMenus = installPopupMenus({
+				getTui: editor.getTui,
+				getTheme: () => ctx.ui.theme,
+				isEnabled: () => config.popupMenus,
+			});
 			active = true;
 			if (requestFooterRender) footerSegments.activate();
 		}
@@ -165,10 +172,13 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 			cleanupHeader?.();
 			cleanupFooter?.();
 			copyButtons?.cleanup();
+			// Unwind the editor container patches in reverse install order.
+			popupMenus?.cleanup();
 			editor?.cleanup();
 			cleanupHeader = undefined;
 			cleanupFooter = undefined;
 			copyButtons = undefined;
+			popupMenus = undefined;
 			editor = undefined;
 			requestFooterRender = undefined;
 			resetPeek();
