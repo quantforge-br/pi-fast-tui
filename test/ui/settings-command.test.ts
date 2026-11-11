@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "./fixtures/node-test.ts";
 import { createEventBus, type ExtensionAPI, type ExtensionContext, type Theme } from "@earendil-works/pi-coding-agent";
-import { Container, visibleWidth, type Component, type KeybindingsManager, type OverlayOptions, type TUI } from "@earendil-works/pi-tui";
+import { Container, visibleWidth, type Component, type KeybindingsManager, type OverlayOptions, type TUI, type TuiMouseEvent } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG, EDITOR_SHAPES, loadConfig, saveConfig, type FastTuiConfig } from "../../src/ui/config.ts";
 import { installEditor } from "../../src/ui/editor.ts";
 import fastTui, { getPendingUiChange } from "../../src/ui/index.ts";
@@ -684,6 +684,53 @@ test("labels the language row in both languages", async () => {
 		const line = selectedLine(settings.component, 60);
 		assert.match(line, /Language \/ 语言: (English|简体中文)/);
 	}
+});
+
+test("keeps one height and the tab bar row across tabs", async () => {
+	const strip = (line: string) => line.replace(/\x1b\[[0-9;]*m/g, "");
+	for (const popupMenus of [true, false]) {
+		for (const [columns, rows] of [[200, 50], [80, 24]] as const) {
+			const settings = await openSettings({ ...classicConfig(), popupMenus });
+			settings.terminal.columns = columns;
+			settings.terminal.rows = rows;
+			const width = popupMenus ? settings.overlayOptions()?.width as number : 80;
+			const heights = new Set<number>();
+			const tabRows = new Set<number>();
+			for (let tab = 0; tab < 4; tab++) {
+				const lines = settings.component.render(width).map(strip);
+				heights.add(lines.length);
+				tabRows.add(lines.findIndex((line) => line.includes("[")));
+				settings.press("\t");
+			}
+			const label = `${popupMenus ? "popup" : "classic"} ${columns}x${rows}`;
+			assert.equal(heights.size, 1, `${label}: ${[...heights].join(", ")}`);
+			assert.equal(tabRows.size, 1, label);
+		}
+	}
+});
+
+test("pads a short tab with blank rows inside the popup that select nothing", async () => {
+	const settings = await openSettings({ ...classicConfig(), popupMenus: true });
+	settings.terminal.columns = 200;
+	settings.terminal.rows = 50;
+	const width = settings.overlayOptions()?.width as number;
+	settings.press("\t", 3);
+	const lines = settings.component.render(width).map((line) => line.replace(/\x1b\[[0-9;]*m/g, ""));
+	const last = lines.findLastIndex((line) => /Price per 1M tokens/.test(line));
+	const padding = lines.slice(last + 1, -1);
+	assert.ok(padding.length > 2, lines.join("\n"));
+	for (const line of padding) assert.match(line, /^▕ +▏$/);
+	const before = structuredClone(settings.getConfig());
+	const component = settings.component as SettingsComponent & { handleMouse(event: TuiMouseEvent): unknown };
+	const click = (y: number) => {
+		for (const type of ["press", "click"] as const) {
+			component.handleMouse({ type, button: "left", x: 10, y, screenX: 10, screenY: y, width, height: lines.length, shift: false, alt: false, ctrl: false } as TuiMouseEvent);
+		}
+	};
+	click(last + 2);
+	assert.deepEqual(settings.getConfig(), before);
+	click(last);
+	assert.equal(settings.getConfig().telemetry.cost, !before.telemetry.cost);
 });
 
 // Width, height, and localization.

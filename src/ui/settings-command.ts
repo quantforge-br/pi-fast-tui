@@ -365,6 +365,11 @@ function buildItems(tab: Tab, config: FastTuiConfig): SettingRow[] {
 	]);
 }
 
+/** Rows (settings and section headers) of the tab with the most rows. */
+function tallestTabRows(config: FastTuiConfig): number {
+	return Math.max(...TABS.map((tab) => buildItems(tab, config).length));
+}
+
 function handleSettingChange(
 	tab: Tab,
 	itemId: string,
@@ -417,6 +422,8 @@ class SectionedSettingsList {
 	private readonly theme: Theme;
 	private readonly visibleRows: number;
 	private readonly showScrollInfo: boolean;
+	/** Blank rows pad the list to this height, so every tab is as tall as the tallest one. */
+	private readonly minRows: number;
 	private pressedItemId: string | undefined;
 
 	constructor(
@@ -424,8 +431,10 @@ class SectionedSettingsList {
 		availableRows: number,
 		width: number,
 		theme: Theme,
+		minRows = 0,
 	) {
 		this.rows = rows;
+		this.minRows = minRows;
 		this.theme = theme;
 		const compact = width <= 60;
 		this.items = rows.flatMap<SelectItem>((row) => {
@@ -498,6 +507,7 @@ class SectionedSettingsList {
 				`  (${this.selectedSettingIndex() + 1}/${this.items.length})`, width, "",
 			)));
 		}
+		while (visible.length < this.minRows) visible.push("");
 		return visible;
 	}
 
@@ -641,7 +651,8 @@ class SettingsUi implements SettingsUiHandle {
 			this.container.addChild(hint);
 		}
 		const availableRows = rowBudget - this.container.render(width).length;
-		this.selectList = new SectionedSettingsList(buildItems(this.tab, this.config), availableRows, width, this.theme);
+		const listRows = Math.min(availableRows, tallestTabRows(this.config));
+		this.selectList = new SectionedSettingsList(buildItems(this.tab, this.config), availableRows, width, this.theme, listRows);
 		this.selectList.selectItem(preferredItemId);
 		this.selectedItemByTab[this.tab] = this.selectList.getSelectedItem()?.value;
 		this.selectList.onSelectionChange = (item) => {
@@ -741,7 +752,7 @@ export function registerSettingsCommand(
 					popup,
 				);
 				// The popup panel forwards input to the settings and maps mouse rows into them.
-				const view = popup ? new PopupPanel(ui, popupPanelOptions(tui, theme, () => ui.title)) : ui;
+				const view = popup ? new PopupPanel(ui, popupPanelOptions(tui, theme, () => ui.title, { keepTrailingBlankRows: true })) : ui;
 				return {
 					capturesViewportInput: true,
 					render: (w: number) => view.render(w),

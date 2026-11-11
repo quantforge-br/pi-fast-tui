@@ -51,6 +51,8 @@ export interface PopupPanelOptions {
 	hintStyle?: (text: string) => string;
 	/** Most rows the panel may use, or undefined for no limit. */
 	maxRows?: () => number | undefined;
+	/** Keep blank rows at the end of the content instead of dropping them. Default false. */
+	keepTrailingBlankRows?: boolean;
 }
 
 /** A row made only of the horizontal rules Pi draws around its menus (`DynamicBorder`). */
@@ -116,7 +118,9 @@ export class PopupPanel implements Component {
 			kept.shift();
 			while (kept.length > 0 && stripAnsi(raw[kept[0]!]!).trim() === "") kept.shift();
 		}
-		while (kept.length > 0 && stripAnsi(raw[kept.at(-1)!]!).trim() === "") kept.pop();
+		if (!this.options.keepTrailingBlankRows) {
+			while (kept.length > 0 && stripAnsi(raw[kept.at(-1)!]!).trim() === "") kept.pop();
+		}
 		const maxRows = this.options.maxRows?.();
 		const compact = isCompact(maxRows);
 		if (maxRows !== undefined) kept.splice(Math.max(0, maxRows - popupChromeRows(maxRows)));

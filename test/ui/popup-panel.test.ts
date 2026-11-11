@@ -167,3 +167,13 @@ test("marks clipped content rows with an ellipsis and pads rows that fit", () =>
 	assert.equal(short, "short".padEnd(inner));
 	assert.ok(!short.includes("…"));
 });
+
+test("drops trailing blank content rows unless asked to keep them", () => {
+	const content = () => new FakeMenu(["  item", "", ""]);
+	const rows = (keep: boolean) =>
+		new PopupPanel(content(), { title: "T", background: () => BG, border: (text) => text, keepTrailingBlankRows: keep })
+			.render(40)
+			.map((line) => stripAnsi(line));
+	assert.equal(rows(true).length, rows(false).length + 2);
+	assert.match(rows(true).at(-3)!, /^▕ +▏$/);
+});

@@ -9,6 +9,7 @@
 - `/fast-tui` dialog: the key hint always fits on one row. When the full hint is too wide, a short form (`Tab tabs · ↑↓ move · ←→ change · Esc close`) is shown, and below that no hint at all.
 - `/fast-tui` dialog: the `(n/total)` scroll indicator counts settings only, not section headings (the Footer tab reads `(1/16)` on its first setting), and section headings leave a space between the rule and the label (`── Extension ───`).
 - `/fast-tui` dialog: the language row reads `Language / 语言` in both languages, so it can be found without reading the current one.
+- `/fast-tui` dialog keeps one height across its four tabs, as a popup and as the classic overlay: shorter tabs are padded with blank rows, so the panel and its tab bar no longer jump when switching tabs.
 
 ## [0.6.0] - 2026-11-11
 

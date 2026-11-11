@@ -64,7 +64,12 @@ export function popupBackground(theme: Theme): string {
 }
 
 /** Panel look shared by every popup: a contrasting fill, an accent border, title and an "esc" hint. */
-export function popupPanelOptions(tui: TUI, theme: Theme, title: PopupPanelOptions["title"]): PopupPanelOptions {
+export function popupPanelOptions(
+	tui: TUI,
+	theme: Theme,
+	title: PopupPanelOptions["title"],
+	extra: Partial<PopupPanelOptions> = {},
+): PopupPanelOptions {
 	return {
 		title,
 		hint: "esc",
@@ -73,6 +78,7 @@ export function popupPanelOptions(tui: TUI, theme: Theme, title: PopupPanelOptio
 		titleStyle: (text) => theme.bold(theme.fg("text", text)),
 		hintStyle: (text) => theme.fg("dim", text),
 		maxRows: () => popupMaxRows(tui.terminal.rows),
+		...extra,
 	};
 }
 
