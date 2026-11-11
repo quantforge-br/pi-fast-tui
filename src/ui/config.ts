@@ -10,9 +10,9 @@ export type CursorStyle = "block" | "bar" | "underline";
  * closed frame; `native` keeps Pi's two rules; `claude` adds a `❯` prompt between the rules;
  * `rule` keeps only the top rule with a `❯` prompt.
  */
-export type EditorShape = "rounded" | "square" | "heavy" | "double" | "ascii" | "native" | "claude" | "rule";
+export type EditorShape = "rounded" | "square" | "heavy" | "double" | "ascii" | "native" | "claude" | "rule" | "opencode";
 
-export const EDITOR_SHAPES: readonly EditorShape[] = ["rounded", "square", "heavy", "double", "ascii", "native", "claude", "rule"];
+export const EDITOR_SHAPES: readonly EditorShape[] = ["rounded", "square", "heavy", "double", "ascii", "native", "claude", "rule", "opencode"];
 export type ThinkingPeekLines = 0 | 1 | 2;
 /** `cards` draws oh-my-pi style cards, `compact` collapses rows to one line, `native` keeps Pi's rows. */
 export type ToolViewMode = "cards" | "compact" | "native";

@@ -6,7 +6,7 @@ import {
 import type { Component, Container, EditorComponent, TUI } from "@earendil-works/pi-tui";
 import { CURSOR_MARKER, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { CursorStyle, EditorShape } from "./config.ts";
-import { getEditorShapeStyle, type EditorShapeStyle, type FrameGlyphs } from "./editor-shapes.ts";
+import { canEmbedInlineFooter, getEditorShapeStyle, type EditorShapeStyle, type FrameGlyphs } from "./editor-shapes.ts";
 import { findBottomBorderIndex, isEditorBorderLine, stripAnsi } from "./utils.ts";
 
 function fillLine(content: string, width: number): string {
@@ -36,6 +36,8 @@ export interface InlineFooterLine {
 export interface InlineFooterRenderer {
 	enabled(): boolean;
 	render(width: number): { top: InlineFooterLine; bottom: InlineFooterLine } | undefined;
+	/** Model summary for the info row of panel shapes when the footer is not embedded. */
+	renderInfo?(width: number): string | undefined;
 }
 
 interface HiddenThinkingLabelComponent {
@@ -211,6 +213,8 @@ interface FastTuiEditorOptions {
 	cursorStyle?: CursorStyle;
 	editorShape?: EditorShape;
 	inlineFooter?: InlineFooterRenderer;
+	/** SGR sequence that opens the panel background of panel shapes; empty leaves it unfilled. */
+	panelBackground?: () => string;
 }
 
 /** Capabilities this decorator adds to the editor instance it wraps. */
@@ -242,6 +246,7 @@ interface EditorDecoration {
 	inlineFooter: InlineFooterRenderer | undefined;
 	indicator: WorkingStatusIndicator | undefined;
 	shape: EditorShapeStyle;
+	panelBackground: (() => string) | undefined;
 	baseRender: (width: number) => string[];
 	frame: FrameLayout | undefined;
 	active: boolean;
@@ -300,8 +305,68 @@ interface FrameLayout {
 	horizontalChrome: number;
 	/** First row below the frame (completion list); those rows keep Pi's own x coordinates. */
 	belowFrameRow: number;
-	/** Pi's bottom rule is not drawn, so rows below the frame sit one row higher than in Pi's layout. */
-	droppedBottomRule: boolean;
+	/** Rows to add to a y at or below `belowFrameRow` to reach Pi's layout (frames can drop or add chrome rows). */
+	belowFrameShift: number;
+}
+
+// Resets that would clear the panel background mid-row: SGR 0 (`[0m`, `[m`) and default background (`[49m`).
+const BACKGROUND_RESET = /\x1b\[(?:0|49)?m/g;
+
+function fillBackground(open: string, text: string): string {
+	if (!open) return text;
+	return `${open}${text.replace(BACKGROUND_RESET, (reset) => `${reset}${open}`)}\x1b[49m`;
+}
+
+/** `left` and `right` spread over `width` cells; `right` keeps its room when space runs short. */
+function spreadRow(left: string, right: string, width: number): string {
+	const fittedRight = truncateToWidth(right, Math.max(0, width), "");
+	const rightWidth = visibleWidth(fittedRight);
+	const leftBudget = width - rightWidth - (rightWidth > 0 ? 1 : 0);
+	const fittedLeft = leftBudget > 0 ? truncateToWidth(left, leftBudget, "") : "";
+	return `${fittedLeft}${" ".repeat(Math.max(0, width - visibleWidth(fittedLeft) - rightWidth))}${fittedRight}`;
+}
+
+/** Working indicator followed by the scroll labels, shrunk to the spinner when the timer does not fit. */
+function panelStatus(width: number, scrollLabel: string | undefined, indicator: WorkingStatusIndicator | undefined): string {
+	const label = scrollLabel ?? "";
+	const labelWidth = visibleWidth(label);
+	if (!indicator) return label;
+	const budget = Math.max(1, width - labelWidth - (labelWidth > 0 ? 1 : 0));
+	let status = indicator.renderInBorder(budget);
+	if (visibleWidth(status) > budget) status = indicator.renderSpinnerInBorder(budget);
+	return [status, label].filter((part) => visibleWidth(part) > 0).join(" ");
+}
+
+/**
+ * Panel shapes: an accent rail beside a filled block holding a padding row with the
+ * indicators, Pi's content rows, a blank row and an info row (model or the footer's second line).
+ */
+function renderPanel(
+	decoration: EditorDecoration,
+	width: number,
+	baseLines: string[],
+	bottomIdx: number,
+	scrollLabel: string | undefined,
+	embedFooter: boolean,
+): string[] {
+	const shape = decoration.shape;
+	const contentWidth = Math.max(0, width - shape.leftInset - shape.rightInset);
+	const open = decoration.panelBackground?.() ?? "";
+	const rail = decoration.editor.borderColor(shape.glyphs.vertical);
+	const gap = " ".repeat(Math.max(0, shape.leftInset - visibleWidth(shape.glyphs.vertical)));
+	const tail = " ".repeat(shape.rightInset);
+	const row = (content: string) => `${rail}${fillBackground(open, `${gap}${fillLine(content, contentWidth)}${tail}`)}`;
+
+	const footer = embedFooter ? decoration.inlineFooter?.render(contentWidth) : undefined;
+	const status = panelStatus(contentWidth, scrollLabel, decoration.indicator);
+	const topRight = [footer?.top.right ?? "", status].filter((part) => visibleWidth(part) > 0).join(" ");
+	const result = [row(spreadRow(footer?.top.left ?? "", topRight, contentWidth))];
+	for (let i = 1; i < bottomIdx; i++) result.push(row(baseLines[i] ?? ""));
+	result.push(row(""));
+	result.push(row(footer
+		? spreadRow(footer.bottom.left, footer.bottom.right, contentWidth)
+		: decoration.inlineFooter?.renderInfo?.(contentWidth) ?? ""));
+	return result;
 }
 
 function renderFrame(decoration: EditorDecoration, width: number): string[] {
@@ -330,7 +395,14 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 		? topLabel
 		: [topLabel, bottomLabel].filter((label) => label !== undefined).join(" ") || undefined;
 	// Bottom-less shapes cannot hold the footer's second row, so the footer stays separate.
-	const embedFooter = inlineFooter && shape.bottomBorder;
+	const embedFooter = inlineFooter && canEmbedInlineFooter(shape);
+	if (shape.panel) {
+		result.push(...renderPanel(decoration, width, baseLines, bottomIdx, topScrollLabel, embedFooter));
+		// The panel adds a blank and an info row in place of Pi's bottom rule.
+		decoration.frame = { width, leftInset: shape.leftInset, horizontalChrome, belowFrameRow: bottomIdx + 1, belowFrameShift: -1 };
+		for (let i = bottomIdx + 1; i < baseLines.length; i++) result.push(baseLines[i]!);
+		return result.map((line) => truncateToWidth(line, width, ""));
+	}
 	result.push(embedFooter
 		? inlineBorder(width, "top", glyphs, borderPaint, (budget) => renderInlineLine("top", budget), topScrollLabel, decoration.indicator)
 		: frameBorder(width, "top", glyphs, borderPaint, topScrollLabel, decoration.indicator));
@@ -360,7 +432,8 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 		leftInset: shape.leftInset,
 		horizontalChrome,
 		belowFrameRow: shape.bottomBorder ? bottomIdx + 1 : bottomIdx,
-		droppedBottomRule: !shape.bottomBorder,
+		// Pi's bottom rule is not drawn, so rows below the frame sit one row higher than in Pi's layout.
+		belowFrameShift: shape.bottomBorder ? 0 : 1,
 	};
 	return result.map((line) => truncateToWidth(line, width, ""));
 }
@@ -370,7 +443,7 @@ function mapMouseEvent<T extends { x: number; y: number; width: number }>(decora
 	if (!decoration.active || !frame || event.width !== frame.width) return event;
 	const width = event.width - frame.horizontalChrome;
 	// Completion rows are copied unshifted from Pi's render, so only their row index moves.
-	if (event.y >= frame.belowFrameRow) return { ...event, y: frame.droppedBottomRule ? event.y + 1 : event.y, width };
+	if (event.y >= frame.belowFrameRow) return { ...event, y: event.y + frame.belowFrameShift, width };
 	return { ...event, x: event.x - frame.leftInset, width };
 }
 
@@ -403,6 +476,7 @@ export function decorateFastTuiEditor<T extends FrameableEditor>(
 		inlineFooter: options.inlineFooter,
 		indicator: undefined,
 		shape: getEditorShapeStyle(options.editorShape),
+		panelBackground: options.panelBackground,
 		baseRender: editor.render.bind(editor),
 		frame: undefined,
 		active: true,
@@ -586,6 +660,7 @@ export function installEditor(
 					cursorStyle: currentCursorStyle,
 					editorShape: currentEditorShape,
 					inlineFooter,
+					panelBackground: () => ctx.ui.theme?.getBgAnsi?.("userMessageBg") ?? "",
 				});
 			}
 		}
@@ -661,7 +736,7 @@ export function installEditor(
 	return {
 		isFramed: () => enabled && activeEditor !== undefined,
 		/** Whether the footer can move into the frame: it needs both a top and a bottom border. */
-		canEmbedFooter: () => enabled && activeEditor !== undefined && getEditorShapeStyle(currentEditorShape).bottomBorder,
+		canEmbedFooter: () => enabled && activeEditor !== undefined && canEmbedInlineFooter(getEditorShapeStyle(currentEditorShape)),
 		/** `build` receives the hidden-thinking text width and runs again whenever that width changes. */
 		setLatestHiddenThinkingLabel(build: (width: number) => string): void {
 			const tui = getActiveTui();

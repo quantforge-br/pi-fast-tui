@@ -23,6 +23,11 @@ export interface EditorShapeStyle {
 	readonly prompt?: string;
 	/** Whether the bottom border row is drawn. Without it, Pi's bottom rule row is dropped. */
 	readonly bottomBorder: boolean;
+	/**
+	 * Filled panel behind an accent rail (`vertical`): a padding row on top, then the content
+	 * rows, a blank row and an info row. Replaces both of Pi's rules.
+	 */
+	readonly panel?: boolean;
 	/** Cells added before Pi's content (rail + space, or prompt). */
 	readonly leftInset: number;
 	/** Cells added after Pi's content. */
@@ -55,7 +60,13 @@ const SHAPES: Partial<Record<EditorShape, EditorShapeStyle>> = {
 	native: { id: "native", glyphs: RULE, sideRails: false, bottomBorder: true, leftInset: 0, rightInset: 0 },
 	claude: { id: "claude", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: true, leftInset: 2, rightInset: 0 },
 	rule: { id: "rule", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: false, leftInset: 2, rightInset: 0 },
+	opencode: { id: "opencode", glyphs: { ...RULE, vertical: "▎" }, sideRails: false, panel: true, bottomBorder: false, leftInset: 2, rightInset: 1 },
 };
+
+/** Whether the shape has a row below the content that can hold the footer's second line. */
+export function canEmbedInlineFooter(style: EditorShapeStyle): boolean {
+	return style.bottomBorder || style.panel === true;
+}
 
 /** Style for a shape id; unknown ids fall back to `rounded`. */
 export function getEditorShapeStyle(shape: EditorShape | undefined): EditorShapeStyle {

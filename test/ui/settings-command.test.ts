@@ -233,6 +233,7 @@ test("cycles editor shapes from the Appearance tab without remounting the editor
 		native: /^─/,
 		claude: /^─/,
 		rule: /^─/,
+		opencode: /^▎/,
 	};
 
 	settings.component.handleInput("\t");
@@ -263,6 +264,9 @@ test("labels editor shapes in Chinese", async () => {
 	settings.component.handleInput("\t");
 	settings.press("\x1b[B", 2);
 	assert.match(selectedLine(settings.component), /输入框样式.*顶部横线/);
+	settings.component.handleInput("\r");
+	assert.equal(settings.getConfig().editorShape, "opencode");
+	assert.match(selectedLine(settings.component), /输入框样式.*OpenCode/);
 	settings.component.handleInput("\r");
 	assert.equal(settings.getConfig().editorShape, "rounded");
 	assert.match(selectedLine(settings.component), /输入框样式.*圆角/);

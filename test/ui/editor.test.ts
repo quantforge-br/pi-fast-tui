@@ -47,6 +47,7 @@ function createFastTuiEditor(options: {
 	cursorStyle?: CursorStyle;
 	editorShape?: EditorShape;
 	inlineFooter?: InlineFooterRenderer;
+	panelBackground?: () => string;
 } = {}) {
 	const hostTui = options.tui ?? tui;
 	const currentTheme = options.theme ?? editorTheme;
@@ -54,7 +55,12 @@ function createFastTuiEditor(options: {
 	return decorateFastTuiEditor(
 		new CustomEditor(hostTui, currentTheme, keybindings, { paddingX: 0 }),
 		hostTui,
-		{ cursorStyle: options.cursorStyle ?? "block", editorShape: options.editorShape, inlineFooter: options.inlineFooter },
+		{
+			cursorStyle: options.cursorStyle ?? "block",
+			editorShape: options.editorShape,
+			inlineFooter: options.inlineFooter,
+			panelBackground: options.panelBackground,
+		},
 	);
 }
 
@@ -282,8 +288,74 @@ test("keeps the footer out of the bottom-less rule shape", () => {
 	assert.ok(!lines.some((line) => /cwd|model/.test(line)));
 });
 
+const modelInfoStub: InlineFooterRenderer = {
+	enabled: () => false,
+	render: () => undefined,
+	renderInfo: () => "Opus 4.5 Anthropic · high",
+};
+
+test("draws the opencode panel with a rail, padding and an info row", () => {
+	const editor = createFastTuiEditor({ editorShape: "opencode", inlineFooter: modelInfoStub });
+	editor.setText("first\nsecond");
+
+	const lines = editor.render(30).map(stripAnsi);
+	assert.deepEqual(lines, [
+		`▎${" ".repeat(29)}`,
+		`▎ ${"first".padEnd(28)}`,
+		`▎ ${"second".padEnd(28)}`,
+		`▎${" ".repeat(29)}`,
+		`▎ ${"Opus 4.5 Anthropic · high".padEnd(28)}`,
+	]);
+	for (const line of lines) assert.equal(visibleWidth(line), 30);
+});
+
+test("fills the opencode panel background past embedded resets", () => {
+	const open = "\x1b[48;5;236m";
+	const editor = createFastTuiEditor({
+		editorShape: "opencode",
+		panelBackground: () => open,
+		inlineFooter: { ...modelInfoStub, renderInfo: () => "a\x1b[0mb" },
+	});
+	editor.setText("x");
+
+	const lines = editor.render(20);
+	for (const line of lines) {
+		assert.ok(line.startsWith(`▎${open}`), JSON.stringify(line));
+		assert.ok(line.endsWith("\x1b[49m"), JSON.stringify(line));
+	}
+	assert.ok(lines.at(-1)!.includes(`a\x1b[0m${open}b`));
+});
+
+test("puts the working indicator and scroll labels in the opencode padding row", () => {
+	const editor = createFastTuiEditor({ editorShape: "opencode" });
+	editor.setWorkingStatusIndicator({ renderInBorder: () => "◐ working", renderSpinnerInBorder: () => "◐" });
+	assert.match(stripAnsi(editor.render(40)[0] ?? ""), /^▎ +◐ working $/);
+
+	editor.setText(Array.from({ length: 30 }, (_, index) => `line ${index}`).join("\n"));
+	for (let i = 0; i < 12; i++) editor.handleInput("\x1b[A");
+	const lines = editor.render(60).map(stripAnsi);
+	assert.match(lines[0] ?? "", /^▎ +◐ working ↑ \d+ more ↓ \d+ more $/);
+	assert.ok(lines.every((line) => line.startsWith("▎") && visibleWidth(line) === 60));
+	assert.ok(!lines.some((line) => line.includes("─")));
+});
+
+test("embeds both inline footer lines in the opencode panel", () => {
+	const editor = createFastTuiEditor({ editorShape: "opencode", inlineFooter: inlineFooterStub });
+	const lines = editor.render(40).map(stripAnsi);
+	assert.match(lines[0] ?? "", /^▎ cwd +context $/);
+	assert.match(lines.at(-1) ?? "", /^▎ model +stats $/);
+});
+
+test("maps opencode panel clicks past the rail", () => {
+	const editor = createFastTuiEditor({ editorShape: "opencode" });
+	editor.setText("abcdef");
+	editor.render(40);
+	editor.handleMouse(mouseEvent("click", 3, 1, { width: 40, height: 8 }));
+	assert.equal(editor.getCursor().col, 1);
+});
+
 test("maps clicks below the frame to Pi's completion rows without the frame inset", () => {
-	for (const [shape, yOffset] of [["rounded", 0], ["claude", 0], ["rule", 1]] as const) {
+	for (const [shape, yOffset] of [["rounded", 0], ["claude", 0], ["rule", 1], ["opencode", -1]] as const) {
 		const inner = new CustomEditor(tui, editorTheme, { matches: () => false } as unknown as KeybindingsManager, { paddingX: 0 });
 		const events: TuiMouseEvent[] = [];
 		inner.handleMouse = (event) => {
