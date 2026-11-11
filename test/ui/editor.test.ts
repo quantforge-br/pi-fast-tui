@@ -20,7 +20,7 @@ import {
 import { Container, TuiMainScreen, type EditorComponent, type EditorTheme, type Terminal, type TUI, type TuiMouseEvent, visibleWidth } from "@earendil-works/pi-tui";
 import { decorateFastTuiEditor, installEditor, repaintAfterStreamWrites, type InlineFooterRenderer } from "../../src/ui/editor.ts";
 import { FastTuiHeader } from "../../src/ui/header.ts";
-import type { CursorStyle } from "../../src/ui/config.ts";
+import type { CursorStyle, EditorShape } from "../../src/ui/config.ts";
 import { stripAnsi } from "../../src/ui/utils.ts";
 import { mouseEvent } from "./fixtures/test-helpers.ts";
 
@@ -45,6 +45,7 @@ function createFastTuiEditor(options: {
 	theme?: EditorTheme;
 	keybindings?: KeybindingsManager;
 	cursorStyle?: CursorStyle;
+	editorShape?: EditorShape;
 	inlineFooter?: InlineFooterRenderer;
 } = {}) {
 	const hostTui = options.tui ?? tui;
@@ -53,7 +54,7 @@ function createFastTuiEditor(options: {
 	return decorateFastTuiEditor(
 		new CustomEditor(hostTui, currentTheme, keybindings, { paddingX: 0 }),
 		hostTui,
-		{ cursorStyle: options.cursorStyle ?? "block", inlineFooter: options.inlineFooter },
+		{ cursorStyle: options.cursorStyle ?? "block", editorShape: options.editorShape, inlineFooter: options.inlineFooter },
 	);
 }
 
@@ -155,6 +156,73 @@ test("keeps a narrow scrolled working border intact", () => {
 	assert.equal(visibleWidth(topBorder), 30);
 	assert.match(topBorder, /↑ 3 more/);
 	assert.ok(topBorder.endsWith("╮"));
+});
+
+// Editor shapes.
+const BOX_SHAPES = [
+	["rounded", "╭╮╰╯", "─", "│"],
+	["square", "┌┐└┘", "─", "│"],
+	["heavy", "┏┓┗┛", "━", "┃"],
+	["double", "╔╗╚╝", "═", "║"],
+	["ascii", "++++", "-", "|"],
+] as const satisfies readonly (readonly [EditorShape, string, string, string])[];
+
+const inlineFooterStub: InlineFooterRenderer = {
+	enabled: () => true,
+	render: () => ({
+		top: { left: "cwd", right: "context" },
+		bottom: { left: "model", right: "stats" },
+	}),
+};
+
+function escapeRegExp(text: string): string {
+	return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+for (const [shape, corners, h, v] of BOX_SHAPES) {
+	const [tl, tr, bl, br] = [...corners].map(escapeRegExp);
+	const hh = escapeRegExp(h);
+	test(`draws the ${shape} editor frame`, () => {
+		const editor = createFastTuiEditor({ editorShape: shape });
+		editor.setText("x");
+
+		const lines = editor.render(20).map(stripAnsi);
+		assert.equal(lines[0], `${corners[0]}${h.repeat(18)}${corners[1]}`);
+		assert.equal(lines[1], `${v} ${"x".padEnd(16)} ${v}`);
+		assert.equal(lines[2], `${corners[2]}${h.repeat(18)}${corners[3]}`);
+		for (const line of lines) assert.equal(visibleWidth(line), 20);
+	});
+
+	test(`embeds the working indicator and inline footer in the ${shape} frame`, () => {
+		const editor = createFastTuiEditor({ editorShape: shape });
+		editor.setWorkingStatusIndicator({ renderInBorder: () => "◐ working", renderSpinnerInBorder: () => "◐" });
+		assert.match(stripAnsi(editor.render(40)[0] ?? ""), new RegExp(`^${tl}${hh}${hh} ◐ working ${hh}+${tr}$`));
+
+		const framed = createFastTuiEditor({ editorShape: shape, inlineFooter: inlineFooterStub });
+		const lines = framed.render(40).map(stripAnsi);
+		assert.match(lines[0] ?? "", new RegExp(`^${tl}${hh} cwd ${hh}+ context ${hh}${tr}$`));
+		assert.match(lines.at(-1) ?? "", new RegExp(`^${bl}${hh} model ${hh}+ stats ${hh}${br}$`));
+	});
+
+	test(`maps ${shape} frame clicks past the left rail`, () => {
+		const editor = createFastTuiEditor({ editorShape: shape });
+		editor.setText("abcdef");
+		editor.render(40);
+		editor.handleMouse(mouseEvent("click", 3, 1, { height: 8 }));
+		assert.equal(editor.getCursor().col, 1);
+	});
+}
+
+test("switches the editor shape at runtime without rebuilding the editor", () => {
+	let renders = 0;
+	const hostTui = { ...tui, requestRender() { renders++; } } as TUI;
+	const editor = createFastTuiEditor({ tui: hostTui });
+	editor.setText("x");
+	assert.equal(stripAnsi(editor.render(20)[0] ?? "")[0], "╭");
+
+	editor.setEditorShape("double");
+	assert.equal(renders, 1);
+	assert.equal(stripAnsi(editor.render(20)[0] ?? "")[0], "╔");
 });
 
 

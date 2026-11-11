@@ -38,8 +38,16 @@ const ROUNDED: EditorShapeStyle = {
 	rightInset: 2,
 };
 
+function boxShape(id: EditorShape, glyphs: FrameGlyphs): EditorShapeStyle {
+	return { ...ROUNDED, id, glyphs };
+}
+
 const SHAPES: Partial<Record<EditorShape, EditorShapeStyle>> = {
 	rounded: ROUNDED,
+	square: boxShape("square", { topLeft: "┌", topRight: "┐", bottomLeft: "└", bottomRight: "┘", horizontal: "─", vertical: "│" }),
+	heavy: boxShape("heavy", { topLeft: "┏", topRight: "┓", bottomLeft: "┗", bottomRight: "┛", horizontal: "━", vertical: "┃" }),
+	double: boxShape("double", { topLeft: "╔", topRight: "╗", bottomLeft: "╚", bottomRight: "╝", horizontal: "═", vertical: "║" }),
+	ascii: boxShape("ascii", { topLeft: "+", topRight: "+", bottomLeft: "+", bottomRight: "+", horizontal: "-", vertical: "|" }),
 };
 
 /** Style for a shape id; unknown ids fall back to `rounded`. */
