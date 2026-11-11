@@ -74,7 +74,9 @@ const NERD_GLYPHS: IconGlyphs = {
 
 // ponytail: ASCII fallback uses compact symbols (not English words) to keep
 // the footer's icon-like feel on non-Nerd-Font terminals. Symbols chosen to
-// avoid collisions with the git-status set {= S ! A ? r x ^ v}.
+// avoid collisions with the git-status set {= S ! A ? r x ^ v}; the token
+// counts use the letters `i` (input) and `o` (output), which only appear next
+// to a number on footer row 2.
 const ASCII_GLYPHS: IconGlyphs = {
 	cwd: "@",
 	host: "h",
@@ -86,8 +88,8 @@ const ASCII_GLYPHS: IconGlyphs = {
 	context: "#",
 	model: "M",
 	thinking: "~",
-	input: "↑",
-	output: "↓",
+	input: "i",
+	output: "o",
 	cacheHit: "c",
 	cost: "",
 	speed: ">",

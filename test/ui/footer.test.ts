@@ -858,8 +858,8 @@ test("ASCII footer renders icons as semantic labels", () => {
 		"#",
 		"M",
 		"~ high",
-		"↑ 32k (U 27k + R 5.0k)",
-		"↓ 12",
+		"i 32k (U 27k + R 5.0k)",
+		"o 12",
 		"c 15.6%",
 		"$0.010",
 		"& goal active",
@@ -1154,7 +1154,7 @@ function row2Fixture(contributions: RegisteredFooterSegment[] = []) {
 	return { row, inline, used };
 }
 
-const ROW2_ITEMS = ["OpenAI", "gpt-5", "~ high", "(U 27k + R 5.0k)", "↑ 32k", "↓ 12", "c 15.6%", "$0.010"];
+const ROW2_ITEMS = ["OpenAI", "gpt-5", "~ high", "(U 27k + R 5.0k)", "i 32k", "o 12", "c 15.6%", "$0.010"];
 
 function assertRow2Items(line: string, missing: readonly string[]): void {
 	for (const item of ROW2_ITEMS) {
@@ -1175,13 +1175,13 @@ test("footer row 2 sheds input breakdown, cache-hit rate and provider before shr
 	assertRow2Items(row(level2 - 1), ["(U 27k + R 5.0k)", "c 15.6%", "OpenAI"]);
 	const truncated = row(level3 - 1);
 	assert.match(truncated, /^M g\S*\.\.\. · ~ high /);
-	for (const item of ["~ high", "↑ 32k", "↓ 12", "$0.010"]) assert.ok(truncated.includes(item), `${item} missing\n${truncated}`);
+	for (const item of ["~ high", "i 32k", "o 12", "$0.010"]) assert.ok(truncated.includes(item), `${item} missing\n${truncated}`);
 });
 
 test("footer row 2 keeps every metric whole and the thinking level last at every width", () => {
 	const { row, inline } = row2Fixture();
 	const wholeOrAbsent: Array<[RegExp, string]> = [
-		[/~/, "~ high"], [/↑/, "↑ 32k"], [/↓/, "↓ 12"], [/%/, "c 15.6%"], [/\$/, "$0.010"],
+		[/~/, "~ high"], [/(?:^|\s)i \d/, "i 32k"], [/(?:^|\s)o \d/, "o 12"], [/%/, "c 15.6%"], [/\$/, "$0.010"],
 	];
 	for (let width = 1; width <= 200; width++) {
 		const bottom = inline(width);

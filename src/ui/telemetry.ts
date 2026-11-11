@@ -10,6 +10,7 @@ import type {
 	Theme,
 } from "@earendil-works/pi-coding-agent";
 import type { IconMode, TelemetryConfig } from "./config.ts";
+import { TEXT } from "../cards/symbols.ts";
 import { resolveGlyphs } from "./icons.ts";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { finiteOrZero, fmtTokens, formatDuration, formatInputBreakdown, withIcon } from "./utils.ts";
@@ -337,7 +338,7 @@ export function formatTurnTelemetry(
 	// The input metric has a shorter form without the uncached/cache-read breakdown.
 	let inputIndex = -1;
 	if (config.tps) {
-		const value = telemetry.tps === null ? "—" : `${telemetry.tps.toFixed(1)} tok/s`;
+		const value = telemetry.tps === null ? TEXT.dash : `${telemetry.tps.toFixed(1)} tok/s`;
 		parts.push(theme.fg(telemetry.tps === null ? "muted" : "accent", `${glyphs.speed} TPS ${value}`));
 	}
 	if (config.ttft) {

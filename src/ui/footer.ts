@@ -1,6 +1,7 @@
 import type { ExtensionContext, Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
 import { hostname as osHostname } from "node:os";
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { TEXT } from "../cards/symbols.ts";
 import type { FastTuiConfig } from "./config.ts";
 import type { FooterBuiltinSegment, FooterPosition, RegisteredFooterSegment } from "./footer-segments.ts";
 import type { IconGlyphs } from "./icons.ts";
@@ -171,13 +172,13 @@ function renderContextBar(
 
 	const pctText = theme.fg(stressColor(contextPct), `${contextPct.toFixed(1)}%`);
 	const ctxText = `${theme.fg("text", fmtTokens(contextTokens))}${theme.fg("dim", "/")}${theme.fg("text", fmtTokens(contextWindow))}`;
-	if (!showBar) return `${pctText} ${theme.fg("dim", "·")} ${ctxText}`;
+	if (!showBar) return `${pctText} ${theme.fg("dim", TEXT.sep.trim())} ${ctxText}`;
 	const contextIcon = theme.fg(stressColor(contextPct), glyphs.context);
 	// Cap the bar at `width - reserved` (with a floor of 4) so the full form
 	// never forces the left segments out before compact/drop logic kicks in.
 	const reserved = visibleWidth(contextIcon) + visibleWidth(pctText) + visibleWidth(ctxText) + 5 + 2;
 	const barWidth = Math.max(4, Math.min(12, width - reserved));
-	return `${contextIcon} ${renderBar(theme, contextPct, barWidth, resolveIconMode(iconMode) === "ascii")} ${pctText} ${theme.fg("dim", "·")} ${ctxText}`;
+	return `${contextIcon} ${renderBar(theme, contextPct, barWidth, resolveIconMode(iconMode) === "ascii")} ${pctText} ${theme.fg("dim", TEXT.sep.trim())} ${ctxText}`;
 }
 
 function renderStatsSegments(
@@ -263,7 +264,7 @@ export interface InlineFooterLines {
 export function renderModelInfo(theme: Theme, meta: ModelMeta, width: number): string {
 	let line = theme.bold(theme.fg("text", meta.model));
 	if (meta.provider && meta.provider !== "Unknown") line += ` ${theme.fg("muted", meta.provider)}`;
-	if (meta.effort && meta.effort !== "off") line += `${theme.fg("dim", " · ")}${theme.fg(effortColor(meta.effort), meta.effort)}`;
+	if (meta.effort && meta.effort !== "off") line += `${theme.fg("dim", TEXT.sep)}${theme.fg(effortColor(meta.effort), meta.effort)}`;
 	return truncateToWidth(line, Math.max(0, width), theme.fg("dim", "..."));
 }
 
@@ -277,7 +278,7 @@ function fitInlineSegments(
 	width: number,
 	theme: Theme,
 ): string {
-	const separator = theme.fg("dim", " · ");
+	const separator = theme.fg("dim", TEXT.sep);
 	const separatorReserve = Math.max(0, parts.length - 1) * Math.max(0, visibleWidth(separator) - 1);
 	return fitSegmentsByPriority(
 		parts,
@@ -366,7 +367,7 @@ function collectRow(
 	};
 	const left = collect("left");
 	const right = collect("right");
-	const leftSeparator = row === 1 && mode === "plain" ? " " : theme.fg("dim", " · ");
+	const leftSeparator = row === 1 && mode === "plain" ? " " : theme.fg("dim", TEXT.sep);
 	const rightSeparator = row === 1 ? leftSeparator : theme.fg("dim", " | ");
 	return { left, right, contributed, leftSeparator, rightSeparator };
 }
@@ -549,7 +550,7 @@ function renderFooterContent(
 			: null;
 		const text = liveTps === null
 			? timerSeg
-			: `${timerSeg} ${theme.fg("dim", "·")} ${theme.fg(liveTps.stale ? "dim" : "accent", `${glyphs.speed} ~${Math.round(liveTps.tps)} tok/s`)}`;
+			: `${timerSeg} ${theme.fg("dim", TEXT.sep.trim())} ${theme.fg(liveTps.stale ? "dim" : "accent", `${glyphs.speed} ~${Math.round(liveTps.tps)} tok/s`)}`;
 		// Narrow widths shed the live TPS before the timer itself.
 		leftParts.push({ text, compactText: liveTps === null ? undefined : timerSeg, priority: 3 });
 		inlineTopRightParts.push(leftParts.at(-1)!);
@@ -593,7 +594,7 @@ function renderFooterContent(
 
 	const modelPrefix = `${theme.fg("mdLink", glyphs.model)} `;
 	const modelName = (provider: boolean) => provider && meta.provider && meta.provider !== "Unknown"
-		? `${theme.fg(providerColor(ctx.model?.provider ?? "none"), meta.provider)}${theme.fg("dim", " · ")}${theme.fg("text", meta.model)}`
+		? `${theme.fg(providerColor(ctx.model?.provider ?? "none"), meta.provider)}${theme.fg("dim", TEXT.sep)}${theme.fg("text", meta.model)}`
 		: theme.fg("text", meta.model);
 	const dropWhole = () => "";
 	const buildRow2Builtins = (detail: Row2Detail): BuiltinSegments => {

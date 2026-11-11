@@ -134,7 +134,7 @@ test("uses total output over full generation time", () => {
 	});
 	assert.equal(
 		formatTurnTelemetry(telemetry!, theme, DEFAULT_CONFIG.telemetry, "ascii"),
-		"> TPS 4.0 tok/s | ~ TTFT 4.0s | + 5.0s | ↑ 50 | ↓ 20 | $4.00/M",
+		"> TPS 4.0 tok/s | ~ TTFT 4.0s | + 5.0s | i 50 | o 20 | $4.00/M",
 	);
 });
 
@@ -205,7 +205,7 @@ test("uses footer semantics and respects telemetry segment settings", () => {
 
 	assert.match(
 		formatTurnTelemetry(telemetry, styledTheme, DEFAULT_CONFIG.telemetry, "ascii"),
-		/^> TPS 50\.0 tok\/s \| ~ TTFT 0\.2s.*↑ 5\.0k \(U 50 \+ R 5\.0k\) \| ↓ 20.*! stall 1x \/ 0\.8s \| \$4\.00\/M$/,
+		/^> TPS 50\.0 tok\/s \| ~ TTFT 0\.2s.*i 5\.0k \(U 50 \+ R 5\.0k\) \| o 20.*! stall 1x \/ 0\.8s \| \$4\.00\/M$/,
 	);
 	assert.deepEqual(colors, ["accent", "text", "success", "accent", "success", "warning", "warning", "dim"]);
 
@@ -386,7 +386,7 @@ test("counts cache-write tokens as input, matching /session's uncached figure", 
 	assert.equal(telemetry.cacheReadTokens, 5000);
 	assert.match(
 		formatTurnTelemetry(telemetry, theme, DEFAULT_CONFIG.telemetry, "ascii"),
-		/\| ↑ 32k \(U 27k \+ R 5\.0k\) \| ↓ 12 \|/,
+		/\| i 32k \(U 27k \+ R 5\.0k\) \| o 12 \|/,
 	);
 });
 
@@ -672,7 +672,7 @@ test("turn telemetry fits the width and breaks only between metrics", () => {
 	};
 	const format = (maxWidth?: number) => formatTurnTelemetry(telemetry, theme, DEFAULT_CONFIG.telemetry, "ascii", maxWidth);
 	const full = format();
-	assert.equal(full, "> TPS 51.5 tok/s | ~ TTFT 0.7s | + 5.7s | ↑ 7.2k (U 3.1k + R 4.1k) | ↓ 293 | $1.98/M");
+	assert.equal(full, "> TPS 51.5 tok/s | ~ TTFT 0.7s | + 5.7s | i 7.2k (U 3.1k + R 4.1k) | o 293 | $1.98/M");
 	const plain = full.replace(" (U 3.1k + R 4.1k)", "");
 
 	assert.equal(format(full.length), full);
