@@ -1,5 +1,5 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import type { Component, Container, OverlayHandle, OverlayOptions, TUI } from "@earendil-works/pi-tui";
+import { getKeybindings, type Component, type Container, type Keybinding, type OverlayHandle, type OverlayOptions, type TUI } from "@earendil-works/pi-tui";
 import { PopupPanel, type PopupPanelOptions } from "./popup-panel.ts";
 
 /** Pi menus shown as popups, by component class name, with the panel title for each. */
@@ -8,6 +8,11 @@ const POPUP_MENU_TITLES: Readonly<Record<string, string>> = {
 	ModelSelectorComponent: "Select model",
 	ScopedModelsSelectorComponent: "Model Configuration",
 	ThinkingSelectorComponent: "Thinking Level",
+};
+
+/** Pi menus that close again on the key that opened them: class name → Pi keybinding id. */
+const MENU_TOGGLE_KEYBINDINGS: Readonly<Record<string, string>> = {
+	ModelSelectorComponent: "app.model.select",
 };
 
 /** Share of the terminal width the popup covers, clamped to a readable range. */
@@ -58,6 +63,44 @@ export function popupMenuTitle(component: unknown): string | undefined {
 	if (!component || typeof component !== "object") return undefined;
 	const name = (component as { constructor?: { name?: unknown } }).constructor?.name;
 	return typeof name === "string" && Object.hasOwn(POPUP_MENU_TITLES, name) ? POPUP_MENU_TITLES[name] : undefined;
+}
+
+function matchesKeybinding(data: string, keybinding: string): boolean {
+	try {
+		return getKeybindings().matches(data, keybinding as Keybinding);
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Makes a Pi menu close on the key that opened it (ctrl+l for the model selector), the same
+ * way its cancel key does. Menus without a toggle key or a cancel callback are left untouched.
+ */
+export function bindMenuToggleKey(menu: unknown): void {
+	if (!menu || typeof menu !== "object") return;
+	const name = (menu as { constructor?: { name?: unknown } }).constructor?.name;
+	if (typeof name !== "string" || !Object.hasOwn(MENU_TOGGLE_KEYBINDINGS, name)) return;
+	const keybinding = MENU_TOGGLE_KEYBINDINGS[name]!;
+	const target = menu as {
+		handleInput?: (data: string) => void;
+		dispose?: () => void;
+		onCancelCallback?: () => void;
+		onCancel?: () => void;
+	};
+	const handleInput = target.handleInput;
+	if (typeof handleInput !== "function") return;
+	if (typeof target.onCancelCallback !== "function" && typeof target.onCancel !== "function") return;
+	target.handleInput = function (this: unknown, data: string) {
+		const cancel = typeof target.onCancelCallback === "function" ? target.onCancelCallback : target.onCancel;
+		if (typeof cancel === "function" && matchesKeybinding(data, keybinding)) {
+			// Same steps as the menu's own cancel key: release its resources, then let Pi close it.
+			target.dispose?.();
+			cancel.call(target);
+			return;
+		}
+		handleInput.call(this, data);
+	};
 }
 
 function isEditorLike(component: unknown): boolean {
@@ -127,6 +170,7 @@ export function installPopupMenus(options: {
 		originalClear.call(this);
 	};
 	const patchedAddChild: typeof originalAddChild = function (this: Container, child) {
+		if (installed && this.children.length === 0) bindMenuToggleKey(child);
 		const title = installed && options.isEnabled() && this.children.length === 0 ? popupMenuTitle(child) : undefined;
 		if (title !== undefined) {
 			let handle: OverlayHandle | undefined;

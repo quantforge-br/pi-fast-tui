@@ -1,6 +1,16 @@
-import { Container, type Component, type OverlayHandle, type OverlayOptions, type TUI } from "@earendil-works/pi-tui";
-import { describe, expect, it, vi } from "vitest";
-import { installPopupMenus, popupMenuTitle } from "../../src/ui/popup-menus.ts";
+import {
+	Container,
+	getKeybindings,
+	KeybindingsManager,
+	setKeybindings,
+	TUI_KEYBINDINGS,
+	type Component,
+	type OverlayHandle,
+	type OverlayOptions,
+	type TUI,
+} from "@earendil-works/pi-tui";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { bindMenuToggleKey, installPopupMenus, popupMenuTitle } from "../../src/ui/popup-menus.ts";
 import { PopupPanel } from "../../src/ui/popup-panel.ts";
 
 class FakeEditor implements Component {
@@ -15,6 +25,24 @@ class FakeEditor implements Component {
 class SettingsSelectorComponent extends Container {}
 class ThinkingSelectorComponent extends Container {}
 class SessionSelectorComponent extends Container {}
+
+/** Mirrors Pi's ModelSelectorComponent: typed keys go to its search, escape cancels. */
+class ModelSelectorComponent extends Container {
+	typed: string[] = [];
+	disposed = 0;
+	constructor(private onCancelCallback: () => void) { super(); }
+	handleInput(data: string) {
+		if (data === "\x1b") {
+			this.dispose();
+			this.onCancelCallback();
+			return;
+		}
+		this.typed.push(data);
+	}
+	dispose() { this.disposed += 1; }
+}
+
+const CTRL_L = "\x0c";
 
 const theme = {
 	fg: (_color: string, text: string) => text,
@@ -117,3 +145,60 @@ describe("popup panel title", () => {
 		expect(rows[4]).toContain("low");
 	});
 });
+
+describe("menu toggle keys", () => {
+	let previous: KeybindingsManager;
+	beforeEach(() => {
+		previous = getKeybindings();
+		setKeybindings(new KeybindingsManager({
+			...TUI_KEYBINDINGS,
+			"app.model.select": { defaultKeys: "ctrl+l", description: "Open model selector" },
+		}));
+	});
+	afterEach(() => setKeybindings(previous));
+
+	it("closes the model selector on the key that opened it", () => {
+		const { editor, editorContainer, overlays, open, close } = setup();
+		const menu = new ModelSelectorComponent(() => close());
+		open(menu);
+		menu.handleInput("a");
+		menu.handleInput(CTRL_L);
+		expect(menu.typed).toEqual(["a"]);
+		expect(menu.disposed).toBe(1);
+		expect(overlays[0]!.hidden).toBe(true);
+		expect(editorContainer.children).toEqual([editor]);
+	});
+
+	it("closes the inline model selector too when popups are off", () => {
+		const { editor, editorContainer, overlays, open, close } = setup(false);
+		const menu = new ModelSelectorComponent(() => close());
+		open(menu);
+		expect(editorContainer.children).toEqual([menu]);
+		menu.handleInput(CTRL_L);
+		expect(overlays).toHaveLength(0);
+		expect(editorContainer.children).toEqual([editor]);
+	});
+
+	it("follows a rebound model selector key", () => {
+		setKeybindings(new KeybindingsManager(
+			{ ...TUI_KEYBINDINGS, "app.model.select": { defaultKeys: "ctrl+l", description: "Open model selector" } },
+			{ "app.model.select": "ctrl+o" },
+		));
+		const onCancel = vi.fn();
+		const menu = new ModelSelectorComponent(onCancel);
+		bindMenuToggleKey(menu);
+		menu.handleInput(CTRL_L);
+		expect(onCancel).not.toHaveBeenCalled();
+		expect(menu.typed).toEqual([CTRL_L]);
+		menu.handleInput("\x0f");
+		expect(onCancel).toHaveBeenCalledTimes(1);
+	});
+
+	it("leaves menus without a toggle key alone", () => {
+		const menu = Object.assign(new SettingsSelectorComponent(), { handleInput: () => {}, onCancel: () => {} });
+		const handleInput = menu.handleInput;
+		bindMenuToggleKey(menu);
+		expect(menu.handleInput).toBe(handleInput);
+	});
+});
+

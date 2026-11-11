@@ -5,6 +5,7 @@
 ### Added
 
 - `popupMenus` setting (default on, **Appearance → Editor → Popup menus**): `/settings`, `/model` and ctrl+l, `/scoped-models`, the thinking selector, and `/fast-tui` open as a centered popup panel in the OpenCode style (filled `userMessageBg` background, a thin border on the edge of the fill, title with `esc` hint, padding, Pi's rules removed) while the input box stays visible. Turning it off restores Pi's inline menus.
+- The model selector closes on the key that opened it (ctrl+l, following the `app.model.select` binding), the same way `esc` does, with popup menus on or off.
 
 ### Changed
 
