@@ -13,7 +13,7 @@ import type {
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG } from "../../src/ui/config.ts";
-import { installFooter, shortHostname } from "../../src/ui/footer.ts";
+import { installFooter, renderModelInfo, shortHostname } from "../../src/ui/footer.ts";
 import type { LiveTps } from "../../src/ui/telemetry.ts";
 import { emptyGitStatus, readGitStatus } from "../../src/ui/git.ts";
 import { detectNerdFont, resolveGlyphs, resolveIconMode, runtimeSymbol } from "../../src/ui/icons.ts";
@@ -31,6 +31,19 @@ import { preserveEnvironment, temporaryDirectory } from "./fixtures/test-helpers
 const theme = {
 	fg: (_color: string, text: string) => text,
 } as Theme;
+
+test("renders the model, provider and thinking level for panel info rows", () => {
+	const styled = {
+		fg: (color: string, text: string) => `<${color}>${text}`,
+		bold: (text: string) => `*${text}*`,
+	} as unknown as Theme;
+	assert.equal(
+		renderModelInfo(styled, { model: "Opus 4.5", provider: "Anthropic", effort: "high" }, 80),
+		"*<text>Opus 4.5* <muted>Anthropic<dim> · <thinkingHigh>high",
+	);
+	assert.equal(renderModelInfo(styled, { model: "gpt", provider: "Unknown", effort: "off" }, 80), "*<text>gpt*");
+	assert.ok(visibleWidth(renderModelInfo({ ...theme, bold: (text: string) => text } as Theme, { model: "Opus 4.5", provider: "Anthropic", effort: "high" }, 10)) <= 10);
+});
 
 // Git status: each scenario runs against its own real repository.
 function gitRepository(t: TestContext, branch = "main") {

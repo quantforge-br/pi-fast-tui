@@ -2,7 +2,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { type FastTuiConfig, DEFAULT_CONFIG, ensureConfigExists, loadConfig, saveConfig } from "./config.ts";
 import { installCopyButtons, markCopyScope } from "./copy-buttons.ts";
 import { installEditor } from "./editor.ts";
-import { installFooter } from "./footer.ts";
+import { installFooter, renderModelInfo } from "./footer.ts";
 import { createFooterSegments } from "./footer-segments.ts";
 import { installHeader } from "./header.ts";
 import { emptyGitStatus, readGitStatus } from "./git.ts";
@@ -141,6 +141,11 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 				{
 					enabled: () => config.inlineFooter,
 					render: footer.renderInline,
+					renderInfo: (width) => renderModelInfo(
+						ctx.ui.theme,
+						getModelMeta(ctx, getThinkingLevel, config.footerSegments.capitalizeProviderName),
+						width,
+					),
 				},
 				config.editorShape,
 			);

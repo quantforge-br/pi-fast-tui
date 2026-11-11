@@ -263,6 +263,14 @@ function fitInlineLine(left: string, right: string, width: number, theme: Theme)
 	return { left: truncateToWidth(left, availableForLeft, theme.fg("dim", "...")), right };
 }
 
+/** `Model Provider · effort` for the info row of panel editor shapes. */
+export function renderModelInfo(theme: Theme, meta: ModelMeta, width: number): string {
+	let line = theme.bold(theme.fg("text", meta.model));
+	if (meta.provider && meta.provider !== "Unknown") line += ` ${theme.fg("muted", meta.provider)}`;
+	if (meta.effort && meta.effort !== "off") line += `${theme.fg("dim", " · ")}${theme.fg(effortColor(meta.effort), meta.effort)}`;
+	return truncateToWidth(line, Math.max(0, width), theme.fg("dim", "..."));
+}
+
 export interface FooterHandle {
 	renderInline(width: number): InlineFooterLines | undefined;
 	cleanup(): void;
