@@ -31,6 +31,7 @@ import { stripAnsi } from "../../src/ui/utils.ts";
 import type { Component } from "@earendil-works/pi-tui";
 import type { ToolViewConfig } from "../../src/ui/config.ts";
 import { resolveGlyphs } from "../../src/ui/icons.ts";
+import { setCardGlyphMode } from "../../src/cards/symbols.ts";
 import {
 	callDetail,
 	createCompactRenderers,
@@ -132,6 +133,13 @@ test("summaries describe each built-in tool in one line", () => {
 	for (const [tool, result, args, expected] of cases) {
 		assert.equal(summarizeResult(tool, result, args), expected, `${tool}: ${expected}`);
 	}
+});
+
+test("summaries take separators and the minus sign from the ASCII glyph set", (t) => {
+	setCardGlyphMode("ascii");
+	t.after(() => setCardGlyphMode("unicode"));
+	assert.equal(summarizeResult("bash", text("tail", { truncation: { truncated: true, totalLines: 131 } }), {}), "Done | 131 lines | truncated");
+	assert.equal(summarizeResult("edit", text("ok", { diff: " 1 a\n-2 b\n+2 c\n+3 d" }), {}), "+2 -1");
 });
 
 test("only the current tool's confirmed Pi notices are removed", () => {

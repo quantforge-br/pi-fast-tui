@@ -6,6 +6,7 @@
 
 - Switching Icon mode to or from ASCII in `/fast-tui` redraws finished cards and the transcript at once instead of on their next change.
 - Compact tool view: a failed call is marked with an error glyph (`✘`, or `x` under ASCII icons) instead of the call dot, so it stands out without color.
+- ASCII icon mode: footer token counts read `i`/`o` instead of `↑`/`↓`, and footer, compact-row and thinking-peek separators, ellipses and minus signs are drawn in ASCII (` | `, `...`, `-`). The thinking peek spinner uses the card spinner frames.
 
 ## [0.7.0] - 2026-11-11
 

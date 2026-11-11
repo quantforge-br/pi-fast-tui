@@ -11,6 +11,7 @@ import {
 } from "../../src/ui/peek.ts";
 import type { IconGlyphs } from "../../src/ui/icons.ts";
 import { sanitizeStatus } from "../../src/ui/utils.ts";
+import { SPINNER_FRAMES, setCardGlyphMode } from "../../src/cards/symbols.ts";
 
 const glyphs = { thinking: "~", done: "+" } as IconGlyphs;
 
@@ -204,4 +205,14 @@ test("buildPeekLabel neutralizes terminal control sequences in thinking text", (
 
 test("sanitizeStatus preserves text around unsupported CSI sequences", () => {
 	assert.equal(sanitizeStatus("\x1b[?25lvisible\x1b[31m text"), "visible text");
+});
+
+test("the ASCII glyph set draws the peek label and its clipping in ASCII", (t) => {
+	setCardGlyphMode("ascii");
+	t.after(() => setCardGlyphMode("unicode"));
+	assert.equal(clipTail("x".repeat(500), 10), "..." + "x".repeat(7));
+	assert.equal(buildPeekLabel(createPeekState(), 0, glyphs, 80), "~ think |");
+	const thinking = { phase: "thinking", tail: "deriving" } as const;
+	assert.equal(buildPeekLabel(thinking, 1, glyphs, 80), `~ think ${SPINNER_FRAMES[1]} deriving`);
+	assert.match(buildPeekLabel(thinking, 1, glyphs, 12), /^[\x00-\x7F]*$/);
 });

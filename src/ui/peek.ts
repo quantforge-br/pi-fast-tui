@@ -1,8 +1,8 @@
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { SPINNER_FRAMES, TEXT } from "../cards/symbols.ts";
 import type { IconGlyphs } from "./icons.ts";
 import { sanitizeStatus } from "./utils.ts";
 
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const MAX_PEEK_LINES = 2;
 const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
 
@@ -90,12 +90,13 @@ export function peekTail(fullThinking: string, lineCount = 1): string {
 
 /**
  * Clip a tail string to `budget` visible columns, keeping the END (it is a
- * tail view) and prefixing "…" when clipped. Walk backwards over complete
+ * tail view) and prefixing the glyph-set ellipsis when clipped. Walk backwards over complete
  * graphemes so measurement is limited to the visible suffix.
  */
 export function clipTail(text: string, budget: number): string {
 	if (!text || budget <= 0) return "";
-	const limit = budget - 1; // reserve one column for the ellipsis
+	const ellipsisWidth = visibleWidth(TEXT.ellipsis);
+	const limit = budget - ellipsisWidth; // reserve room for the ellipsis
 	let w = 0;
 	let end = text.length;
 	let clippedStart = end;
@@ -103,7 +104,7 @@ export function clipTail(text: string, budget: number): string {
 	while (end > 0) {
 		const part = segments.containing(end - 1)!;
 		w += visibleWidth(part.segment);
-		if (w > budget) return "…" + text.slice(clippedStart);
+		if (w > budget) return TEXT.ellipsis + text.slice(clippedStart);
 		end = part.index;
 		if (w <= limit) clippedStart = end;
 	}
@@ -126,7 +127,7 @@ export function buildPeekLabel(
 	const w = Math.max(1, Math.floor(width));
 	const prefix = `${glyphs.thinking} think`;
 	const count = normalizePeekLineCount(lineCount);
-	const fit = (line: string): string => truncateToWidth(line, w, "…");
+	const fit = (line: string): string => truncateToWidth(line, w, TEXT.ellipsis);
 	switch (state.phase) {
 		case "thinking": {
 			const spin = SPINNER_FRAMES[frame % SPINNER_FRAMES.length] ?? "";
@@ -163,6 +164,6 @@ export function buildPeekLabel(
 		case "done":
 			return fit(`${prefix} ${glyphs.done}`);
 		default:
-			return fit(`${prefix} ·`);
+			return fit(`${prefix} ${TEXT.sep.trim()}`);
 	}
 }

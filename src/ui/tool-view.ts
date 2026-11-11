@@ -4,6 +4,7 @@ import type { ExtensionAPI, SourceInfo, Theme, ThemeColor, ToolRenderers } from 
 import { Box, type Component, getCapabilities, getImageDimensions, imageFallback, Spacer, Text, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { ToolViewConfig } from "./config.ts";
 import type { IconGlyphs } from "./icons.ts";
+import { cardGlyphEpoch, TEXT } from "../cards/symbols.ts";
 import { codeLines, prepareToolPreview } from "./tool-preview.ts";
 import { sanitizeStatus, stripAnsi } from "./utils.ts";
 
@@ -120,7 +121,7 @@ export function diffStats(diff: string): { added: number; removed: number } {
 export function firstLine(text: string): string {
 	const lines = text.replace(/\r\n?/g, "\n").trim().split("\n");
 	const head = lines[0] ?? "";
-	return lines.length > 1 ? `${head} … (+${lines.length - 1} lines)` : head;
+	return lines.length > 1 ? `${head} ${TEXT.ellipsis} (+${lines.length - 1} lines)` : head;
 }
 
 export function tailLines(text: string, count: number): string[] {
@@ -208,8 +209,8 @@ function truncation(result: ToolResult): { truncated: boolean; totalLines?: numb
 function incomplete(result: ToolResult): string {
 	const info = details(result);
 	const limit = ["matchLimitReached", "resultLimitReached", "entryLimitReached"].some((key) => info[key] !== undefined);
-	return (limit ? " · limit reached" : "")
-		+ (truncation(result).truncated || info.linesTruncated === true ? " · truncated" : "");
+	return (limit ? `${TEXT.sep}limit reached` : "")
+		+ (truncation(result).truncated || info.linesTruncated === true ? `${TEXT.sep}truncated` : "");
 }
 
 /** Line count of shell output plus any incomplete-result hint. */
@@ -227,17 +228,17 @@ export function summarizeResult(toolName: string, result: ToolResult, args: Args
 		case "read": {
 			if (result.content.some((block) => block.type === "image")) return "image";
 			// An explicit `limit` that stops early adds this notice without setting details.truncation.
-			const more = /\n\n\[\d+ more lines in file\. Use offset=\d+ to continue\.\]\s*$/.test(raw) ? " · more" : "";
+			const more = /\n\n\[\d+ more lines in file\. Use offset=\d+ to continue\.\]\s*$/.test(raw) ? `${TEXT.sep}more` : "";
 			return plural(countLines(text), "line") + incomplete(result) + more;
 		}
 		case "bash":
 		case "powershell":
-			return `Done · ${shellLines(text, result)}`;
+			return `Done${TEXT.sep}${shellLines(text, result)}`;
 		case "edit": {
 			const diff = details(result).diff;
 			if (typeof diff !== "string") return "Edited";
 			const { added, removed } = diffStats(diff);
-			return `+${added} −${removed}`;
+			return `+${added} ${TEXT.minus}${removed}`;
 		}
 		case "write":
 			return `${plural(codeLines(str(args.content)).length, "line")} written`;
@@ -277,8 +278,8 @@ export function summarizeGeneric(result: ToolResult, duration = ""): string {
 	const counts = [
 		...(totalLines ? [plural(totalLines, "line")] : []),
 		...(images ? [plural(images, "image")] : []),
-	].join(" · ");
-	return (counts || "Done") + (info.truncated ? " · truncated" : "") + duration + (head ? ` · ${head}` : "");
+	].join(TEXT.sep);
+	return (counts || "Done") + (info.truncated ? `${TEXT.sep}truncated` : "") + duration + (head ? `${TEXT.sep}${head}` : "");
 }
 
 /** FFF's grep count belongs to this page; find's count covers all matching files. */
@@ -314,11 +315,11 @@ function summarizeFff(kind: "grep" | "find", result: ToolResult, duration = ""):
 	const count = kind === "find" ? `${plural(matched, "file")} matched`
 		: `${plural(matched, `${matchType}match`, `${matchType}matches`)} on this page`;
 	const head = sanitizeStatus(output.split("\n")[fuzzy ? 1 : 0] ?? "");
-	return count + (more ? " · more available" : "")
-		+ (literal ? " · regex fallback" : "")
-		+ (weak ? " · weak matches" + (Number(weak[1]) < matched ? " · capped" : "") : "")
-		+ (truncation(result).truncated ? " · truncated" : "")
-		+ duration + (head ? ` · ${head}` : "");
+	return count + (more ? `${TEXT.sep}more available` : "")
+		+ (literal ? `${TEXT.sep}regex fallback` : "")
+		+ (weak ? `${TEXT.sep}weak matches` + (Number(weak[1]) < matched ? `${TEXT.sep}capped` : "") : "")
+		+ (truncation(result).truncated ? `${TEXT.sep}truncated` : "")
+		+ duration + (head ? `${TEXT.sep}${head}` : "");
 }
 
 /** Match npm provenance, its installed entry point, or the official git source and entry point. */
@@ -346,8 +347,8 @@ export function summarizeError(toolName: string, result: ToolResult, duration = 
 		const output = stripNotice(toolName, text.slice(0, status.index));
 		// The last output line usually names the failure; it goes last so narrow rows cut it first.
 		const last = tailLines(output, 1)[0]?.trim();
-		const tail = last && last !== "(no output)" ? ` · ${last}` : "";
-		return `${reason[0]!.toUpperCase()}${reason.slice(1)} · ${shellLines(output, result)}${duration}${tail}`;
+		const tail = last && last !== "(no output)" ? `${TEXT.sep}${last}` : "";
+		return `${reason[0]!.toUpperCase()}${reason.slice(1)}${TEXT.sep}${shellLines(output, result)}${duration}${tail}`;
 	}
 	return text.split("\n").find((line) => line.trim())?.trim() ?? "Failed";
 }
@@ -356,22 +357,23 @@ function formatElapsed(ms: number): string {
 	return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
-/** Stable rows reuse their final lines until width, theme, icons, or invalidation changes them. */
+/** Stable rows reuse their final lines until width, theme, icons, the card glyph set, or invalidation changes them. */
 function lines(
 	build: (width: number, icons: IconGlyphs) => string[],
 	theme: Theme,
 	glyphs: () => IconGlyphs,
 	cacheable = true,
 ): Component {
-	let cache: { width: number; colors: Theme["colors"]; toolCall: string; toolResult: string; toolError: string; lines: string[] } | undefined;
+	let cache: { width: number; colors: Theme["colors"]; toolCall: string; toolResult: string; toolError: string; epoch: number; lines: string[] } | undefined;
 	return {
 		render(width) {
 			const icons = glyphs();
 			const colors = theme.colors;
-			if (cacheable && cache && cache.width === width && cache.colors === colors
+			const epoch = cardGlyphEpoch();
+			if (cacheable && cache && cache.width === width && cache.colors === colors && cache.epoch === epoch
 				&& cache.toolCall === icons.toolCall && cache.toolResult === icons.toolResult && cache.toolError === icons.toolError) return cache.lines;
-			const rendered = build(width, icons).map((line) => truncateToWidth(line, Math.max(0, width), "…"));
-			if (cacheable) cache = { width, colors, toolCall: icons.toolCall, toolResult: icons.toolResult, toolError: icons.toolError, lines: rendered };
+			const rendered = build(width, icons).map((line) => truncateToWidth(line, Math.max(0, width), TEXT.ellipsis));
+			if (cacheable) cache = { width, colors, toolCall: icons.toolCall, toolResult: icons.toolResult, toolError: icons.toolError, epoch, lines: rendered };
 			return rendered;
 		},
 		invalidate() { cache = undefined; },
@@ -495,7 +497,7 @@ export function createCompactRenderers(
 				if (generic && live && !row.hasResult) {
 					const elapsed = row.startedAt === undefined ? "" : ` ${formatElapsed(Date.now() - row.startedAt)}`;
 					const gutter = `${pad}  ${theme.fg("dim", icons.toolResult)}  `;
-					return [call, gutter + theme.fg("warning", `Running…${elapsed}`)];
+					return [call, gutter + theme.fg("warning", `Running${TEXT.ellipsis}${elapsed}`)];
 				}
 				return [call];
 			}, theme, glyphs, !context.isPartial);
@@ -531,7 +533,7 @@ export function createCompactRenderers(
 				}
 			}
 			const timed = isShell || generic;
-			const duration = timed && context.durationMs !== undefined ? ` · ${formatElapsed(context.durationMs)}` : "";
+			const duration = timed && context.durationMs !== undefined ? `${TEXT.sep}${formatElapsed(context.durationMs)}` : "";
 			const summary = partial ? "" : context.isError
 				? summarizeError(generic ? "" : toolName, result, duration)
 				: generic ? summarizeExtension(result, duration) : summarizeResult(toolName, result, args) + duration;
@@ -540,9 +542,9 @@ export function createCompactRenderers(
 				const gutter = `${pad}  ${theme.fg("dim", toolResult)}  `;
 				const indent = `${pad}  ${" ".repeat(visibleWidth(toolResult))}  `;
 				if (partial) {
-					if (!timed) return [gutter + theme.fg("warning", "Running…")];
+					if (!timed) return [gutter + theme.fg("warning", `Running${TEXT.ellipsis}`)];
 					const elapsed = row.startedAt === undefined ? "" : ` ${formatElapsed(Date.now() - row.startedAt)}`;
-					return [...tail.map((line) => theme.fg("toolOutput", line)), theme.fg("warning", `Running…${elapsed}`)]
+					return [...tail.map((line) => theme.fg("toolOutput", line)), theme.fg("warning", `Running${TEXT.ellipsis}${elapsed}`)]
 						.map((line, index) => (index === 0 ? gutter : indent) + line);
 				}
 				if (context.isError) return [gutter + theme.fg("error", summary)];

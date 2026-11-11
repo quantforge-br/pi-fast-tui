@@ -1,6 +1,7 @@
 import { getLanguageFromPath, highlightCode, type Theme } from "@earendil-works/pi-coding-agent";
 import { backgroundAnsi, rgbColor, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { diffWordsWithSpace } from "diff";
+import { TEXT } from "../cards/symbols.ts";
 import { stripAnsi } from "./utils.ts";
 
 const MAX_PREVIEW_LINES = 16;
@@ -31,7 +32,7 @@ function parseDiff(source: string): PreviewLine[] {
 	const rows: PreviewLine[] = [];
 	for (const line of codeLines(source)) {
 		if (/^ +\.\.\.$/.test(line)) {
-			rows.push({ kind: "gap", number: "", text: "…" });
+			rows.push({ kind: "gap", number: "", text: TEXT.ellipsis });
 			continue;
 		}
 		const match = /^([ +\-]) *(\d+) (.*)$/.exec(line);
@@ -162,12 +163,12 @@ export function prepareToolPreview(kind: "edit" | "write", source: string, path:
 		const available = Math.max(0, width - visibleWidth(pad));
 		const result = prepared.map(({ code, band }) => {
 			const columns = Math.max(0, available - (band ? 2 : 0));
-			const clipped = truncateToWidth(code, columns, band ? `${band}…` : "…");
+			const clipped = truncateToWidth(code, columns, band ? `${band}${TEXT.ellipsis}` : TEXT.ellipsis);
 			return pad + (band && columns > 0
 				? clipped + band + " ".repeat(Math.max(0, columns - visibleWidth(clipped))) + "\x1b[49m"
 				: clipped);
 		});
-		if (hidden > 0) result.push(pad + theme.fg("dim", truncateToWidth(`… +${hidden} lines (ctrl+o to expand)`, available, "…")));
+		if (hidden > 0) result.push(pad + theme.fg("dim", truncateToWidth(`${TEXT.ellipsis} +${hidden} lines (ctrl+o to expand)`, available, TEXT.ellipsis)));
 		return result;
 	};
 }
