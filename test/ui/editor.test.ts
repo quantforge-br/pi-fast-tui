@@ -1096,6 +1096,35 @@ test("keeps a hardware cursor after Pi re-applies its runtime settings", () => {
 	hostTui.stop();
 });
 
+test("hides the block cursor while a popup overlay holds focus", () => {
+	const terminal = {
+		columns: 80,
+		rows: 24,
+		kittyProtocolActive: false,
+		start() {},
+		stop() {},
+		write() {},
+		hideCursor() {},
+		showCursor() {},
+	} as unknown as Terminal;
+	const hostTui = new TuiMainScreen(terminal, false);
+	const editor = createFastTuiEditor({ tui: hostTui });
+	hostTui.addChild(editor);
+	hostTui.setFocus(editor);
+	const hasCursor = () => editor.render(40).some((line) => line.includes("\x1b_pi:fc"));
+	assert.ok(hasCursor(), "focused editor draws its block cursor");
+
+	const menu = { render: () => ["menu"], invalidate() {}, handleInput() {}, focused: false };
+	const overlay = hostTui.showOverlay(menu, { nonCapturing: true });
+	hostTui.setFocus(menu);
+	assert.ok(!hasCursor(), "no editor cursor behind the focused popup");
+
+	overlay.hide();
+	hostTui.setFocus(editor);
+	assert.ok(hasCursor(), "cursor returns with focus");
+	hostTui.stop();
+});
+
 // Header layout and colors.
 function createHeader(accent = "\x1b[35m"): FastTuiHeader {
 	return new FastTuiHeader(

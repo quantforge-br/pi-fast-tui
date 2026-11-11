@@ -276,11 +276,25 @@ function applyCursorStyle(
 	decoration.tui.requestRender();
 }
 
+function overlayHoldsFocus(tui: TUI, editor: FrameableEditor): boolean {
+	if (editor.focused) return false;
+	const host = tui as { hasOverlay?: () => boolean; getFocusedComponent?: () => unknown };
+	if (typeof host.hasOverlay !== "function" || typeof host.getFocusedComponent !== "function") return false;
+	const focused = host.getFocusedComponent();
+	return host.hasOverlay() && focused !== null && focused !== editor;
+}
+
 function renderWithCursor(decoration: EditorDecoration, width: number): string[] {
 	const renderedLines = decoration.baseRender(width);
-	if (decoration.cursorStyle === "block") return renderedLines;
-
 	const tui = decoration.tui;
+	if (decoration.cursorStyle === "block") {
+		// Pi's editor draws its software cursor even when unfocused. Behind a
+		// focused popup that would show two cursors, so drop the editor's one.
+		return overlayHoldsFocus(tui, decoration.editor)
+			? renderedLines.map((line) => removeSoftwareCursor(line))
+			: renderedLines;
+	}
+
 	// Pi re-applies settings.showHardwareCursor after session_start (/reload,
 	// /new, session switches). Non-block styles have no software cursor left to
 	// fall back on, so re-assert the hardware cursor instead of losing it.
