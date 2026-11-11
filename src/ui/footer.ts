@@ -24,6 +24,7 @@ import {
 	stressColor,
 	truncateBranch,
 	truncatePath,
+	withIcon,
 	type PrioritizedSegment,
 } from "./utils.ts";
 import type { FooterState, ModelMeta, UsageTotals } from "./state.ts";
@@ -202,7 +203,7 @@ function renderStatsSegments(
 	}
 	return {
 		tokens: stats.join(` ${theme.fg("dim", "|")} `),
-		cost: segments.cost ? theme.fg("warning", `${glyphs.cost} $${totals.cost.toFixed(3)}`) : "",
+		cost: segments.cost ? theme.fg("warning", withIcon(glyphs.cost, `$${totals.cost.toFixed(3)}`)) : "",
 	};
 }
 

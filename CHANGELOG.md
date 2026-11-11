@@ -7,6 +7,7 @@
 - Footer run status: the timer stays on `working` from the first `agent_start` of a run until `agent_settled`, so retries and continuations no longer flash `done` or restart the clock. A run that settles on a provider error reads `failed <duration>` (error color) and a stopped run reads `stopped <duration>` (muted), both with a new `failed` glyph (`✘` / `✗` / `x`).
 - Footer row 2: the model icon is followed by a space instead of the ` · ` separator (`<icon> Provider · Model · <thinking> effort`), in the regular and editor-border footers.
 - Footer row 2 sheds stats detail first: the input breakdown `(U … + R …)`, then the cache-hit rate, then the provider name go before the model name is shortened. The thinking level, tokens and cost are now shown whole or not at all, and the thinking level is the last built-in item to go. The same rules apply to the editor-border footer and to rows with extension segments, whose `compactText` is used only after the built-in detail is shed.
+- Cost no longer shows a doubled dollar sign under the `unicode` and `ascii` icon sets: the footer reads `$0.081` and the telemetry rate `$1.66/M`. The Nerd Font set keeps its cost icon.
 
 ## [0.5.1] - 2026-11-11
 

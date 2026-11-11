@@ -15,6 +15,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { ScrollView } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG } from "../../src/ui/config.ts";
+import { resolveGlyphs } from "../../src/ui/icons.ts";
 import fastTui from "../../src/ui/index.ts";
 import { estimateDeltaTokens, formatTurnTelemetry, TurnTelemetryTracker } from "../../src/ui/telemetry.ts";
 
@@ -133,7 +134,7 @@ test("uses total output over full generation time", () => {
 	});
 	assert.equal(
 		formatTurnTelemetry(telemetry!, theme, DEFAULT_CONFIG.telemetry, "ascii"),
-		"> TPS 4.0 tok/s | ~ TTFT 4.0s | + 5.0s | ↑ 50 | ↓ 20 | $ $4.00/M",
+		"> TPS 4.0 tok/s | ~ TTFT 4.0s | + 5.0s | ↑ 50 | ↓ 20 | $4.00/M",
 	);
 });
 
@@ -204,7 +205,7 @@ test("uses footer semantics and respects telemetry segment settings", () => {
 
 	assert.match(
 		formatTurnTelemetry(telemetry, styledTheme, DEFAULT_CONFIG.telemetry, "ascii"),
-		/^> TPS 50\.0 tok\/s \| ~ TTFT 0\.2s.*↑ 5\.0k \(U 50 \+ R 5\.0k\) \| ↓ 20.*! stall 1x \/ 0\.8s \| \$ \$4\.00\/M$/,
+		/^> TPS 50\.0 tok\/s \| ~ TTFT 0\.2s.*↑ 5\.0k \(U 50 \+ R 5\.0k\) \| ↓ 20.*! stall 1x \/ 0\.8s \| \$4\.00\/M$/,
 	);
 	assert.deepEqual(colors, ["accent", "text", "success", "accent", "success", "warning", "warning", "dim"]);
 
@@ -218,6 +219,21 @@ test("uses footer semantics and respects telemetry segment settings", () => {
 		cost: false,
 	};
 	assert.equal(formatTurnTelemetry(telemetry, theme, hidden, "ascii"), "");
+});
+
+test("telemetry rate has a single dollar sign outside the Nerd Font set", () => {
+	const telemetry = {
+		tps: 50, ttftMs: 200, totalMs: 900, inputTokens: 50, outputTokens: 20, cacheReadTokens: 0,
+		stallMs: 0, stallCount: 0, rateUsdPerMTokens: 1.66, generationMs: 700, totalTokens: 70,
+		costUsd: 0.0001, measurementMs: 400,
+	};
+	for (const mode of ["unicode", "ascii"] as const) {
+		const line = formatTurnTelemetry(telemetry, theme, DEFAULT_CONFIG.telemetry, mode);
+		assert.ok(line.endsWith("| $1.66/M"), line);
+		assert.ok(!line.includes("$ $"), line);
+	}
+	const nerd = formatTurnTelemetry(telemetry, theme, DEFAULT_CONFIG.telemetry, "nerd");
+	assert.ok(nerd.endsWith(`| ${resolveGlyphs("nerd").cost} $1.66/M`), nerd);
 });
 
 test("returns no TPS without output or generation time", () => {

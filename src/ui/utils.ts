@@ -86,6 +86,11 @@ export function formatInputBreakdown(uncached: number, cacheRead: number): strin
 		: total;
 }
 
+/** `glyph text`, or `text` alone when the glyph is empty. */
+export function withIcon(glyph: string, text: string): string {
+	return glyph ? `${glyph} ${text}` : text;
+}
+
 export function formatDuration(ms: number): string {
 	const totalSeconds = Math.max(0, Math.floor(ms / 1000));
 	if (totalSeconds < 60) return `${totalSeconds}s`;

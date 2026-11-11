@@ -503,7 +503,6 @@ test("every icon mode provides every footer semantic", () => {
 		"input",
 		"output",
 		"cacheHit",
-		"cost",
 		"speed",
 		"latency",
 		"stall",
@@ -514,6 +513,27 @@ test("every icon mode provides every footer semantic", () => {
 		const glyphs = resolveGlyphs(mode);
 		for (const key of keys) assert.notEqual(glyphs[key], "", `${mode}.${key}`);
 	}
+	// The cost text already starts with `$`; only the Nerd Font set adds an icon before it.
+	assert.notEqual(resolveGlyphs("nerd").cost, "");
+	assert.equal(resolveGlyphs("unicode").cost, "");
+	assert.equal(resolveGlyphs("ascii").cost, "");
+});
+
+test("footer cost has a single dollar sign outside the Nerd Font set", () => {
+	for (const mode of ["unicode", "ascii"] as const) {
+		for (const nerdIconSpacing of [false, true]) {
+			const { component, config } = footerFixture({ entries: cachedUsageEntries });
+			config.icons.mode = mode;
+			config.footerSegments.nerdIconSpacing = nerdIconSpacing;
+			const row = stripAnsi(component.render(200)[1]!);
+			assert.ok(row.endsWith("| $0.010"), row);
+			assert.ok(!row.includes("$ $"), row);
+		}
+	}
+	const { component, config } = footerFixture({ entries: cachedUsageEntries, mode: "nerd" });
+	assert.ok(stripAnsi(component.render(200)[1]!).endsWith(`| ${resolveGlyphs("nerd").cost} $0.010`));
+	config.footerSegments.nerdIconSpacing = true;
+	assert.ok(stripAnsi(component.render(200)[1]!).endsWith(`| ${resolveGlyphs("nerd").cost}  $0.010`));
 });
 
 test("auto falls back to unicode icons for SSH sessions", (t) => {
@@ -841,7 +861,7 @@ test("ASCII footer renders icons as semantic labels", () => {
 		"↑ 32k (U 27k + R 5.0k)",
 		"↓ 12",
 		"c 15.6%",
-		"$ $0.010",
+		"$0.010",
 		"& goal active",
 	]) {
 		assert.ok(output.includes(expected), `missing ${expected}\n${output}`);

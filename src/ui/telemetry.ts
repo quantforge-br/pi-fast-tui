@@ -11,7 +11,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import type { IconMode, TelemetryConfig } from "./config.ts";
 import { resolveGlyphs } from "./icons.ts";
-import { finiteOrZero, fmtTokens, formatDuration, formatInputBreakdown } from "./utils.ts";
+import { finiteOrZero, fmtTokens, formatDuration, formatInputBreakdown, withIcon } from "./utils.ts";
 
 const STALL_THRESHOLD_MS = 1000;
 // Live TPS is the rate over this trailing window, so it tracks current speed.
@@ -349,7 +349,7 @@ export function formatTurnTelemetry(
 		parts.push(theme.fg("warning", `${glyphs.stall} stall ${telemetry.stallCount}x / ${formatTurnDuration(telemetry.stallMs)}`));
 	}
 	if (config.cost && telemetry.rateUsdPerMTokens !== null) {
-		parts.push(theme.fg("warning", `${glyphs.cost} $${telemetry.rateUsdPerMTokens.toFixed(2)}/M`));
+		parts.push(theme.fg("warning", withIcon(glyphs.cost, `$${telemetry.rateUsdPerMTokens.toFixed(2)}/M`)));
 	}
 	return parts.join(` ${theme.fg("dim", "|")} `);
 }
