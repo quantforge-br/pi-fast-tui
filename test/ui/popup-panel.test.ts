@@ -113,6 +113,32 @@ test("drops the padding rows in short terminals", () => {
 	assert.equal(menu.mouse[0]!.y, 1, "compact rows start right below the title");
 });
 
+test("keeps keys on the nested control a click focused", () => {
+	// Pi focuses a nested list; a click makes pi-tui focus the overlay root (the panel).
+	const list = { focused: true, inputs: [] as string[], render: () => [], invalidate() {}, handleInput(data: string) { this.inputs.push(data); } };
+	const menu = {
+		inputs: [] as string[],
+		render: () => ["  item"],
+		invalidate() {},
+		handleInput(data: string) { this.inputs.push(data); },
+		handleMouse: (mouse: TuiMouseEvent) => ({
+			handled: true,
+			focus: true,
+			target: { component: list, originX: mouse.screenX - mouse.x, originY: mouse.screenY - mouse.y, width: mouse.width, height: mouse.height },
+		}),
+	};
+	const popup = panel(menu as unknown as Component);
+	popup.render(40);
+	list.focused = false; // pi-tui unfocuses the previous target before focusing the panel
+	popup.handleMouse(event(5, 4));
+	popup.focused = true;
+	popup.handleInput("\x1b[B");
+	assert.deepEqual(list.inputs, ["\x1b[B"], "keys reach the clicked list");
+	assert.deepEqual(menu.inputs, []);
+	assert.equal(list.focused, true);
+	assert.equal(popup.focused, true);
+});
+
 test("forwards input and maps mouse rows past the dropped rules", () => {
 	const menu = nativeMenu();
 	const popup = panel(menu);

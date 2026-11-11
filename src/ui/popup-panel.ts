@@ -64,18 +64,29 @@ export class PopupPanel implements Component {
 	private lastWidth = 0;
 	/** Rows above the content in the last render. */
 	private headerRows = HEADER_ROWS;
+	/**
+	 * Component that receives keys. Pi focuses a nested control (e.g. the settings
+	 * list), but a click hands focus to the overlay root, this panel; keys must then
+	 * still reach the control that was clicked rather than the menu container.
+	 */
+	private inputTarget: Component | undefined;
 
 	constructor(
 		readonly content: Component,
 		private readonly options: PopupPanelOptions,
 	) {}
 
+	private get keyTarget(): Component {
+		return this.inputTarget ?? this.content;
+	}
+
 	get focused(): boolean {
-		return (this.content as { focused?: boolean }).focused === true;
+		return (this.keyTarget as { focused?: boolean }).focused === true;
 	}
 
 	set focused(value: boolean) {
-		if ("focused" in this.content) (this.content as { focused?: boolean }).focused = value;
+		const target = this.keyTarget as { focused?: boolean };
+		if ("focused" in target) target.focused = value;
 	}
 
 	render(width: number): string[] {
@@ -130,7 +141,7 @@ export class PopupPanel implements Component {
 	}
 
 	handleInput(data: string): void {
-		this.content.handleInput?.(data);
+		this.keyTarget.handleInput?.(data);
 	}
 
 	handleMouse(event: TuiMouseEvent): TuiMouseEventResult | undefined {
@@ -140,6 +151,16 @@ export class PopupPanel implements Component {
 		const innerWidth = Math.max(1, this.lastWidth - 2 - POPUP_PADDING_X * 2);
 		// Clicks on the frame are swallowed so they do not reach the transcript behind the popup.
 		if (!handler || row < 0 || row >= this.contentRows.length || x < 0 || x >= innerWidth) return { handled: true, render: false };
-		return handler.call(this.content, { ...event, x, y: this.contentRows[row]!, width: innerWidth }) ?? { handled: true, render: false };
+		const result = handler.call(this.content, { ...event, x, y: this.contentRows[row]!, width: innerWidth });
+		if (!result) return { handled: true, render: false };
+		const target = "target" in result ? (result.target as { component?: Component } | undefined)?.component : undefined;
+		if (result.focus && target && target !== this.inputTarget && typeof target.handleInput === "function") {
+			const previous = this.keyTarget as { focused?: boolean };
+			const wasFocused = previous.focused === true;
+			if (wasFocused) previous.focused = false;
+			this.inputTarget = target;
+			if (wasFocused && "focused" in target) (target as { focused?: boolean }).focused = true;
+		}
+		return result;
 	}
 }
