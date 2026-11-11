@@ -130,7 +130,7 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 					},
 					getLiveTps: () => turnTelemetry.getLiveTps(),
 					getExtensionSegments: footerSegments.getSegments,
-					canEmbedInEditor: () => editor?.isFramed() ?? false,
+					canEmbedInEditor: () => editor?.canEmbedFooter() ?? false,
 				},
 			);
 			cleanupFooter = footer.cleanup;
@@ -142,6 +142,7 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 					enabled: () => config.inlineFooter,
 					render: footer.renderInline,
 				},
+				config.editorShape,
 			);
 			copyButtons = installCopyButtons({
 				getTui: editor.getTui,
@@ -401,6 +402,7 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 		getConfig: () => config,
 		onConfigChanged: (newConfig) => {
 			const cursorStyleChanged = config.cursorStyle !== newConfig.cursorStyle;
+			const editorShapeChanged = config.editorShape !== newConfig.editorShape;
 			const headerChanged = config.header !== newConfig.header;
 			const copyButtonsChanged = config.copyButtons !== newConfig.copyButtons;
 			const thinkingPeekLinesChanged = config.thinkingPeek.lines !== newConfig.thinkingPeek.lines;
@@ -419,6 +421,9 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 			}
 			if (cursorStyleChanged && active && editor) {
 				editor.setCursorStyle(newConfig.cursorStyle);
+			}
+			if (editorShapeChanged && active && editor) {
+				editor.setEditorShape(newConfig.editorShape);
 			}
 			if (headerChanged && active && lastCtx) {
 				cleanupHeader?.();

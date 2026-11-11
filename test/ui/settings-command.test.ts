@@ -198,6 +198,76 @@ test("previews cursor styles from the Appearance tab", async () => {
 	editor.cleanup();
 });
 
+test("cycles editor shapes from the Appearance tab without remounting the editor", async () => {
+	let editorInstalls = 0;
+	let editorFactory: unknown;
+	let mounted: { render(width: number): string[] } | undefined;
+	const editorTui = {
+		terminal: { columns: 80, rows: 24, write() {} },
+		requestRender() {},
+		getShowHardwareCursor: () => false,
+		setShowHardwareCursor() {},
+	} as unknown as TUI;
+	const editor = installEditor({} as ExtensionAPI, {
+		ui: {
+			getEditorComponent: () => editorFactory,
+			setEditorComponent: (factory: unknown) => {
+				editorFactory = factory;
+				editorInstalls++;
+				if (typeof factory === "function") {
+					mounted = factory(editorTui, {
+						borderColor: (text: string) => text,
+						selectList: {},
+					}, { matches: () => false });
+				}
+			},
+		},
+	} as unknown as ExtensionContext);
+	const settings = await openSettings(undefined, (config) => editor.setEditorShape(config.editorShape));
+	const topLeft: Record<string, RegExp> = {
+		rounded: /^╭/,
+		square: /^┌/,
+		heavy: /^┏/,
+		double: /^╔/,
+		ascii: /^\+/,
+		native: /^─/,
+		claude: /^─/,
+		rule: /^─/,
+	};
+
+	settings.component.handleInput("\t");
+	settings.press("\x1b[B", 2);
+	assert.match(selectedLine(settings.component), /Input shape.*Rounded/);
+	assert.match(mounted!.render(40)[0]!, topLeft.rounded!);
+
+	for (const shape of [...EDITOR_SHAPES.slice(1), EDITOR_SHAPES[0]]) {
+		settings.component.handleInput("\r");
+		assert.equal(settings.getConfig().editorShape, shape);
+		assert.match(mounted!.render(40)[0]!, topLeft[shape]!, shape);
+		assert.match(selectedLine(settings.component), /Input shape/);
+	}
+	assert.equal(editorInstalls, 1);
+	assert.equal(settings.isClosed(), false);
+
+	settings.component.handleInput("q");
+	await settings.waitForClose();
+	editor.cleanup();
+});
+
+test("labels editor shapes in Chinese", async () => {
+	const config = structuredClone(DEFAULT_CONFIG);
+	config.settingsLanguage = "zh";
+	config.editorShape = "rule";
+	const settings = await openSettings(config);
+
+	settings.component.handleInput("\t");
+	settings.press("\x1b[B", 2);
+	assert.match(selectedLine(settings.component), /输入框样式.*顶部横线/);
+	settings.component.handleInput("\r");
+	assert.equal(settings.getConfig().editorShape, "rounded");
+	assert.match(selectedLine(settings.component), /输入框样式.*圆角/);
+});
+
 test("reconciles enabled changes with the installed UI", () => {
 	assert.equal(getPendingUiChange(true, false), "install");
 	assert.equal(getPendingUiChange(false, true), "uninstall");

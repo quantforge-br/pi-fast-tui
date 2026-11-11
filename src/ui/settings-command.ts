@@ -14,7 +14,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 } from "@earendil-works/pi-tui";
-import type { CursorStyle, IconMode, FastTuiConfig, SettingsLanguage, ThinkingPeekLines, ToolViewMode } from "./config.ts";
+import { EDITOR_SHAPES, type CursorStyle, type IconMode, type FastTuiConfig, type SettingsLanguage, type ThinkingPeekLines, type ToolViewMode } from "./config.ts";
 
 interface SettingItem {
 	id: string;
@@ -64,6 +64,7 @@ const COPY = {
 			extensionTools: "Compact extension tools",
 			language: "Language",
 			cursorStyle: "Cursor style",
+			editorShape: "Input shape",
 			iconMode: "Icon mode",
 			cwd: "CWD",
 			hostname: "Hostname",
@@ -93,6 +94,16 @@ const COPY = {
 			toolView: { cards: "Cards", compact: "Compact", native: "Native" },
 			languages: { en: "English", zh: "简体中文" },
 			cursorStyles: { block: "Block", bar: "Bar", underline: "Underline" },
+			editorShapes: {
+				rounded: "Rounded",
+				square: "Square",
+				heavy: "Heavy",
+				double: "Double",
+				ascii: "ASCII",
+				native: "Native",
+				claude: "Claude",
+				rule: "Rule",
+			},
 			icons: { auto: "Auto", nerd: "Nerd", unicode: "Unicode", ascii: "ASCII" },
 		},
 	},
@@ -124,6 +135,7 @@ const COPY = {
 			extensionTools: "紧凑显示扩展工具",
 			language: "语言",
 			cursorStyle: "光标样式",
+			editorShape: "输入框样式",
 			iconMode: "图标模式",
 			cwd: "当前目录",
 			hostname: "主机名",
@@ -153,6 +165,16 @@ const COPY = {
 			toolView: { cards: "卡片", compact: "紧凑", native: "原生" },
 			languages: { en: "English", zh: "简体中文" },
 			cursorStyles: { block: "块", bar: "竖线", underline: "下划线" },
+			editorShapes: {
+				rounded: "圆角",
+				square: "直角",
+				heavy: "粗线",
+				double: "双线",
+				ascii: "ASCII",
+				native: "原生",
+				claude: "Claude",
+				rule: "顶部横线",
+			},
 			icons: { auto: "自动", nerd: "Nerd", unicode: "Unicode", ascii: "ASCII" },
 		},
 	},
@@ -195,6 +217,12 @@ function cycleCursorStyle(config: FastTuiConfig): FastTuiConfig {
 	const currentIdx = order.indexOf(config.cursorStyle);
 	const next = order[(currentIdx + 1) % order.length]!;
 	return { ...config, cursorStyle: next };
+}
+
+function cycleEditorShape(config: FastTuiConfig): FastTuiConfig {
+	const currentIdx = EDITOR_SHAPES.indexOf(config.editorShape);
+	const next = EDITOR_SHAPES[(currentIdx + 1) % EDITOR_SHAPES.length]!;
+	return { ...config, editorShape: next };
 }
 
 function toggleTelemetry(config: FastTuiConfig, key: keyof FastTuiConfig["telemetry"]): FastTuiConfig {
@@ -252,7 +280,10 @@ function buildIconsItems(config: FastTuiConfig, copy: SettingsCopy): SettingGrou
 		},
 		{
 			label: copy.sections.editor,
-			items: [{ id: "cursorStyle", label: copy.labels.cursorStyle, currentValue: copy.values.cursorStyles[config.cursorStyle] }],
+			items: [
+				{ id: "cursorStyle", label: copy.labels.cursorStyle, currentValue: copy.values.cursorStyles[config.cursorStyle] },
+				{ id: "editorShape", label: copy.labels.editorShape, currentValue: copy.values.editorShapes[config.editorShape] },
+			],
 		},
 	];
 }
@@ -363,6 +394,7 @@ function handleSettingChange(
 	if (tab === "icons") {
 		if (itemId === "mode") return cycleIconMode(config);
 		if (itemId === "cursorStyle") return cycleCursorStyle(config);
+		if (itemId === "editorShape") return cycleEditorShape(config);
 	}
 	if (tab === "segments") {
 		return toggleSetting(config, itemId as keyof FastTuiConfig["footerSegments"]);
