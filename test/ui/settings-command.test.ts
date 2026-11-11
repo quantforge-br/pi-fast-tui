@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "./fixtures/node-test.ts";
 import { createEventBus, type ExtensionAPI, type ExtensionContext, type Theme } from "@earendil-works/pi-coding-agent";
-import { visibleWidth, type Component, type KeybindingsManager, type TUI } from "@earendil-works/pi-tui";
+import { visibleWidth, type Component, type KeybindingsManager, type OverlayOptions, type TUI } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG, EDITOR_SHAPES, loadConfig, saveConfig, type FastTuiConfig } from "../../src/ui/config.ts";
 import { installEditor } from "../../src/ui/editor.ts";
 import fastTui, { getPendingUiChange } from "../../src/ui/index.ts";
@@ -20,8 +20,13 @@ const theme = {
 	bold: (text: string) => text,
 } as Theme;
 
+/** Classic inline layout; popup tests opt in with `popupMenus: true`. */
+function classicConfig(): FastTuiConfig {
+	return { ...structuredClone(DEFAULT_CONFIG), popupMenus: false };
+}
+
 async function openSettings(
-	initialConfig = structuredClone(DEFAULT_CONFIG),
+	initialConfig = classicConfig(),
 	onChange?: (config: FastTuiConfig) => void,
 ): Promise<{
 	component: SettingsComponent;
@@ -31,7 +36,9 @@ async function openSettings(
 	isOverlayClosed: () => boolean;
 	waitForClose: () => Promise<void>;
 	press: (key: string, count?: number) => void;
+	overlayOptions: () => OverlayOptions | undefined;
 }> {
+	let customOptions: { overlay?: boolean; overlayOptions?: OverlayOptions | (() => OverlayOptions) } | undefined;
 	let commandHandler: ((args: string, ctx: ExtensionContext) => Promise<void> | void) | undefined;
 	let component: SettingsComponent | undefined;
 	let config = initialConfig;
@@ -68,7 +75,9 @@ async function openSettings(
 					keybindings: KeybindingsManager,
 					done: (value: void) => void,
 				) => Component,
+				options?: typeof customOptions,
 			) => new Promise<void>((resolve) => {
+				customOptions = options;
 				component = factory(tui, theme, {} as KeybindingsManager, (_value: void) => {
 					closed = true;
 					resolve();
@@ -91,6 +100,10 @@ async function openSettings(
 		waitForClose: () => closePromise,
 		press(key, count = 1) {
 			for (let i = 0; i < count; i++) mounted.handleInput(key);
+		},
+		overlayOptions: () => {
+			const options = customOptions?.overlayOptions;
+			return typeof options === "function" ? options() : options;
 		},
 	};
 }
@@ -117,7 +130,7 @@ test("reports whether configuration was saved", (t) => {
 // Navigation and live settings changes.
 test("closes cleanly after enabling or disabling the UI", async () => {
 	for (const enabled of [true, false]) {
-		const config = structuredClone(DEFAULT_CONFIG);
+		const config = classicConfig();
 		config.enabled = enabled;
 		const settings = await openSettings(config);
 
@@ -256,7 +269,7 @@ test("cycles editor shapes from the Appearance tab without remounting the editor
 });
 
 test("labels editor shapes in Chinese", async () => {
-	const config = structuredClone(DEFAULT_CONFIG);
+	const config = classicConfig();
 	config.settingsLanguage = "zh";
 	config.editorShape = "rule";
 	const settings = await openSettings(config);
@@ -395,7 +408,7 @@ test("tool view defaults to Cards and cycles Cards → Compact → Native", asyn
 });
 
 test("tool view shows the Cards option in Chinese", async () => {
-	const config = structuredClone(DEFAULT_CONFIG);
+	const config = classicConfig();
 	config.settingsLanguage = "zh";
 	const settings = await openSettings(config);
 	for (let i = 0; i < 5; i++) settings.component.handleInput("\x1b[B");
@@ -403,7 +416,7 @@ test("tool view shows the Cards option in Chinese", async () => {
 });
 
 test("toggling tool view settings keeps the other tool view options", async () => {
-	const config = structuredClone(DEFAULT_CONFIG);
+	const config = classicConfig();
 	config.toolView.exclude = ["subagent_wait"];
 	const settings = await openSettings(config);
 	// Enabled → Header → Language → Thinking peek → Copy buttons → Tool view
@@ -495,7 +508,7 @@ test("configures the extension status line with Space", async () => {
 
 // Width, height, and localization.
 test("keeps localized settings and values within narrow widths", async () => {
-	const config = structuredClone(DEFAULT_CONFIG);
+	const config = classicConfig();
 	config.settingsLanguage = "zh";
 	const settings = await openSettings(config);
 
@@ -515,7 +528,7 @@ test("keeps localized settings and values within narrow widths", async () => {
 test("keeps every Footer selection visible in short terminals", async () => {
 	for (const language of ["en", "zh"] as const) {
 		for (const width of [24, 36, 48, 80]) {
-			const config = structuredClone(DEFAULT_CONFIG);
+			const config = classicConfig();
 			config.settingsLanguage = language;
 			const settings = await openSettings(config);
 			settings.terminal.columns = width;
@@ -530,6 +543,48 @@ test("keeps every Footer selection visible in short terminals", async () => {
 			}
 		}
 	}
+});
+
+test("opens /fast-tui as a centered popup panel when popup menus are on", async () => {
+	const settings = await openSettings({ ...classicConfig(), popupMenus: true });
+	const options = settings.overlayOptions();
+	assert.equal(options?.anchor, "center");
+	assert.equal(options?.width, 60);
+	assert.equal(options?.maxHeight, "85%");
+	settings.terminal.columns = 200;
+	assert.equal(settings.overlayOptions()?.width, 100);
+	settings.terminal.columns = 80;
+	const lines = settings.component.render(60).map((line) => line.replace(/\x1b\[[0-9;]*m/g, ""));
+	assert.match(lines[0]!, /^╭─+╮$/);
+	assert.match(lines[2]!, /^│ {2}Fast TUI Settings +esc {2}│$/);
+	assert.match(lines.at(-1)!, /^╰─+╯$/);
+	assert.equal(lines.filter((line) => line.includes("Fast TUI Settings")).length, 1);
+	for (const line of lines) assert.equal(visibleWidth(line), 60);
+	settings.press("\t");
+	assert.ok(settings.component.render(60).some((line) => line.includes("→ ")));
+	settings.press("\x1b");
+	assert.equal(settings.isClosed(), true);
+});
+
+test("keeps the popup within short terminals with the selection visible", async () => {
+	for (const width of [24, 48, 80]) {
+		const settings = await openSettings({ ...classicConfig(), popupMenus: true });
+		settings.terminal.columns = width;
+		settings.terminal.rows = 12;
+		settings.press("\t", 2);
+		for (let i = 0; i < 16; i++) {
+			const lines = settings.component.render(width);
+			assert.ok(lines.length <= 12, `${width}x12: ${lines.length} rows`);
+			assert.ok(lines.some((line) => line.includes("→ ")), `${width}x12 step ${i}`);
+			settings.component.handleInput("\x1b[B");
+		}
+	}
+});
+
+test("keeps the classic /fast-tui overlay when popup menus are off", async () => {
+	const settings = await openSettings();
+	assert.equal(settings.overlayOptions(), undefined);
+	assert.doesNotMatch(settings.component.render(80)[0]!, /╭/);
 });
 
 test("relayouts on height and width changes without losing the selection", async () => {
@@ -552,7 +607,7 @@ test("relayouts on height and width changes without losing the selection", async
 
 test("preserves long Footer labels' current values at narrow widths", async () => {
 	for (const language of ["en", "zh"] as const) {
-		const config = structuredClone(DEFAULT_CONFIG);
+		const config = classicConfig();
 		config.settingsLanguage = language;
 		const settings = await openSettings(config);
 		settings.press("\t", 2);
@@ -627,7 +682,7 @@ test("loads popup menus and defaults a missing value to on", (t) => {
 });
 
 test("cycles the thinking peek line count from General settings", async () => {
-	const config = structuredClone(DEFAULT_CONFIG);
+	const config = classicConfig();
 	const settings = await openSettings(config);
 	// Enabled → Header → Language → Thinking peek
 	settings.press("\x1b[B", 3);

@@ -12,10 +12,22 @@ export const POPUP_PADDING_X = 2;
 const HEADER_ROWS = 4;
 /** Rows below the content: padding, bottom border. */
 const FOOTER_ROWS = 2;
+/** Below this many rows the panel drops its blank padding rows. */
+const COMPACT_BELOW_ROWS = 16;
+
+/** Whether a panel limited to `maxRows` uses the compact layout without padding rows. */
+function isCompact(maxRows: number | undefined): boolean {
+	return maxRows !== undefined && maxRows < COMPACT_BELOW_ROWS;
+}
+
+/** Rows the panel adds around its content when limited to `maxRows`. */
+export function popupChromeRows(maxRows: number | undefined): number {
+	return isCompact(maxRows) ? 3 : HEADER_ROWS + FOOTER_ROWS;
+}
 
 export interface PopupPanelOptions {
-	/** Bold title on the left of the first panel row. */
-	title: string;
+	/** Bold title on the left of the first panel row; a function is read on every render. */
+	title: string | (() => string);
 	/** Dim hint on the right of the title row. */
 	hint?: string;
 	/** SGR that opens the panel background; empty for no fill. */
@@ -50,6 +62,8 @@ export class PopupPanel implements Component {
 	/** Original content row of each rendered content row, for mouse mapping. */
 	private contentRows: number[] = [];
 	private lastWidth = 0;
+	/** Rows above the content in the last render. */
+	private headerRows = HEADER_ROWS;
 
 	constructor(
 		readonly content: Component,
@@ -68,6 +82,7 @@ export class PopupPanel implements Component {
 		this.lastWidth = width;
 		const innerWidth = Math.max(1, width - 2 - POPUP_PADDING_X * 2);
 		const raw = this.content.render(innerWidth);
+		const titleText = typeof this.options.title === "function" ? this.options.title() : this.options.title;
 		const kept: number[] = [];
 		raw.forEach((line, index) => {
 			if (!isHorizontalRule(line)) kept.push(index);
@@ -75,13 +90,14 @@ export class PopupPanel implements Component {
 		// Pi pads its menus with blank rows inside the rules; the panel has its own padding.
 		while (kept.length > 0 && stripAnsi(raw[kept[0]!]!).trim() === "") kept.shift();
 		// Menus that print their own title would repeat the panel title.
-		if (kept.length > 0 && stripAnsi(raw[kept[0]!]!).trim() === this.options.title) {
+		if (kept.length > 0 && stripAnsi(raw[kept[0]!]!).trim() === titleText) {
 			kept.shift();
 			while (kept.length > 0 && stripAnsi(raw[kept[0]!]!).trim() === "") kept.shift();
 		}
 		while (kept.length > 0 && stripAnsi(raw[kept.at(-1)!]!).trim() === "") kept.pop();
 		const maxRows = this.options.maxRows?.();
-		if (maxRows !== undefined) kept.splice(Math.max(0, maxRows - HEADER_ROWS - FOOTER_ROWS));
+		const compact = isCompact(maxRows);
+		if (maxRows !== undefined) kept.splice(Math.max(0, maxRows - popupChromeRows(maxRows)));
 		this.contentRows = kept;
 
 		const open = this.options.background();
@@ -92,15 +108,18 @@ export class PopupPanel implements Component {
 
 		const hint = this.options.hint ? (this.options.hintStyle ?? ((text: string) => text))(this.options.hint) : "";
 		const titleWidth = Math.max(0, innerWidth - (hint ? visibleWidth(hint) + 1 : 0));
-		const title = truncateToWidth((this.options.titleStyle ?? ((text: string) => text))(this.options.title), titleWidth, "…");
+		const title = truncateToWidth((this.options.titleStyle ?? ((text: string) => text))(titleText), titleWidth, "…");
 		const titleRow = `${title}${" ".repeat(Math.max(0, innerWidth - visibleWidth(title) - visibleWidth(hint)))}${hint}`;
 
+		const content = kept.map((index) => row(raw[index]!));
+		this.headerRows = compact ? 2 : HEADER_ROWS;
+		if (compact) return [rule(BORDER.topLeft, BORDER.topRight), row(titleRow), ...content, rule(BORDER.bottomLeft, BORDER.bottomRight)];
 		return [
 			rule(BORDER.topLeft, BORDER.topRight),
 			row(""),
 			row(titleRow),
 			row(""),
-			...kept.map((index) => row(raw[index]!)),
+			...content,
 			row(""),
 			rule(BORDER.bottomLeft, BORDER.bottomRight),
 		];
@@ -116,7 +135,7 @@ export class PopupPanel implements Component {
 
 	handleMouse(event: TuiMouseEvent): TuiMouseEventResult | undefined {
 		const handler = (this.content as { handleMouse?: (event: TuiMouseEvent) => TuiMouseEventResult | undefined }).handleMouse;
-		const row = event.y - HEADER_ROWS;
+		const row = event.y - this.headerRows;
 		const x = event.x - 1 - POPUP_PADDING_X;
 		const innerWidth = Math.max(1, this.lastWidth - 2 - POPUP_PADDING_X * 2);
 		// Clicks on the frame are swallowed so they do not reach the transcript behind the popup.

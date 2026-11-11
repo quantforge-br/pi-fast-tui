@@ -1,6 +1,6 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import type { Component, Container, OverlayHandle, TUI } from "@earendil-works/pi-tui";
-import { PopupPanel } from "./popup-panel.ts";
+import type { Component, Container, OverlayHandle, OverlayOptions, TUI } from "@earendil-works/pi-tui";
+import { PopupPanel, type PopupPanelOptions } from "./popup-panel.ts";
 
 /** Pi menus shown as popups, by component class name, with the panel title for each. */
 const POPUP_MENU_TITLES: Readonly<Record<string, string>> = {
@@ -10,10 +10,48 @@ const POPUP_MENU_TITLES: Readonly<Record<string, string>> = {
 	ThinkingSelectorComponent: "Thinking Level",
 };
 
-/** Share of the terminal the popup may cover. */
-const POPUP_WIDTH = "70%";
-const POPUP_MAX_HEIGHT = 0.85;
+/** Share of the terminal width the popup covers, clamped to a readable range. */
+const POPUP_WIDTH_RATIO = 0.7;
 const POPUP_MIN_WIDTH = 60;
+const POPUP_MAX_WIDTH = 100;
+/** Share of the terminal height the popup may cover. */
+const POPUP_MAX_HEIGHT = 0.85;
+
+/** Popup width for a terminal width: 70% of it, kept within 60–100 columns and the screen. */
+export function popupWidth(columns: number): number {
+	const width = Math.round(columns * POPUP_WIDTH_RATIO);
+	return Math.max(1, Math.min(columns, Math.max(POPUP_MIN_WIDTH, Math.min(POPUP_MAX_WIDTH, width))));
+}
+
+/** Most rows a popup may use on a terminal with this many rows. */
+export function popupMaxRows(rows: number): number {
+	return Math.max(8, Math.floor(rows * POPUP_MAX_HEIGHT));
+}
+
+/** Centered overlay options; the width follows terminal resizes because Pi reads it on every render. */
+export function popupOverlayOptions(tui: TUI, extra: Partial<OverlayOptions> = {}): OverlayOptions {
+	return {
+		anchor: "center",
+		get width() {
+			return popupWidth(tui.terminal.columns);
+		},
+		maxHeight: `${Math.round(POPUP_MAX_HEIGHT * 100)}%`,
+		...extra,
+	};
+}
+
+/** Panel look shared by every popup: the input panel background, a border, title and an "esc" hint. */
+export function popupPanelOptions(tui: TUI, theme: Theme, title: PopupPanelOptions["title"]): PopupPanelOptions {
+	return {
+		title,
+		hint: "esc",
+		background: () => theme.getBgAnsi?.("userMessageBg") ?? "",
+		border: (text) => theme.fg("border", text),
+		titleStyle: (text) => theme.bold(theme.fg("text", text)),
+		hintStyle: (text) => theme.fg("dim", text),
+		maxRows: () => popupMaxRows(tui.terminal.rows),
+	};
+}
 
 /** Title of the popup for a Pi menu component, or undefined when it stays inline. */
 export function popupMenuTitle(component: unknown): string | undefined {
@@ -49,23 +87,9 @@ function findEditorContainer(tui: TUI): Container | undefined {
 /** Wraps a Pi menu in a centered popup panel, or returns undefined when the TUI cannot host one. */
 export function showMenuPopup(tui: TUI, menu: Component, title: string, theme: Theme): OverlayHandle | undefined {
 	if (typeof tui.showOverlay !== "function") return undefined;
-	const panel = new PopupPanel(menu, {
-		title,
-		hint: "esc",
-		background: () => theme.getBgAnsi?.("userMessageBg") ?? "",
-		border: (text) => theme.fg("border", text),
-		titleStyle: (text) => theme.bold(theme.fg("text", text)),
-		hintStyle: (text) => theme.fg("dim", text),
-		maxRows: () => Math.max(8, Math.floor(tui.terminal.rows * POPUP_MAX_HEIGHT)),
-	});
+	const panel = new PopupPanel(menu, popupPanelOptions(tui, theme, title));
 	// Pi focuses the menu itself right after mounting it; a non-capturing overlay leaves that focus alone.
-	return tui.showOverlay(panel, {
-		anchor: "center",
-		width: POPUP_WIDTH,
-		minWidth: Math.min(POPUP_MIN_WIDTH, tui.terminal.columns),
-		maxHeight: `${Math.round(POPUP_MAX_HEIGHT * 100)}%`,
-		nonCapturing: true,
-	});
+	return tui.showOverlay(panel, popupOverlayOptions(tui, { nonCapturing: true }));
 }
 
 /**

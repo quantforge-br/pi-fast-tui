@@ -93,10 +93,24 @@ test("leaves rows unfilled when the theme has no background", () => {
 
 test("keeps the frame when the content is taller than the allowed rows", () => {
 	const menu = new FakeMenu(Array.from({ length: 20 }, (_, i) => `item ${i}`));
-	const lines = panel(menu, 10).render(30);
-	assert.equal(lines.length, 10);
+	const lines = panel(menu, 20).render(30);
+	assert.equal(lines.length, 20);
 	assert.match(stripAnsi(lines.at(-1)!), /^<╰─+╯>$/);
-	assert.match(stripAnsi(lines.at(-3)!), /item 3/);
+	assert.match(stripAnsi(lines.at(-3)!), /item 13/);
+});
+
+test("drops the padding rows in short terminals", () => {
+	const menu = new FakeMenu(Array.from({ length: 20 }, (_, i) => `item ${i}`));
+	const popup = panel(menu, 10);
+	const lines = popup.render(30).map(stripAnsi);
+	assert.equal(lines.length, 10);
+	assert.match(lines[0]!, /^<╭─+╮>$/);
+	assert.match(lines[1]!, /Settings/);
+	assert.match(lines[2]!, /item 0/);
+	assert.match(lines.at(-2)!, /item 6/);
+	assert.match(lines.at(-1)!, /^<╰─+╯>$/);
+	popup.handleMouse(event(5, 3));
+	assert.equal(menu.mouse[0]!.y, 1, "compact rows start right below the title");
 });
 
 test("forwards input and maps mouse rows past the dropped rules", () => {

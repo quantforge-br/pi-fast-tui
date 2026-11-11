@@ -15,6 +15,8 @@ import {
 	visibleWidth,
 } from "@earendil-works/pi-tui";
 import { EDITOR_SHAPES, type CursorStyle, type IconMode, type FastTuiConfig, type SettingsLanguage, type ThinkingPeekLines, type ToolViewMode } from "./config.ts";
+import { popupMaxRows, popupOverlayOptions, popupPanelOptions } from "./popup-menus.ts";
+import { popupChromeRows, PopupPanel } from "./popup-panel.ts";
 
 interface SettingItem {
 	id: string;
@@ -570,6 +572,8 @@ class SettingsUi implements SettingsUiHandle {
 	private layoutWidth: number | undefined;
 	private layoutRows: number | undefined;
 	private cachedLines: string[] | undefined;
+	/** Inside a popup panel, which draws the title, background and padding itself. */
+	private readonly popup: boolean;
 
 	constructor(
 		tui: TUI,
@@ -577,14 +581,21 @@ class SettingsUi implements SettingsUiHandle {
 		config: FastTuiConfig,
 		onChange: (config: FastTuiConfig) => void,
 		onClose: () => void,
+		popup = false,
 	) {
 		this.tui = tui;
 		this.theme = theme;
 		this.config = config;
 		this.onChange = onChange;
 		this.onClose = onClose;
-		this.container = new Box(1, 1, (s: string) => theme.bg("customMessageBg", s));
+		this.popup = popup;
+		this.container = popup ? new Box(0, 0) : new Box(1, 1, (s: string) => theme.bg("customMessageBg", s));
 		this.rebuild();
+	}
+
+	/** Title in the current settings language. */
+	get title(): string {
+		return COPY[this.config.settingsLanguage].title;
 	}
 
 	private applySetting(itemId: string): void {
@@ -608,17 +619,26 @@ class SettingsUi implements SettingsUiHandle {
 		this.layoutRows = this.tui.terminal.rows;
 		const copy = COPY[this.config.settingsLanguage];
 		this.container.clear();
-		this.container.addChild(new Text(this.theme.bold(this.theme.fg("accent", copy.title)), 1, 0));
+		const padding = this.popup ? 0 : 1;
+		if (!this.popup) this.container.addChild(new Text(this.theme.bold(this.theme.fg("accent", copy.title)), 1, 0));
 
 		const tabBar = TABS.map((tab) => {
 			const active = tab === this.tab;
 			const label = active ? `[${copy.tabs[tab]}]` : ` ${copy.tabs[tab]} `;
 			return active ? this.theme.fg("accent", label) : this.theme.fg("dim", label);
 		}).join(" ");
-		this.container.addChild(new Text(tabBar, 1, 0));
-		this.container.addChild(new Text(this.theme.fg("dim", copy.hint), 1, 0));
-
-		const availableRows = this.layoutRows - this.container.render(width).length;
+		this.container.addChild(new Text(tabBar, padding, 0));
+		const hint = new Text(this.theme.fg("dim", copy.hint), padding, 0);
+		let rowBudget = this.layoutRows;
+		if (this.popup) {
+			const maxRows = popupMaxRows(this.layoutRows);
+			rowBudget = maxRows - popupChromeRows(maxRows);
+		}
+		// A short popup keeps its rows for the list; the key hint is the first thing to go.
+		if (!this.popup || rowBudget - this.container.render(width).length - hint.render(width).length >= 3) {
+			this.container.addChild(hint);
+		}
+		const availableRows = rowBudget - this.container.render(width).length;
 		this.selectList = new SectionedSettingsList(buildItems(this.tab, this.config), availableRows, width, this.theme);
 		this.selectList.selectItem(preferredItemId);
 		this.selectedItemByTab[this.tab] = this.selectList.getSelectedItem()?.value;
@@ -700,29 +720,38 @@ export function registerSettingsCommand(
 		description: "Open the fast-tui settings UI",
 		handler: async (_args, ctx: ExtensionContext) => {
 			if (!ctx.hasUI) return;
+			const popup = hooks.getConfig().popupMenus;
+			let overlayTui: TUI | undefined;
 			await ctx.ui.custom<void>((tui: TUI, theme, _kb, done) => {
+				overlayTui = tui;
 				const ui = new SettingsUi(
 					tui,
 					theme,
 					hooks.getConfig(),
 					(config) => hooks.onConfigChanged(config),
 					() => done(undefined),
+					popup,
 				);
+				// The popup panel forwards input to the settings and maps mouse rows into them.
+				const view = popup ? new PopupPanel(ui, popupPanelOptions(tui, theme, () => ui.title)) : ui;
 				return {
 					capturesViewportInput: true,
-					render: (w: number) => ui.render(w),
-					invalidate: () => ui.invalidate(),
+					render: (w: number) => view.render(w),
+					invalidate: () => view.invalidate(),
 					handleInput: (data: string) => {
 						ui.handleInput(data);
 						tui.requestRender();
 					},
 					handleMouse: (event: TuiMouseEvent) => {
-						const result = ui.handleMouse(event);
+						const result = view.handleMouse?.(event);
 						if (result?.handled && result.render !== false) tui.requestRender();
 						return result;
 					},
 				};
-			}, { overlay: true });
+			}, {
+				overlay: true,
+				...(popup ? { overlayOptions: () => (overlayTui ? popupOverlayOptions(overlayTui) : { anchor: "center" as const }) } : {}),
+			});
 			// Overlay is closed and focus is back on the editor. Deferred UI changes
 			// (e.g. toggling the extension) run here, so pi core's focus restore
 			// cannot strand the overlay without keyboard input.
