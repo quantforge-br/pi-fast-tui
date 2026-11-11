@@ -73,6 +73,8 @@ export interface FastTuiConfig {
 	settingsLanguage: SettingsLanguage;
 	cursorStyle: CursorStyle;
 	editorShape: EditorShape;
+	/** Open Pi's settings, model, scoped-models and thinking menus as a centered popup. */
+	popupMenus: boolean;
 	icons: {
 		mode: IconMode;
 	};
@@ -90,6 +92,7 @@ export const DEFAULT_CONFIG: FastTuiConfig = {
 	settingsLanguage: "en",
 	cursorStyle: "block",
 	editorShape: "rounded",
+	popupMenus: true,
 	icons: {
 		mode: "auto",
 	},
@@ -218,6 +221,9 @@ export function loadConfig(notify?: (msg: string, level: "warning" | "info") => 
 		}
 		if (typeof config.copyButtons !== "boolean") {
 			config.copyButtons = DEFAULT_CONFIG.copyButtons;
+		}
+		if (typeof config.popupMenus !== "boolean") {
+			config.popupMenus = DEFAULT_CONFIG.popupMenus;
 		}
 		config.footerSegments = normalizeFlags(config.footerSegments, DEFAULT_CONFIG.footerSegments);
 		config.telemetry = normalizeFlags(config.telemetry, DEFAULT_CONFIG.telemetry);

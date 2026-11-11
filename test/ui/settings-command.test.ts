@@ -584,6 +584,7 @@ test("normalizes invalid settings values", (t) => {
 		header: "no",
 		inlineFooter: "yes",
 		copyButtons: "no",
+		popupMenus: "off",
 		thinkingPeek: { lines: 9 },
 		toolView: { mode: "hidden", extensionTools: "yes", exclude: ["keep", 1, null] },
 		fullscreen: { wheelScrollLines: 10 },
@@ -595,6 +596,7 @@ test("normalizes invalid settings values", (t) => {
 	assert.equal(loaded.header, true);
 	assert.equal(loaded.inlineFooter, false);
 	assert.equal(loaded.copyButtons, true);
+	assert.equal(loaded.popupMenus, true);
 	assert.equal(loaded.thinkingPeek.lines, 1);
 	assert.deepEqual(loaded.toolView, { mode: "cards", extensionTools: false, exclude: ["keep"] });
 	assert.equal("fullscreen" in loaded, true);
@@ -611,6 +613,17 @@ test("loads valid editor shapes and defaults a missing one", (t) => {
 	}
 	writeFileSync(path, JSON.stringify({ cursorStyle: "bar" }), "utf8");
 	assert.equal(loadConfig().editorShape, "rounded");
+});
+
+test("loads popup menus and defaults a missing value to on", (t) => {
+	const agentDir = temporaryDirectory(t, "pi-fast-tui-");
+	preserveEnvironment(t, ["PI_CODING_AGENT_DIR"]);
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+	const path = join(agentDir, "fast-tui.json");
+	writeFileSync(path, JSON.stringify({ popupMenus: false }), "utf8");
+	assert.equal(loadConfig().popupMenus, false);
+	writeFileSync(path, JSON.stringify({ cursorStyle: "bar" }), "utf8");
+	assert.equal(loadConfig().popupMenus, true);
 });
 
 test("cycles the thinking peek line count from General settings", async () => {
