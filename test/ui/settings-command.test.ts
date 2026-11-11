@@ -109,8 +109,11 @@ async function openSettings(
 	};
 }
 
+/** The selection arrow, not the "←→" in the key hint. */
+const SELECTED_ROW = /(?:^|[\s▕])→ /;
+
 function selectedLine(component: SettingsComponent, width = 80): string {
-	return component.render(width).find((line) => line.includes("→ ")) ?? "";
+	return component.render(width).find((line) => SELECTED_ROW.test(line)) ?? "";
 }
 
 // Configuration persistence.
@@ -633,6 +636,30 @@ test("hints name Tab/Shift+Tab for tabs and Left/Right for values", async () => 
 	}
 });
 
+test("shows the widest key hint that fits on one row", async () => {
+	const cases: [language: "en" | "zh", columns: number, inner: number, hint: RegExp | undefined][] = [
+		["en", 160, 94, /Tab\/Shift\+Tab: tabs · ↑\/↓: move · ←\/→\/Enter\/Space: change · Esc\/q: close/],
+		["en", 80, 70, /Tab tabs · ↑↓ move · ←→ change · Esc close/],
+		["en", 40, 34, undefined],
+		["zh", 60, 54, /Tab 切页 · ↑↓ 移动 · ←→ 更改 · Esc 关闭/],
+	];
+	for (const [language, columns, inner, hint] of cases) {
+		const settings = await openSettings({ ...classicConfig(), popupMenus: true, settingsLanguage: language });
+		settings.terminal.columns = columns;
+		settings.terminal.rows = 50;
+		const width = settings.overlayOptions()?.width as number;
+		assert.equal(width - 6, inner);
+		const lines = settings.component.render(width).map((line) => line.replace(/\x1b\[[0-9;]*m/g, ""));
+		const hintRows = lines.filter((line) => /Tab.*Esc/.test(line));
+		if (hint === undefined) {
+			assert.equal(hintRows.length, 0, lines.join("\n"));
+		} else {
+			assert.equal(hintRows.length, 1, lines.join("\n"));
+			assert.match(hintRows[0]!, hint);
+		}
+	}
+});
+
 // Width, height, and localization.
 test("keeps localized settings and values within narrow widths", async () => {
 	const config = classicConfig();
@@ -664,7 +691,7 @@ test("keeps every Footer selection visible in short terminals", async () => {
 			for (let i = 0; i < 16; i++) {
 				const lines = settings.component.render(width);
 				assert.ok(lines.length <= 12, `${language} ${width}x12: ${lines.length} rows`);
-				assert.ok(lines.slice(0, 12).some((line) => line.includes("→ ")));
+				assert.ok(lines.slice(0, 12).some((line) => SELECTED_ROW.test(line)));
 				for (const line of lines) assert.ok(visibleWidth(line) <= width);
 				settings.component.handleInput("\x1b[B");
 			}
@@ -688,7 +715,7 @@ test("opens /fast-tui as a centered popup panel when popup menus are on", async 
 	assert.equal(lines.filter((line) => line.includes("Fast TUI Settings")).length, 1);
 	for (const line of lines) assert.equal(visibleWidth(line), 60);
 	settings.press("\t");
-	assert.ok(settings.component.render(60).some((line) => line.includes("→ ")));
+	assert.ok(settings.component.render(60).some((line) => SELECTED_ROW.test(line)));
 	settings.press("\x1b");
 	assert.equal(settings.isClosed(), true);
 });
@@ -702,7 +729,7 @@ test("keeps the popup within short terminals with the selection visible", async 
 		for (let i = 0; i < 16; i++) {
 			const lines = settings.component.render(width);
 			assert.ok(lines.length <= 12, `${width}x12: ${lines.length} rows`);
-			assert.ok(lines.some((line) => line.includes("→ ")), `${width}x12 step ${i}`);
+			assert.ok(lines.some((line) => SELECTED_ROW.test(line)), `${width}x12 step ${i}`);
 			settings.component.handleInput("\x1b[B");
 		}
 	}

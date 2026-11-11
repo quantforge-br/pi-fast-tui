@@ -6,6 +6,7 @@
 
 - Popups (`/model`, `/settings`, `/scoped-models`, thinking level, `/fast-tui`) are at least 76 columns wide (70 columns of content on an 80-column terminal), and content rows wider than the panel end with `…` instead of being cut silently.
 - `/fast-tui` dialog: ← and → change the selected setting's value (→ to the next value, ← to the previous one; boolean rows toggle either way). Tabs now switch only with Tab and Shift+Tab. The key hint says so in both languages.
+- `/fast-tui` dialog: the key hint always fits on one row. When the full hint is too wide, a short form (`Tab tabs · ↑↓ move · ←→ change · Esc close`) is shown, and below that no hint at all.
 
 ## [0.6.0] - 2026-11-11
 

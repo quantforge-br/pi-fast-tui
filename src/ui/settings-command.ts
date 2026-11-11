@@ -56,6 +56,7 @@ const COPY = {
 			measurements: "Measurements",
 		},
 		hint: "Tab/Shift+Tab: tabs · ↑/↓: move · ←/→/Enter/Space: change · Esc/q: close",
+		hintShort: "Tab tabs · ↑↓ move · ←→ change · Esc close",
 		labels: {
 			enabled: "Enabled",
 			header: "Override header",
@@ -129,6 +130,7 @@ const COPY = {
 			measurements: "测量指标",
 		},
 		hint: "Tab/Shift+Tab：切页 · ↑/↓：移动 · ←/→/Enter/Space：更改 · Esc/q：关闭",
+		hintShort: "Tab 切页 · ↑↓ 移动 · ←→ 更改 · Esc 关闭",
 		labels: {
 			enabled: "启用",
 			header: "覆盖顶部信息栏",
@@ -187,6 +189,11 @@ const COPY = {
 } as const;
 
 type SettingsCopy = (typeof COPY)[SettingsLanguage];
+
+/** The widest hint that fits `width` columns on one row, or undefined when none does. */
+function pickHint(copy: SettingsCopy, width: number): string | undefined {
+	return [copy.hint, copy.hintShort].find((hint) => visibleWidth(hint) <= width);
+}
 
 function formatThinkingPeekLines(lines: ThinkingPeekLines, copy: SettingsCopy): string {
 	const values = [copy.values.thinkingPeek.off, copy.values.thinkingPeek.one, copy.values.thinkingPeek.two];
@@ -616,14 +623,15 @@ class SettingsUi implements SettingsUiHandle {
 			return active ? this.theme.fg("accent", label) : this.theme.fg("dim", label);
 		}).join(" ");
 		this.container.addChild(new Text(tabBar, padding, 0));
-		const hint = new Text(this.theme.fg("dim", copy.hint), padding, 0);
+		const hintText = pickHint(copy, width - padding * 2);
+		const hint = hintText === undefined ? undefined : new Text(this.theme.fg("dim", hintText), padding, 0);
 		let rowBudget = this.layoutRows;
 		if (this.popup) {
 			const maxRows = popupMaxRows(this.layoutRows);
 			rowBudget = maxRows - popupChromeRows(maxRows);
 		}
 		// A short popup keeps its rows for the list; the key hint is the first thing to go.
-		if (!this.popup || rowBudget - this.container.render(width).length - hint.render(width).length >= 3) {
+		if (hint && (!this.popup || rowBudget - this.container.render(width).length - hint.render(width).length >= 3)) {
 			this.container.addChild(hint);
 		}
 		const availableRows = rowBudget - this.container.render(width).length;
