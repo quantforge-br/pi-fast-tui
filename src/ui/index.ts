@@ -262,6 +262,7 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 		ensureConfigExists();
 		config = loadConfig((msg, level) => ctx.ui.notify(msg, level));
 		configLoaded = true;
+		applyGlyphMode();
 		clearPeekLabel(ctx);
 
 		applyUi(ctx);
@@ -415,14 +416,16 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 		refreshInteractiveState(ctx);
 	});
 
+	/** Cards and chrome draw box-drawing glyphs everywhere except under an explicit ASCII icon mode. */
+	const applyGlyphMode = (): boolean => setCardGlyphMode(config.icons.mode === "ascii" ? "ascii" : "unicode");
+
 	const toolView = () => {
 		// Resumed sessions rebuild their rows before session_start fires, so read the file once here.
 		if (!configLoaded) {
 			config = loadConfig();
 			configLoaded = true;
+			applyGlyphMode();
 		}
-		// Cards draw box-drawing glyphs everywhere except under an explicit ASCII icon mode.
-		setCardGlyphMode(config.icons.mode === "ascii" ? "ascii" : "unicode");
 		return config.enabled ? config.toolView : { ...config.toolView, mode: "native" as const };
 	};
 	registerToolView(
@@ -448,7 +451,7 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 					: "fast-tui settings apply for this session but could not be saved. Check configuration directory permissions and free space.", "warning");
 			}
 			config = newConfig;
-			if (setCardGlyphMode(config.icons.mode === "ascii" ? "ascii" : "unicode")) {
+			if (applyGlyphMode()) {
 				// Settled cards and compact rows cache their lines; redraw the transcript with the new glyphs.
 				const tui = editor?.getTui();
 				tui?.invalidate();

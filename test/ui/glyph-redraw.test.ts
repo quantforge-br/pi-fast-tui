@@ -6,7 +6,7 @@ import test from "./fixtures/node-test.ts";
 import { createEventBus, type ExtensionAPI, type ExtensionContext, type Theme } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { cardGlyphMode, setCardGlyphMode } from "../../src/cards/symbols.ts";
-import { DEFAULT_CONFIG } from "../../src/ui/config.ts";
+import { DEFAULT_CONFIG, type FastTuiConfig } from "../../src/ui/config.ts";
 import fastTui from "../../src/ui/index.ts";
 
 const theme = {
@@ -15,7 +15,7 @@ const theme = {
 	bold: (text: string) => text,
 } as unknown as Theme;
 
-test("redraws the transcript only when /fast-tui changes the glyph set", async (t) => {
+async function harness(t: { after(fn: () => unknown): void }, edit: (config: FastTuiConfig) => void = () => {}) {
 	const handlers = new Map<string, Array<(event: any, ctx: ExtensionContext) => unknown>>();
 	let command: ((args: string, ctx: ExtensionContext) => unknown) | undefined;
 	const calls: string[] = [];
@@ -78,6 +78,7 @@ test("redraws the transcript only when /fast-tui changes the glyph set", async (
 	config.footerSegments.gitBranch = false;
 	config.footerSegments.gitStatus = false;
 	config.footerSegments.runtime = false;
+	edit(config);
 	await writeFile(join(agentDir, "fast-tui.json"), JSON.stringify(config), "utf8");
 	t.after(async () => {
 		await emit("session_shutdown");
@@ -89,8 +90,17 @@ test("redraws the transcript only when /fast-tui changes the glyph set", async (
 
 	fastTui(pi);
 	await emit("session_start");
-	void command?.("", ctx);
-	assert.ok(settings);
+	const openSettings = () => {
+		void command?.("", ctx);
+		assert.ok(settings);
+		return settings;
+	};
+	return { calls, openSettings };
+}
+
+test("redraws the transcript only when /fast-tui changes the glyph set", async (t) => {
+	const { calls, openSettings } = await harness(t);
+	const settings = openSettings();
 	settings.handleInput("\t");
 	// Icon mode: Auto → Nerd → Unicode keeps the Unicode card glyphs.
 	calls.length = 0;
@@ -103,4 +113,12 @@ test("redraws the transcript only when /fast-tui changes the glyph set", async (
 	assert.equal(cardGlyphMode(), "ascii");
 	assert.ok(calls.includes("invalidate"));
 	assert.ok(calls.lastIndexOf("requestRender") > calls.indexOf("invalidate"));
+});
+
+test("applies an ASCII icon mode from the configuration file at session start", async (t) => {
+	setCardGlyphMode("unicode");
+	await harness(t, (config) => {
+		config.icons.mode = "ascii";
+	});
+	assert.equal(cardGlyphMode(), "ascii");
 });
