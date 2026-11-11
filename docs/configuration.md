@@ -37,7 +37,7 @@ Tab/Shift+Tab switches tabs; ↑/↓ or Page Up/Page Down moves between settings
 | `cursorStyle` | `"block"` | `"block"`, `"bar"`, or `"underline"`; the latter two need terminal cursor-shape support |
 | `editorShape` | `"rounded"` | `"rounded"`, `"square"`, `"heavy"`, `"double"`, `"ascii"`, `"native"`, `"claude"`, `"rule"`, or `"opencode"`; see [Editor shapes](#editor-shapes) |
 | `popupMenus` | `true` | Opens `/settings`, `/model` (ctrl+l), `/scoped-models`, the thinking selector, and `/fast-tui` as a centered popup; see [Popup menus](#popup-menus) |
-| `icons.mode` | `"auto"` | `"auto"`, `"nerd"`, `"unicode"`, or `"ascii"`; see [Icons](#icons). Cards draw Unicode box glyphs unless the mode is `"ascii"` |
+| `icons.mode` | `"auto"` | `"auto"`, `"nerd"`, `"unicode"`, or `"ascii"`; see [Icons](#icons). `"ascii"` also draws every pi-fast-tui surface in ASCII; the other modes keep Unicode frames and punctuation |
 | `thinkingPeek.lines` | `1` | `0` (off), `1`, or `2`; visible while Pi's Hide thinking setting is on and reasoning is streamed |
 | `toolView.mode` | `"cards"` | `"cards"`, `"compact"`, or `"native"`; selected when Pi creates each tool row |
 | `toolView.extensionTools` | `false` | In compact mode, includes extension, MCP, and replacement tools |
@@ -65,7 +65,7 @@ The working indicator, cursor style, completion list, and mouse positions work w
 
 ### Popup menus
 
-`popupMenus` (**Appearance → Editor → Popup menus**) shows Pi's settings, model (`/model` and ctrl+l), scoped-models, and thinking-level menus, plus `/fast-tui`, as a centered popup over the conversation. The popup is 70% of the terminal width, kept between 76 and 100 columns, and at most 85% of its height. Its background is black on dark themes and white on light ones (the theme's `userMessageBg` when the theme reports no appearance), and it has a thin border in the theme's `borderAccent` color of one-eighth blocks (`▁ ▔ ▕ ▏`) in the unfilled cells around the panel, each hugging the edge that touches the fill, so the line sits right against the filled area with no empty band and no fill past it (corner cells stay blank, leaving a one-eighth notch), the menu title on the left and `esc` on the right, and two columns of padding; in terminals shorter than 19 rows the blank padding rows are dropped. Pi's own rules around the menu are removed; the menu items, search, and keys are Pi's. The input box stays mounted behind the popup. Toggling the option applies to the next menu opened. Non-boolean values fall back to `true`. Independently of this option, the model selector closes on its own opening key (`app.model.select`, ctrl+l by default), just like `esc`.
+`popupMenus` (**Appearance → Editor → Popup menus**) shows Pi's settings, model (`/model` and ctrl+l), scoped-models, and thinking-level menus, plus `/fast-tui`, as a centered popup over the conversation. The popup is 70% of the terminal width, kept between 76 and 100 columns, and at most 85% of its height. Its background is black on dark themes and white on light ones (the theme's `userMessageBg` when the theme reports no appearance), and it has a thin border in the theme's `borderAccent` color of one-eighth blocks (`▁ ▔ ▕ ▏`) in the unfilled cells around the panel, each hugging the edge that touches the fill, so the line sits right against the filled area with no empty band and no fill past it (corner cells stay blank, leaving a one-eighth notch; with `icons.mode` set to `ascii` the border is a plain `+`, `-`, `|` box instead), the menu title on the left and `esc` on the right, and two columns of padding; in terminals shorter than 19 rows the blank padding rows are dropped. Pi's own rules around the menu are removed; the menu items, search, and keys are Pi's. The input box stays mounted behind the popup. Toggling the option applies to the next menu opened. Non-boolean values fall back to `true`. Independently of this option, the model selector closes on its own opening key (`app.model.select`, ctrl+l by default), just like `esc`.
 
 ### Footer options
 
@@ -117,6 +117,8 @@ The footer's live-speed estimate has its own `footerSegments.liveTps` switch. Se
 | `unicode` | Portable Unicode symbols; emoji use the terminal's own fallback font |
 | `ascii` | Plain-text symbols |
 
+With `ascii`, everything pi-fast-tui draws stays within ASCII: the footer (token counts read `i`/`o`, separators ` | `, ellipses `...`), turn telemetry, tool cards and compact rows (`+`, `-`, `|` frames, `x` for failures, a `| / - \` spinner), popup borders (`+`, `-`, `|`), the Copy code frame, the header (frame, tips divider, a logo of `#` cells), the `/fast-tui` dialog (the `>` selection marker, `-` section rules, and arrows named `Up/Down`, `Left/Right` in the key hint), and the thinking peek. Switching the mode redraws the transcript at once. Two things are not covered: the editor frame follows `editorShape` (pick `ascii` there for an ASCII input box), and content drawn by Pi or returned by tools (model output, file contents, Pi's own menus and the `Language / 语言` row) is shown unchanged.
+
 Auto detection does not inspect installed fonts. Configure a Nerd Font in the terminal profile or choose `unicode`/`ascii` if symbols are missing. If the SSH client terminal has a Nerd Font, select `nerd` explicitly.
 
 For wide Nerd glyphs that consume the gap before a label, enable **Footer → Other → Extra space after Nerd icons** (`footerSegments.nerdIconSpacing`). This affects regular and inline footers; Unicode/ASCII icons and compact Git flags are unchanged. In Kitty, `narrow_symbols U+E000-U+F8FF 1` in `kitty.conf` is an alternative.
@@ -156,7 +158,7 @@ Tab/Shift+Tab 切页，↑/↓ 或 Page Up/Page Down 移动，→（或 Enter/Sp
 | `cursorStyle` | `"block"` | `"block"`、`"bar"` 或 `"underline"`，后两种需要终端支持光标形状控制 |
 | `editorShape` | `"rounded"` | `"rounded"`、`"square"`、`"heavy"`、`"double"`、`"ascii"`、`"native"`、`"claude"`、`"rule"` 或 `"opencode"`，见[输入框样式](#输入框样式) |
 | `popupMenus` | `true` | 以居中弹窗打开 `/settings`、`/model`（ctrl+l）、`/scoped-models`、思考等级选择器和 `/fast-tui`，见[弹出式菜单](#弹出式菜单) |
-| `icons.mode` | `"auto"` | `"auto"`、`"nerd"`、`"unicode"` 或 `"ascii"`，见[图标](#图标)。除 `"ascii"` 外，卡片使用 Unicode 边框字符 |
+| `icons.mode` | `"auto"` | `"auto"`、`"nerd"`、`"unicode"` 或 `"ascii"`，见[图标](#图标)。`"ascii"` 还会让 pi-fast-tui 绘制的所有界面只使用 ASCII 字符；其他模式保留 Unicode 边框与标点 |
 | `thinkingPeek.lines` | `1` | `0`（关闭）、`1` 或 `2`；Pi 开启 Hide thinking 且模型输出推理时可见 |
 | `toolView.mode` | `"cards"` | `"cards"`、`"compact"` 或 `"native"`，每条工具行创建时确定 |
 | `toolView.extensionTools` | `false` | 紧凑模式下包含扩展、MCP 和替换内置工具的扩展 |
@@ -184,7 +186,7 @@ Tab/Shift+Tab 切页，↑/↓ 或 Page Up/Page Down 移动，→（或 Enter/Sp
 
 ### 弹出式菜单
 
-`popupMenus`（**外观 → 输入框 → 弹出式菜单**）让 Pi 的设置、模型（`/model` 与 ctrl+l）、作用域模型和思考等级菜单，以及 `/fast-tui`，以居中弹窗显示在对话上方。弹窗宽度为终端宽度的 70%，限制在 76 到 100 列之间，高度最多为终端高度的 85%。深色主题下背景为黑色，浅色主题下为白色（主题未声明明暗时使用 `userMessageBg`），带主题 `borderAccent` 颜色、由八分之一方块（`▁ ▔ ▕ ▏`）组成的细边框，画在面板外侧未填充的单元格中并紧贴填充区域的边缘，因此边框线与填充之间没有空白带，填充也不会越过边框线（角落单元格留空，只留下八分之一的缺口），首行左侧为菜单标题、右侧为 `esc`，左右各留两列内边距；终端少于 19 行时省略空白留白行。菜单周围的 Pi 横线会被移除，菜单项、搜索和按键仍由 Pi 处理。输入框在弹窗后方保持挂载。切换该选项后，从下一次打开的菜单开始生效。非布尔值回退为 `true`。无论该选项是否开启，模型选择器都可以用打开它的按键（`app.model.select`，默认 ctrl+l）关闭，效果与 `esc` 相同。
+`popupMenus`（**外观 → 输入框 → 弹出式菜单**）让 Pi 的设置、模型（`/model` 与 ctrl+l）、作用域模型和思考等级菜单，以及 `/fast-tui`，以居中弹窗显示在对话上方。弹窗宽度为终端宽度的 70%，限制在 76 到 100 列之间，高度最多为终端高度的 85%。深色主题下背景为黑色，浅色主题下为白色（主题未声明明暗时使用 `userMessageBg`），带主题 `borderAccent` 颜色、由八分之一方块（`▁ ▔ ▕ ▏`）组成的细边框，画在面板外侧未填充的单元格中并紧贴填充区域的边缘，因此边框线与填充之间没有空白带，填充也不会越过边框线（角落单元格留空，只留下八分之一的缺口；`icons.mode` 为 `ascii` 时改为 `+`、`-`、`|` 组成的普通边框），首行左侧为菜单标题、右侧为 `esc`，左右各留两列内边距；终端少于 19 行时省略空白留白行。菜单周围的 Pi 横线会被移除，菜单项、搜索和按键仍由 Pi 处理。输入框在弹窗后方保持挂载。切换该选项后，从下一次打开的菜单开始生效。非布尔值回退为 `true`。无论该选项是否开启，模型选择器都可以用打开它的按键（`app.model.select`，默认 ctrl+l）关闭，效果与 `esc` 相同。
 
 ### 底栏选项
 
@@ -235,6 +237,8 @@ Tab/Shift+Tab 切页，↑/↓ 或 Page Up/Page Down 移动，→（或 Enter/Sp
 | `nerd` | 始终使用 Nerd Font 字形 |
 | `unicode` | 可移植 Unicode 图标，emoji 使用终端自身的回退字体 |
 | `ascii` | 纯文本图标 |
+
+使用 `ascii` 时，pi-fast-tui 绘制的所有内容都只使用 ASCII 字符：底栏（令牌数显示为 `i`/`o`，分隔符为 ` | `，省略号为 `...`）、回合遥测、工具卡片与紧凑行（`+`、`-`、`|` 边框，失败用 `x`，旋转指示为 `| / - \`）、弹窗边框（`+`、`-`、`|`）、复制按钮的代码框、顶栏（边框、提示分隔线、由 `#` 组成的标志）、`/fast-tui` 对话框（选中标记 `>`、`-` 分节线，按键提示中的方向键写作 `Up/Down`、`Left/Right`）以及思考预览。切换模式后记录会立即重绘。以下内容不受影响：输入框边框跟随 `editorShape`（需要 ASCII 输入框时请在那里选择 `ascii`）；由 Pi 绘制或由工具返回的内容（模型输出、文件内容、Pi 自身的菜单以及 `Language / 语言` 行）原样显示。
 
 自动检测不会检查已安装字体。图标缺失时，请在终端配置中选中 Nerd Font，或切换到 `unicode`/`ascii`。SSH 客户端终端已配置 Nerd Font 时，可显式选择 `nerd`。
 
