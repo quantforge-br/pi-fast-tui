@@ -93,7 +93,7 @@ Footer token and cost totals include assistant responses, tool-reported usage, c
 | `native` | Pi's own top and bottom rules, no side rails |
 | `claude` | Top and bottom rules with a `❯ ` prompt on the first line |
 | `rule` | Top rule only, with the `❯ ` prompt; scroll indicators move to that rule |
-| `opencode` | Filled panel with a `▎` accent rail: a padding row with the working indicator, the text, a blank row, and a model · provider · thinking row, closed by a half-height row that leaves a small gap before the footer |
+| `opencode` | Filled panel with a `▌` accent rail: a padding row with the working indicator, the text, a blank row, and a model · provider · thinking row, closed by a half-height row (the rail ends in `▘`) that leaves a small gap before the footer |
 
 The shapes were inspired by oh-my-pi's `composer.shape`. In `fast-tui.json` the key is `editorShape`. See the [configuration reference](./docs/configuration.md#editor-shapes) for details.
 

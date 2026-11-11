@@ -300,11 +300,11 @@ test("draws the opencode panel with a rail, padding and an info row", () => {
 
 	const lines = editor.render(30).map(stripAnsi);
 	assert.deepEqual(lines, [
-		`▎${" ".repeat(29)}`,
-		`▎ ${"first".padEnd(28)}`,
-		`▎ ${"second".padEnd(28)}`,
-		`▎${" ".repeat(29)}`,
-		`▎ ${"Opus 4.5 Anthropic · high".padEnd(28)}`,
+		`▌${" ".repeat(29)}`,
+		`▌ ${"first".padEnd(28)}`,
+		`▌ ${"second".padEnd(28)}`,
+		`▌${" ".repeat(29)}`,
+		`▌ ${"Opus 4.5 Anthropic · high".padEnd(28)}`,
 		" ".repeat(30),
 	]);
 	for (const line of lines) assert.equal(visibleWidth(line), 30);
@@ -320,9 +320,9 @@ test("fills the opencode panel background past embedded resets", () => {
 	editor.setText("x");
 
 	const lines = editor.render(20);
-	assert.equal(lines.at(-1), ` \x1b[38;5;236m${"▀".repeat(19)}\x1b[39m`, "the closing row is half panel, half gap");
+	assert.equal(lines.at(-1), `▘\x1b[38;5;236m${"▀".repeat(19)}\x1b[39m`, "the closing row is half panel, half gap");
 	for (const line of lines.slice(0, -1)) {
-		assert.ok(line.startsWith(`▎${open}`), JSON.stringify(line));
+		assert.ok(line.startsWith(`▌${open}`), JSON.stringify(line));
 		assert.ok(line.endsWith("\x1b[49m"), JSON.stringify(line));
 	}
 	assert.ok(lines.at(-2)!.includes(`a\x1b[0m${open}b`));
@@ -331,21 +331,21 @@ test("fills the opencode panel background past embedded resets", () => {
 test("puts the working indicator and scroll labels in the opencode padding row", () => {
 	const editor = createFastTuiEditor({ editorShape: "opencode" });
 	editor.setWorkingStatusIndicator({ renderInBorder: () => "◐ working", renderSpinnerInBorder: () => "◐" });
-	assert.match(stripAnsi(editor.render(40)[0] ?? ""), /^▎ +◐ working $/);
+	assert.match(stripAnsi(editor.render(40)[0] ?? ""), /^▌ +◐ working $/);
 
 	editor.setText(Array.from({ length: 30 }, (_, index) => `line ${index}`).join("\n"));
 	for (let i = 0; i < 12; i++) editor.handleInput("\x1b[A");
 	const lines = editor.render(60).map(stripAnsi);
-	assert.match(lines[0] ?? "", /^▎ +◐ working ↑ \d+ more ↓ \d+ more $/);
-	assert.ok(lines.slice(0, -1).every((line) => line.startsWith("▎") && visibleWidth(line) === 60));
+	assert.match(lines[0] ?? "", /^▌ +◐ working ↑ \d+ more ↓ \d+ more $/);
+	assert.ok(lines.slice(0, -1).every((line) => line.startsWith("▌") && visibleWidth(line) === 60));
 	assert.ok(!lines.some((line) => line.includes("─")));
 });
 
 test("embeds both inline footer lines in the opencode panel", () => {
 	const editor = createFastTuiEditor({ editorShape: "opencode", inlineFooter: inlineFooterStub });
 	const lines = editor.render(40).map(stripAnsi);
-	assert.match(lines[0] ?? "", /^▎ cwd +context $/);
-	assert.match(lines.at(-2) ?? "", /^▎ model +stats $/);
+	assert.match(lines[0] ?? "", /^▌ cwd +context $/);
+	assert.match(lines.at(-2) ?? "", /^▌ model +stats $/);
 	assert.equal(lines.at(-1), " ".repeat(40));
 });
 
@@ -363,7 +363,7 @@ test("leaves the opencode closing row blank without a 256-color or truecolor bac
 		assert.equal(stripAnsi(editor.render(20).at(-1) ?? ""), " ".repeat(20));
 	}
 	const truecolor = createFastTuiEditor({ editorShape: "opencode", panelBackground: () => "\x1b[48;2;33;59;73m" });
-	assert.equal(truecolor.render(20).at(-1), ` \x1b[38;2;33;59;73m${"▀".repeat(19)}\x1b[39m`);
+	assert.equal(truecolor.render(20).at(-1), `▘\x1b[38;2;33;59;73m${"▀".repeat(19)}\x1b[39m`);
 });
 
 test("maps clicks on the opencode info and closing rows to Pi's bottom rule", () => {

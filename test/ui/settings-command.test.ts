@@ -233,7 +233,7 @@ test("cycles editor shapes from the Appearance tab without remounting the editor
 		native: /^─/,
 		claude: /^─/,
 		rule: /^─/,
-		opencode: /^▎/,
+		opencode: /^▌/,
 	};
 
 	settings.component.handleInput("\t");

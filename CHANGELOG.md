@@ -5,6 +5,7 @@
 ### Changed
 
 - The `opencode` panel closes with a half-height row instead of a full empty row, so the gap before the footer is half a row.
+- The `opencode` rail is now a half block (`▌`) that ends in `▘` on the closing row, so it stops exactly where the panel background does.
 
 ## [0.3.2] - 2026-11-10
 

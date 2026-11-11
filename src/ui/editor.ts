@@ -378,8 +378,9 @@ function renderPanel(
 		: decoration.inlineFooter?.renderInfo?.(contentWidth) ?? ""));
 	const halfBlock = backgroundAsForeground(open);
 	const railWidth = visibleWidth(shape.glyphs.vertical);
+	const railEnd = shape.panelRailEnd ? decoration.editor.borderColor(shape.panelRailEnd) : " ".repeat(railWidth);
 	result.push(halfBlock
-		? `${" ".repeat(railWidth)}${halfBlock}${"▀".repeat(Math.max(0, width - railWidth))}\x1b[39m`
+		? `${railEnd}${halfBlock}${"▀".repeat(Math.max(0, width - railWidth))}\x1b[39m`
 		: " ".repeat(Math.max(0, width)));
 	return result;
 }
