@@ -26,6 +26,7 @@ pi-fast-tui merges two packages into one extension: [pi-open-tui](https://www.np
 - **Tool cards** in the oh-my-pi style for built-in tools, codemode scripts, MCP tools, and other extension tools (default)
 - **Compact tool view** with edit/write previews and optional support for extension and MCP tools, or Pi's **native** rows
 - **Fullscreen Copy buttons** for code blocks and user messages
+- **Popup menus** that open Pi's settings, model, scoped-models, and thinking menus (and `/fast-tui`) as a centered panel over the conversation
 - **Interactive settings** in English and Simplified Chinese through `/fast-tui`
 
 ## Requirements
@@ -71,6 +72,7 @@ Settings are stored in `fast-tui.json` inside Pi's agent directory (default: `~/
 | Tool view | General → Messages & tools | Cards |
 | Footer in editor border | General → Footer | Off |
 | Icons, cursor style, and input shape | Appearance | Auto icons, block cursor, rounded shape |
+| Popup menus | Appearance → Editor | On |
 | Footer fields and telemetry measurements | Footer / Telemetry | Individually configurable |
 
 **Tool view** cycles through Cards, Compact, and Native. Selecting Compact reveals **Compact extension tools** as a child setting; switching to another mode hides it and retains its value. The [configuration reference](./docs/configuration.md#english) contains the complete JSON defaults, every option, and tool exclusions.
@@ -98,6 +100,10 @@ Footer token and cost totals include assistant responses, tool-reported usage, c
 The shapes were inspired by oh-my-pi's `composer.shape`. In `fast-tui.json` the key is `editorShape`. See the [configuration reference](./docs/configuration.md#editor-shapes) for details.
 
 Enable **Footer in editor border** to move the two main rows into the editor's top and bottom borders. Extension status rows remain below the editor. Compatible editors keep their input behavior, completion, and ghost text; editors that cannot be framed retain a separate footer. The `rule` shape has no bottom border, so it also keeps the footer separate. The `opencode` shape puts the two rows in its padding and info rows instead. See [editor compatibility and layout](./docs/implementation.md#editor-and-layout) for the integration boundaries.
+
+## Popup menus
+
+With **Appearance → Editor → Popup menus** on (the default), `/settings`, `/model` and ctrl+l, `/scoped-models`, the thinking-level selector, and `/fast-tui` open as a centered popup instead of replacing the input box. The popup has a filled background (the theme's `userMessageBg`, the same color as the `opencode` input panel), a rounded border, the menu title on the left with `esc` on the right, and inner padding; Pi's horizontal rules inside the menu are dropped. The input box stays visible behind it, keys work as before, and in fullscreen mode the mouse works inside the popup. Other Pi menus (resume, tree, fork, login, and so on) keep their usual place. Turn the option off to get Pi's inline menus back; the change applies to the next menu you open. In `fast-tui.json` the key is `popupMenus`. See [popup menus](./docs/implementation.md#popup-menus) for how the menus are intercepted.
 
 ## Turn telemetry
 

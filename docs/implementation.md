@@ -89,6 +89,10 @@ Recognized `@ff-labs/pi-fff` installations use search summaries. `ffgrep` and `f
 
 Recognition checks Pi's npm source metadata, the installed npm entry path, or the official `dmtrKovalenko/fff` GitHub source with its `packages/pi-fff/src/index.ts` entry point. Unrecognized sources or result metadata use the generic summary. Expansion preserves FFF's native output and its existing line-length limits.
 
+### Popup menus
+
+[popup-menus.ts](../src/ui/popup-menus.ts) patches `clear` and `addChild` on the container that holds Pi's editor. Pi opens a menu by clearing that container, adding the menu, and focusing it; it closes the menu by clearing again and re-adding the editor. When `popupMenus` is on and the added child is `SettingsSelectorComponent`, `ModelSelectorComponent`, `ScopedModelsSelectorComponent`, or `ThinkingSelectorComponent` (matched by class name), the editor is put back and the menu is shown in a centered, non-capturing overlay, so Pi's own focus call still lands on the menu. The next `clear` hides the overlay. Any other child, a missing container, or a TUI without overlays keeps Pi's inline behavior. [popup-panel.ts](../src/ui/popup-panel.ts) draws the panel: border, title and `esc` row, padding, Pi's `─` rules dropped, a repeated title row dropped, the background re-opened after SGR resets, and mouse rows mapped back to the menu's own rows. `/fast-tui` uses the same panel through its extension overlay options. Cleanup restores the container methods only while fast-tui still owns them.
+
 ### Copy-button behavior
 
 [copy-buttons.ts](../src/ui/copy-buttons.ts) decorates Markdown code blocks and user messages in fullscreen mode. At a code block's rendering width below 8 columns, native fences are retained; from 8 through 15 columns, the frame has no label. A completed block can show `[Copy]` from 16 columns. Long code lines wrap inside the frame. The top/bottom borders replace the fence rows, and the label adds no extra row. Thinking blocks retain native fences; streaming blocks have a frame without a label.
@@ -185,6 +189,10 @@ Agent 运行期间，工作计时器每 250 毫秒请求一次重绘。Git 和�
 识别到的 `@ff-labs/pi-fff` 安装使用搜索摘要：`ffgrep` 和 `fff-multi-grep` 显示当前页匹配数，`fffind` 显示总匹配文件数，也适用于 FFF 的 `grep`/`find`/`multi_grep` 替换名称。摘要保留分页、模糊搜索、正则转字面搜索和弱匹配限制提示；索引文件总数不会当作命中数。
 
 识别依据是 Pi 的 npm 来源元数据、已安装 npm 包的入口路径，或官方 `dmtrKovalenko/fff` GitHub 来源及其 `packages/pi-fff/src/index.ts` 入口。来源或结果元数据无法识别时使用通用摘要；展开保留 FFF 原生输出及其已有行长度限制。
+
+### 弹出式菜单
+
+[popup-menus.ts](../src/ui/popup-menus.ts) 修补承载 Pi 编辑器的容器的 `clear` 与 `addChild`。Pi 打开菜单时会清空该容器、加入菜单并聚焦；关闭时再次清空并重新加入编辑器。开启 `popupMenus` 且加入的子组件为 `SettingsSelectorComponent`、`ModelSelectorComponent`、`ScopedModelsSelectorComponent` 或 `ThinkingSelectorComponent`（按类名匹配）时，编辑器会被放回，菜单显示在居中的非捕获浮层中，因此 Pi 自己的聚焦调用仍落在菜单上；下一次 `clear` 会隐藏浮层。其他子组件、找不到容器或 TUI 不支持浮层时，保持 Pi 原有的内嵌行为。[popup-panel.ts](../src/ui/popup-panel.ts) 负责绘制面板：边框、标题与 `esc` 行、内边距，移除 Pi 的 `─` 横线和重复的标题行，在 SGR 重置后重新打开背景，并把鼠标行映射回菜单自身的行。`/fast-tui` 通过扩展浮层选项使用同一面板。清理时仅在方法仍归 fast-tui 所有时恢复容器方法。
 
 ### 复制按钮行为
 

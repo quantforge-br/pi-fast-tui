@@ -36,6 +36,7 @@ Tab/Shift+Tab or ←/→ switches tabs; ↑/↓ or Page Up/Page Down moves betwe
 | `settingsLanguage` | `"en"` | `"en"` or `"zh"`; changes the settings interface language |
 | `cursorStyle` | `"block"` | `"block"`, `"bar"`, or `"underline"`; the latter two need terminal cursor-shape support |
 | `editorShape` | `"rounded"` | `"rounded"`, `"square"`, `"heavy"`, `"double"`, `"ascii"`, `"native"`, `"claude"`, `"rule"`, or `"opencode"`; see [Editor shapes](#editor-shapes) |
+| `popupMenus` | `true` | Opens `/settings`, `/model` (ctrl+l), `/scoped-models`, the thinking selector, and `/fast-tui` as a centered popup; see [Popup menus](#popup-menus) |
 | `icons.mode` | `"auto"` | `"auto"`, `"nerd"`, `"unicode"`, or `"ascii"`; see [Icons](#icons). Cards draw Unicode box glyphs unless the mode is `"ascii"` |
 | `thinkingPeek.lines` | `1` | `0` (off), `1`, or `2`; visible while Pi's Hide thinking setting is on and reasoning is streamed |
 | `toolView.mode` | `"cards"` | `"cards"`, `"compact"`, or `"native"`; selected when Pi creates each tool row |
@@ -61,6 +62,10 @@ For example, `"toolView": { "mode": "compact", "extensionTools": true, "exclude"
 | `"opencode"` | `▌` accent rail ending in `▘`, no rules | Filled panel (theme `userMessageBg`): padding row with the working indicator and scroll indicators on the right, the text, a blank row, and an info row with model, provider, and thinking level; a closing row of `▀` half blocks in the panel color adds half a row of padding and leaves half a row of space before the footer (blank when the theme background is not a 256-color or truecolor value) |
 
 The working indicator, cursor style, completion list, and mouse positions work with every shape. **Footer in editor border** needs a bottom border, so with `"rule"` the footer stays in its separate rows even when `inlineFooter` is `true`. With `"opencode"`, the footer's first row moves into the padding row and its second row replaces the model info row. Unknown values fall back to `"rounded"`.
+
+### Popup menus
+
+`popupMenus` (**Appearance → Editor → Popup menus**) shows Pi's settings, model (`/model` and ctrl+l), scoped-models, and thinking-level menus, plus `/fast-tui`, as a centered popup over the conversation. The popup is 70% of the terminal width, kept between 60 and 100 columns, and at most 85% of its height. It uses the theme's `userMessageBg` as background (no fill when the theme has none), a rounded border, the menu title on the left and `esc` on the right, and two columns of padding; in terminals shorter than 19 rows the blank padding rows are dropped. Pi's own rules around the menu are removed; the menu items, search, and keys are Pi's. The input box stays mounted behind the popup. Toggling the option applies to the next menu opened. Non-boolean values fall back to `true`.
 
 ### Footer options
 
@@ -150,6 +155,7 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | `settingsLanguage` | `"en"` | `"en"` 或 `"zh"`，控制设置界面的语言 |
 | `cursorStyle` | `"block"` | `"block"`、`"bar"` 或 `"underline"`，后两种需要终端支持光标形状控制 |
 | `editorShape` | `"rounded"` | `"rounded"`、`"square"`、`"heavy"`、`"double"`、`"ascii"`、`"native"`、`"claude"`、`"rule"` 或 `"opencode"`，见[输入框样式](#输入框样式) |
+| `popupMenus` | `true` | 以居中弹窗打开 `/settings`、`/model`（ctrl+l）、`/scoped-models`、思考等级选择器和 `/fast-tui`，见[弹出式菜单](#弹出式菜单) |
 | `icons.mode` | `"auto"` | `"auto"`、`"nerd"`、`"unicode"` 或 `"ascii"`，见[图标](#图标)。除 `"ascii"` 外，卡片使用 Unicode 边框字符 |
 | `thinkingPeek.lines` | `1` | `0`（关闭）、`1` 或 `2`；Pi 开启 Hide thinking 且模型输出推理时可见 |
 | `toolView.mode` | `"cards"` | `"cards"`、`"compact"` 或 `"native"`，每条工具行创建时确定 |
@@ -175,6 +181,10 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | `"opencode"` | `▌` 强调竖条（末端为 `▘`），无横线 | 填充背景面板（主题 `userMessageBg`）：顶部留白行右侧显示工作指示和滚动提示，然后是文本、空行，以及显示模型、提供商和思考等级的信息行；最后一行用面板颜色的 `▀` 半格字符收尾，留出半行内边距，并与底栏隔开半行（主题背景不是 256 色或真彩色时为空行） |
 
 工作指示、光标样式、补全列表和鼠标位置在所有样式下均正常工作。**底栏嵌入输入框**需要下边框，因此 `"rule"` 样式下即使 `inlineFooter` 为 `true`，底栏仍独立显示。`"opencode"` 样式会把底栏第一行放进顶部留白行，第二行替换模型信息行。未知值回退为 `"rounded"`。
+
+### 弹出式菜单
+
+`popupMenus`（**外观 → 输入框 → 弹出式菜单**）让 Pi 的设置、模型（`/model` 与 ctrl+l）、作用域模型和思考等级菜单，以及 `/fast-tui`，以居中弹窗显示在对话上方。弹窗宽度为终端宽度的 70%，限制在 60 到 100 列之间，高度最多为终端高度的 85%。背景使用主题的 `userMessageBg`（主题没有该颜色时不填充），带圆角边框，首行左侧为菜单标题、右侧为 `esc`，左右各留两列内边距；终端少于 19 行时省略空白留白行。菜单周围的 Pi 横线会被移除，菜单项、搜索和按键仍由 Pi 处理。输入框在弹窗后方保持挂载。切换该选项后，从下一次打开的菜单开始生效。非布尔值回退为 `true`。
 
 ### 底栏选项
 
@@ -245,6 +255,7 @@ The complete default configuration is shared by both language references. Set `s
   "settingsLanguage": "en",
   "cursorStyle": "block",
   "editorShape": "rounded",
+  "popupMenus": true,
   "icons": {
     "mode": "auto"
   },
