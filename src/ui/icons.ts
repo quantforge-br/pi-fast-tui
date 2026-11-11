@@ -152,31 +152,25 @@ const UNICODE_GLYPHS: IconGlyphs = {
 	toolError: "✘",
 };
 
-function isSshSession(): boolean {
-	return Boolean(process.env.SSH_TTY || process.env.SSH_CONNECTION);
-}
-
-export function detectNerdFont(): boolean {
-	// TTY and locale checks are the only reliable signals available here. The
-	// terminal emulator owns font selection, so auto mode is optimistic once
-	// output is an interactive UTF-8 TTY.
+/** Whether output is an interactive UTF-8 terminal; says nothing about its font. */
+export function detectUnicodeTerminal(): boolean {
+	// TTY and locale are the only signals available here. An unset locale
+	// passes, as most terminals default to UTF-8.
 	if (process.env.TERM === "dumb" || process.stdout.isTTY !== true) return false;
 	const locale = [process.env.LC_ALL, process.env.LC_CTYPE, process.env.LANG].find(Boolean);
 	return locale === undefined || /utf-?8/i.test(locale);
 }
 
+/** `auto` resolves to "unicode" or "ascii"; only an explicit "nerd" yields "nerd". */
 export function resolveIconMode(mode: IconMode): "nerd" | "unicode" | "ascii" {
 	if (mode === "nerd") return "nerd";
 	if (mode === "ascii") return "ascii";
 	if (mode === "unicode") return "unicode";
-	if (!detectNerdFont()) return "ascii";
-	// Auto cannot know whether the terminal that renders this session ships a
-	// Nerd Font (see #38). Local terminals usually do; SSH clients usually do
-	// not, because the font lives on the client device, so portable Unicode
-	// symbols are the safer default there. Terminals that do have a Nerd Font
-	// can opt back in with an explicit icons.mode of "nerd".
-	if (isSshSession()) return "unicode";
-	return "nerd";
+	// Auto never picks the Nerd Font set: the font belongs to the terminal that
+	// draws the session, locally or over SSH, and cannot be seen from here. Its
+	// private-use glyphs show as boxes without the font, so Nerd is an explicit
+	// opt-in and auto settles on portable Unicode symbols.
+	return detectUnicodeTerminal() ? "unicode" : "ascii";
 }
 
 export function resolveGlyphs(mode: IconMode): IconGlyphs {

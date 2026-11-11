@@ -41,9 +41,9 @@ pi -e npm:pi-fast-tui
 
 ## Font and icons
 
-For the full icon set, install a [Nerd Font](https://www.nerdfonts.com/font-downloads), select it in your terminal profile, and restart the terminal. Installing the font in the OS alone is not enough for apps such as VS Code or Windows Terminal.
+For the full icon set, install a [Nerd Font](https://www.nerdfonts.com/font-downloads), select it in your terminal profile, restart the terminal, and set **Appearance → Icons** to `nerd`. Installing the font in the OS alone is not enough for apps such as VS Code or Windows Terminal.
 
-In `/fast-tui`, **Appearance → Icons** offers `auto`, `nerd`, `unicode`, and `ascii`. The default `auto` mode checks the terminal environment, not the installed font. If icons appear as boxes, choose `unicode`; if your terminal has a Nerd Font, you can force `nerd`, including over SSH. `ascii` draws everything pi-fast-tui renders (footer, telemetry, cards, popups, header, settings dialog, thinking peek) in plain ASCII; the input box follows its own shape setting.
+In `/fast-tui`, **Appearance → Icons** offers `auto`, `nerd`, `unicode`, and `ascii`. The default `auto` mode uses Unicode symbols on UTF-8 terminals and ASCII elsewhere; it cannot see the terminal's font, so it never picks Nerd Font icons. If you have a Nerd Font, choose `nerd`. `ascii` draws everything pi-fast-tui renders (footer, telemetry, cards, popups, header, settings dialog, thinking peek) in plain ASCII; the input box follows its own shape setting.
 
 See [icon detection and spacing](./docs/configuration.md#icons) for automatic selection rules and the Kitty spacing option.
 

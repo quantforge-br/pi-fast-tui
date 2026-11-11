@@ -16,6 +16,7 @@ import {
 } from "@earendil-works/pi-tui";
 import { EDITOR_SHAPES, type CursorStyle, type IconMode, type FastTuiConfig, type SettingsLanguage, type ThinkingPeekLines, type ToolViewMode } from "./config.ts";
 import { BOX, cardGlyphMode, TEXT } from "../cards/symbols.ts";
+import { resolveIconMode } from "./icons.ts";
 import { popupMaxRows, popupOverlayOptions, popupPanelOptions } from "./popup-menus.ts";
 import { popupChromeRows, PopupPanel } from "./popup-panel.ts";
 
@@ -111,6 +112,7 @@ const COPY = {
 				opencode: "OpenCode",
 			},
 			icons: { auto: "Auto", nerd: "Nerd", unicode: "Unicode", ascii: "ASCII" },
+			iconsAuto: "Auto ({set})",
 		},
 	},
 	zh: {
@@ -185,6 +187,7 @@ const COPY = {
 				opencode: "OpenCode",
 			},
 			icons: { auto: "自动", nerd: "Nerd", unicode: "Unicode", ascii: "ASCII" },
+			iconsAuto: "自动（{set}）",
 		},
 	},
 } as const;
@@ -285,11 +288,17 @@ function buildFeaturesItems(config: FastTuiConfig, copy: SettingsCopy): SettingG
 	];
 }
 
+/** The icon mode, with the set `auto` resolved to: `Auto (Unicode)`. */
+function formatIconMode(mode: IconMode, copy: SettingsCopy): string {
+	if (mode !== "auto") return copy.values.icons[mode];
+	return copy.values.iconsAuto.replace("{set}", copy.values.icons[resolveIconMode(mode)]);
+}
+
 function buildIconsItems(config: FastTuiConfig, copy: SettingsCopy): SettingGroup[] {
 	return [
 		{
 			label: copy.sections.icons,
-			items: [{ id: "mode", label: copy.labels.iconMode, currentValue: copy.values.icons[config.icons.mode] }],
+			items: [{ id: "mode", label: copy.labels.iconMode, currentValue: formatIconMode(config.icons.mode, copy) }],
 		},
 		{
 			label: copy.sections.editor,

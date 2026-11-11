@@ -112,14 +112,14 @@ The footer's live-speed estimate has its own `footerSegments.liveTps` switch. Se
 
 | `icons.mode` | Selection |
 | --- | --- |
-| `auto` | ASCII when stdout is not a TTY, `TERM=dumb`, or the first configured locale (`LC_ALL`, `LC_CTYPE`, `LANG`) is not UTF-8. Otherwise Unicode when `SSH_TTY` or `SSH_CONNECTION` is set, and Nerd Font locally. An unset locale passes the UTF-8 check |
-| `nerd` | Always use Nerd Font glyphs |
+| `auto` | ASCII when stdout is not a TTY, `TERM=dumb`, or the first configured locale (`LC_ALL`, `LC_CTYPE`, `LANG`) is not UTF-8. Otherwise Unicode, locally and over SSH. Auto never picks the Nerd Font set; the `/fast-tui` Icons row shows what it resolved to, such as `Auto (Unicode)`. An unset locale passes the UTF-8 check |
+| `nerd` | Always use Nerd Font glyphs; the only way to get them |
 | `unicode` | Portable Unicode symbols; emoji use the terminal's own fallback font |
 | `ascii` | Plain-text symbols |
 
 With `ascii`, or `auto` when it falls back to ASCII, everything pi-fast-tui draws stays within ASCII: the footer (token counts read `i`/`o`, separators ` | `, ellipses `...`), turn telemetry, tool cards and compact rows (`+`, `-`, `|` frames, `x` for failures, a `| / - \` spinner), popup borders (`+`, `-`, `|`), the Copy code frame, the header (frame, tips divider, a logo of `#` cells), the `/fast-tui` dialog (the `>` selection marker, `-` section rules, and arrows named `Up/Down`, `Left/Right` in the key hint), and the thinking peek. Switching the mode redraws the transcript at once. Two things are not covered: the editor frame follows `editorShape` (pick `ascii` there for an ASCII input box), and content drawn by Pi or returned by tools (model output, file contents, Pi's own menus and the `Language / 语言` row) is shown unchanged.
 
-Auto detection does not inspect installed fonts. Configure a Nerd Font in the terminal profile or choose `unicode`/`ascii` if symbols are missing. If the SSH client terminal has a Nerd Font, select `nerd` explicitly.
+Auto detection cannot see the terminal's font, so it does not assume a Nerd Font. If your terminal profile uses one, select `nerd`. If the Unicode emoji are missing or misaligned, choose `ascii`.
 
 For wide Nerd glyphs that consume the gap before a label, enable **Footer → Other → Extra space after Nerd icons** (`footerSegments.nerdIconSpacing`). This affects regular and inline footers; Unicode/ASCII icons and compact Git flags are unchanged. In Kitty, `narrow_symbols U+E000-U+F8FF 1` in `kitty.conf` is an alternative.
 
@@ -233,14 +233,14 @@ Tab/Shift+Tab 切页，↑/↓ 或 Page Up/Page Down 移动，→（或 Enter/Sp
 
 | `icons.mode` | 选择规则 |
 | --- | --- |
-| `auto` | stdout 不是 TTY、`TERM=dumb`，或首个已设置的 locale（依次为 `LC_ALL`、`LC_CTYPE`、`LANG`）不是 UTF-8 时使用 ASCII。否则，存在 `SSH_TTY` 或 `SSH_CONNECTION` 时使用 Unicode，本地使用 Nerd Font。未设置 locale 时通过 UTF-8 检查 |
-| `nerd` | 始终使用 Nerd Font 字形 |
+| `auto` | stdout 不是 TTY、`TERM=dumb`，或首个已设置的 locale（依次为 `LC_ALL`、`LC_CTYPE`、`LANG`）不是 UTF-8 时使用 ASCII。否则在本地和 SSH 下都使用 Unicode。自动模式从不选择 Nerd Font 图标；`/fast-tui` 的图标行会显示实际结果，例如 `自动（Unicode）`。未设置 locale 时通过 UTF-8 检查 |
+| `nerd` | 始终使用 Nerd Font 字形；这是获得它们的唯一方式 |
 | `unicode` | 可移植 Unicode 图标，emoji 使用终端自身的回退字体 |
 | `ascii` | 纯文本图标 |
 
 使用 `ascii`，或 `auto` 回退为 ASCII 时，pi-fast-tui 绘制的所有内容都只使用 ASCII 字符：底栏（令牌数显示为 `i`/`o`，分隔符为 ` | `，省略号为 `...`）、回合遥测、工具卡片与紧凑行（`+`、`-`、`|` 边框，失败用 `x`，旋转指示为 `| / - \`）、弹窗边框（`+`、`-`、`|`）、复制按钮的代码框、顶栏（边框、提示分隔线、由 `#` 组成的标志）、`/fast-tui` 对话框（选中标记 `>`、`-` 分节线，按键提示中的方向键写作 `Up/Down`、`Left/Right`）以及思考预览。切换模式后记录会立即重绘。以下内容不受影响：输入框边框跟随 `editorShape`（需要 ASCII 输入框时请在那里选择 `ascii`）；由 Pi 绘制或由工具返回的内容（模型输出、文件内容、Pi 自身的菜单以及 `Language / 语言` 行）原样显示。
 
-自动检测不会检查已安装字体。图标缺失时，请在终端配置中选中 Nerd Font，或切换到 `unicode`/`ascii`。SSH 客户端终端已配置 Nerd Font 时，可显式选择 `nerd`。
+自动检测无法得知终端使用的字体，因此不会假定已安装 Nerd Font。终端配置使用 Nerd Font 时，请选择 `nerd`。Unicode 表情图标缺失或错位时，请选择 `ascii`。
 
 如果较宽的 Nerd Font 图标占用了标签前的间隔，可开启**底栏 → 其他 → Nerd 图标后额外留空**（`footerSegments.nerdIconSpacing`）。普通和内嵌底栏都适用，Unicode/ASCII 图标和紧凑 Git 状态标记不受影响。Kitty 用户也可在 `kitty.conf` 中设置 `narrow_symbols U+E000-U+F8FF 1`。
 

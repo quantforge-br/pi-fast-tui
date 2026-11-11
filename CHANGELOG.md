@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `icons.mode: auto` no longer assumes a Nerd Font: it picks Unicode symbols on UTF-8 terminals, locally and over SSH, so a default install no longer shows boxes for missing glyphs. Select **Appearance → Icons → Nerd** to get the Nerd Font icons back. The Icons row shows what Auto resolved to, such as `Auto (Unicode)`.
+
 ### Fixed
 
 - `icons.mode: auto` falling back to ASCII (stdout not a TTY, `TERM=dumb`, or a non-UTF-8 locale) now also draws cards, separators, popups, the header and the settings dialog in ASCII, instead of mixing ASCII footer icons with Unicode frames and punctuation.

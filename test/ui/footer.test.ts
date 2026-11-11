@@ -15,9 +15,9 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG } from "../../src/ui/config.ts";
 import { installFooter, renderModelInfo, shortHostname } from "../../src/ui/footer.ts";
 import type { FooterPosition, RegisteredFooterSegment } from "../../src/ui/footer-segments.ts";
-import type { LiveTps } from "../../src/ui/telemetry.ts";
+import { formatTurnTelemetry, type LiveTps } from "../../src/ui/telemetry.ts";
 import { emptyGitStatus, readGitStatus } from "../../src/ui/git.ts";
-import { detectNerdFont, resolveGlyphs, resolveIconMode, runtimeSymbol } from "../../src/ui/icons.ts";
+import { detectUnicodeTerminal, resolveGlyphs, resolveIconMode, runtimeSymbol } from "../../src/ui/icons.ts";
 import { clearRuntimeCache, readRuntimeInfo } from "../../src/ui/runtime.ts";
 import { getModelMeta, getUsageTotals, invalidateUsageCache, type FooterState } from "../../src/ui/state.ts";
 import {
@@ -476,10 +476,10 @@ test("auto gates Nerd icons by TTY and UTF-8 support", (t) => {
 
 		process.env.LANG = "C.UTF-8";
 		Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: true });
-		assert.equal(resolveIconMode("auto"), "nerd");
+		assert.equal(resolveIconMode("auto"), "unicode");
 
 		process.env.TERM_PROGRAM = "unknown-runner";
-		assert.equal(detectNerdFont(), true);
+		assert.equal(detectUnicodeTerminal(), true);
 
 		process.env.LANG = "C";
 		assert.equal(resolveIconMode("auto"), "ascii");
@@ -548,7 +548,7 @@ test("footer cost has a single dollar sign outside the Nerd Font set", () => {
 	assert.ok(stripAnsi(component.render(200)[1]!).endsWith(`| ${resolveGlyphs("nerd").cost}  $0.010`));
 });
 
-test("auto falls back to unicode icons for SSH sessions", (t) => {
+test("auto picks unicode icons on UTF-8 terminals, locally and over SSH, and never nerd", (t) => {
 	const envKeys = ["SSH_CONNECTION", "SSH_TTY", "TERM", "LC_ALL", "LC_CTYPE", "LANG"];
 	preserveEnvironment(t, envKeys);
 	const hadOwnIsTTY = Object.hasOwn(process.stdout, "isTTY");
@@ -560,14 +560,16 @@ test("auto falls back to unicode icons for SSH sessions", (t) => {
 		process.env.LANG = "C.UTF-8";
 		Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: true });
 
-		assert.equal(resolveIconMode("auto"), "nerd");
+		assert.equal(resolveIconMode("auto"), "unicode");
+		assert.equal(runtimeSymbol("nodejs", "auto"), "node");
 
 		process.env.SSH_CONNECTION = "10.0.0.2 51234 10.0.0.1 22";
 		process.env.SSH_TTY = "/dev/pts/4";
 		assert.equal(resolveIconMode("auto"), "unicode");
 
-		// Explicit modes win over the SSH heuristic.
+		// Only an explicit mode yields the Nerd Font set.
 		assert.equal(resolveIconMode("nerd"), "nerd");
+		assert.equal(runtimeSymbol("nodejs", "nerd"), "\uE718");
 		assert.equal(resolveIconMode("unicode"), "unicode");
 		assert.equal(resolveIconMode("ascii"), "ascii");
 	} finally {
@@ -1249,4 +1251,33 @@ test("footer truncation follows the glyph set's ellipsis and fits every width", 
 			}
 		}
 	}
+});
+
+test("the default auto icons on a local UTF-8 terminal draw no Nerd Font glyphs", (t) => {
+	preserveEnvironment(t, ["TERM", "LC_ALL", "LC_CTYPE", "LANG", "SSH_TTY", "SSH_CONNECTION"]);
+	const ownIsTTY = Object.hasOwn(process.stdout, "isTTY");
+	const isTTY = process.stdout.isTTY;
+	t.after(() => {
+		if (ownIsTTY) Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: isTTY });
+		else Reflect.deleteProperty(process.stdout, "isTTY");
+	});
+	for (const key of ["LC_ALL", "LC_CTYPE", "SSH_TTY", "SSH_CONNECTION"]) delete process.env[key];
+	process.env.TERM = "xterm-256color";
+	process.env.LANG = "en_US.UTF-8";
+	Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: true });
+
+	const privateUse = /[\uE000-\uF8FF]|[\u{F0000}-\u{10FFFF}]/u;
+	const { component, config } = footerFixture({
+		contextTokens: 250,
+		effort: "high",
+		state: { git: { ...emptyGitStatus(), branch: "main", modified: 1 }, runtime: { name: "nodejs", version: "24.6.0" }, workingSince: Date.now() },
+	});
+	config.icons.mode = DEFAULT_CONFIG.icons.mode;
+	assert.equal(config.icons.mode, "auto");
+	for (const line of component.render(160)) assert.doesNotMatch(stripAnsi(line), privateUse, line);
+	const telemetry = formatTurnTelemetry({
+		tps: 50, ttftMs: 200, totalMs: 900, inputTokens: 50, outputTokens: 20, cacheReadTokens: 5_000,
+		stallMs: 800, stallCount: 1, rateUsdPerMTokens: 4, generationMs: 700, totalTokens: 70, costUsd: 0.00028, measurementMs: 400,
+	}, theme, DEFAULT_CONFIG.telemetry, "auto");
+	assert.doesNotMatch(stripAnsi(telemetry), privateUse, telemetry);
 });

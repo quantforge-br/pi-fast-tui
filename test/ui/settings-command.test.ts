@@ -944,3 +944,37 @@ test("the ASCII glyph set draws every English tab in ASCII, except the language 
 	assert.match(settings.component.render(60).join("\n"), /Tab tabs \| Up\/Dn move \| Lt\/Rt change \| Esc close/);
 	assert.match(hint, /  -- \S.* -+\s*$/m, "section rules are drawn with -");
 });
+
+test("the Icons row names the set Auto resolved to, in both languages", async (t) => {
+	preserveEnvironment(t, ["TERM", "LC_ALL", "LC_CTYPE", "LANG", "SSH_TTY", "SSH_CONNECTION"]);
+	const ownIsTTY = Object.hasOwn(process.stdout, "isTTY");
+	const isTTY = process.stdout.isTTY;
+	t.after(() => {
+		if (ownIsTTY) Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: isTTY });
+		else Reflect.deleteProperty(process.stdout, "isTTY");
+	});
+	for (const key of ["LC_ALL", "LC_CTYPE", "SSH_TTY", "SSH_CONNECTION"]) delete process.env[key];
+	process.env.TERM = "xterm-256color";
+	const iconsRow = async (language: "en" | "zh") => {
+		const settings = await openSettings({ ...classicConfig(), settingsLanguage: language });
+		settings.press("\t");
+		return selectedLine(settings.component).trim();
+	};
+
+	process.env.LANG = "C.UTF-8";
+	Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: true });
+	assert.match(await iconsRow("en"), /Icon mode\s+Auto \(Unicode\)$/);
+	assert.match(await iconsRow("zh"), /图标模式\s+自动（Unicode）$/);
+
+	process.env.LANG = "C";
+	assert.match(await iconsRow("en"), /Icon mode\s+Auto \(ASCII\)$/);
+
+	// Cycling still goes Auto -> Nerd -> Unicode -> ASCII -> Auto.
+	const settings = await openSettings(classicConfig());
+	settings.press("\t");
+	for (const expected of ["nerd", "unicode", "ascii", "auto"]) {
+		settings.press("\x1b[C");
+		assert.equal(settings.getConfig().icons.mode, expected);
+	}
+	setCardGlyphMode("unicode");
+});
