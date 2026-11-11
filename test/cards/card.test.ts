@@ -2,7 +2,8 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type CardInput, createCardRenderers, hasTimer, TICK_MS } from "../../src/cards/card.ts";
 import { formatDuration } from "../../src/cards/format.ts";
-import { SPINNER_FRAMES } from "../../src/cards/symbols.ts";
+import { setCardGlyphMode, SPINNER_FRAMES } from "../../src/cards/symbols.ts";
+import { plain } from "./helpers.ts";
 import { draw, newRow, text } from "./row.ts";
 
 const inputs: CardInput[] = [];
@@ -18,11 +19,29 @@ const renderers = createCardRenderers((input) => {
 });
 
 afterEach(() => {
+	setCardGlyphMode("unicode");
 	vi.useRealTimers();
 	inputs.length = 0;
 });
 
 describe("merged card", () => {
+	it("redraws a settled card when the glyph set changes and caches it otherwise", () => {
+		const row = newRow({ value: "hi" });
+		row.argsComplete = true;
+		row.executionStarted = true;
+		row.isPartial = false;
+		row.result = { content: [text("hi")] };
+		draw(renderers, row);
+		const first = row.callComponent!.render(40);
+		expect(row.callComponent!.render(40)).toBe(first);
+		expect(first[0]).toContain("╭");
+		setCardGlyphMode("ascii");
+		const ascii = row.callComponent!.render(40);
+		expect(ascii).not.toBe(first);
+		expect(plain(ascii)).toMatch(/^ \+/);
+		expect(plain(ascii)).not.toContain("╭");
+	});
+
 	it("draws a pending card while arguments stream", () => {
 		const row = newRow({ value: "hel" });
 		const drawn = draw(renderers, row);

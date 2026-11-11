@@ -4,6 +4,7 @@ import type { Theme, ThemeColor, ToolRenderers } from "@earendil-works/pi-coding
 import { type Component, Container, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import { type CardState, type FrameSection, frameContentWidth, renderFrame, stateBg } from "./frame.ts";
 import { renderStatusLine, type StatusIcon, type StatusLineOptions } from "./status-line.ts";
+import { cardGlyphEpoch } from "./symbols.ts";
 
 /** A tool result as the card reads it. */
 export interface CardResult {
@@ -250,7 +251,7 @@ class Card implements Component {
 		const phase = phaseOf(view, state.result);
 		const running = phase === "running" && state.interval !== undefined;
 		const frame = running ? Math.floor(Date.now() / TICK_MS) : 0;
-		const key = `${width}:${state.version}:${frame}`;
+		const key = `${width}:${state.version}:${frame}:${cardGlyphEpoch()}`;
 		if (key === this.cacheKey) return this.cache;
 
 		const pad = Math.max(0, Math.min(view.outputPad, Math.floor((width - 1) / 2)));

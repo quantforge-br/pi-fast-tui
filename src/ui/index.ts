@@ -448,7 +448,12 @@ export default function (pi: ExtensionAPI, options: SetupUiOptions = {}) {
 					: "fast-tui settings apply for this session but could not be saved. Check configuration directory permissions and free space.", "warning");
 			}
 			config = newConfig;
-			setCardGlyphMode(config.icons.mode === "ascii" ? "ascii" : "unicode");
+			if (setCardGlyphMode(config.icons.mode === "ascii" ? "ascii" : "unicode")) {
+				// Settled cards and compact rows cache their lines; redraw the transcript with the new glyphs.
+				const tui = editor?.getTui();
+				tui?.invalidate();
+				tui?.requestRender();
+			}
 			if (newConfig.thinkingPeek.lines === 0 || !newConfig.enabled) {
 				resetPeek();
 				clearPeekLabel(lastCtx);

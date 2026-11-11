@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { BOX, BRACKET, cardGlyphMode, MARKS, setCardGlyphMode, SPINNER_FRAMES, STATUS_GLYPHS, TREE } from "../../src/cards/symbols.ts";
+import { BOX, BRACKET, cardGlyphEpoch, cardGlyphMode, MARKS, setCardGlyphMode, SPINNER_FRAMES, STATUS_GLYPHS, TREE } from "../../src/cards/symbols.ts";
 
 const isAscii = (value: string): boolean => /^[\x20-\x7e]*$/.test(value);
 
@@ -27,5 +27,15 @@ describe("card glyph modes", () => {
 		expect(BOX.topLeft).toBe("╭");
 		expect(TREE.last).toBe("└─");
 		expect(SPINNER_FRAMES[0]).toBe("⠋");
+	});
+
+	it("counts glyph set changes in the epoch", () => {
+		const start = cardGlyphEpoch();
+		expect(setCardGlyphMode("unicode")).toBe(false);
+		expect(cardGlyphEpoch()).toBe(start);
+		expect(setCardGlyphMode("ascii")).toBe(true);
+		expect(cardGlyphEpoch()).toBe(start + 1);
+		expect(setCardGlyphMode("ascii")).toBe(false);
+		expect(cardGlyphEpoch()).toBe(start + 1);
 	});
 });

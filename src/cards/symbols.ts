@@ -89,6 +89,12 @@ export const STATUS_GLYPHS: Readonly<StatusGlyphs> = { ...UNICODE.status };
 export const MARKS: Readonly<MarkGlyphs> = { ...UNICODE.marks };
 
 let activeMode: CardGlyphMode = "unicode";
+let epoch = 0;
+
+/** Number of glyph set changes so far; part of every card's cache key. */
+export function cardGlyphEpoch(): number {
+	return epoch;
+}
 
 /** The glyph set cards currently draw with. */
 export function cardGlyphMode(): CardGlyphMode {
@@ -109,5 +115,6 @@ export function setCardGlyphMode(mode: CardGlyphMode): boolean {
 	Object.assign(MARKS, set.marks);
 	(SPINNER_FRAMES as string[]).splice(0, SPINNER_FRAMES.length, ...set.spinner);
 	activeMode = mode;
+	epoch++;
 	return true;
 }
