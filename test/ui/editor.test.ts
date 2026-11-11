@@ -320,7 +320,7 @@ test("fills the opencode panel background past embedded resets", () => {
 	editor.setText("x");
 
 	const lines = editor.render(20);
-	assert.equal(lines.at(-1), " ".repeat(20), "the spacer row below the panel stays unfilled");
+	assert.equal(lines.at(-1), ` \x1b[38;5;236m${"▀".repeat(19)}\x1b[39m`, "the closing row is half panel, half gap");
 	for (const line of lines.slice(0, -1)) {
 		assert.ok(line.startsWith(`▎${open}`), JSON.stringify(line));
 		assert.ok(line.endsWith("\x1b[49m"), JSON.stringify(line));
@@ -357,7 +357,16 @@ test("maps opencode panel clicks past the rail", () => {
 	assert.equal(editor.getCursor().col, 1);
 });
 
-test("maps clicks on the opencode info and spacer rows to Pi's bottom rule", () => {
+test("leaves the opencode closing row blank without a 256-color or truecolor background", () => {
+	for (const panelBackground of [undefined, () => "", () => "\x1b[100m"]) {
+		const editor = createFastTuiEditor({ editorShape: "opencode", panelBackground });
+		assert.equal(stripAnsi(editor.render(20).at(-1) ?? ""), " ".repeat(20));
+	}
+	const truecolor = createFastTuiEditor({ editorShape: "opencode", panelBackground: () => "\x1b[48;2;33;59;73m" });
+	assert.equal(truecolor.render(20).at(-1), ` \x1b[38;2;33;59;73m${"▀".repeat(19)}\x1b[39m`);
+});
+
+test("maps clicks on the opencode info and closing rows to Pi's bottom rule", () => {
 	const inner = new CustomEditor(tui, editorTheme, { matches: () => false } as unknown as KeybindingsManager, { paddingX: 0 });
 	const rows: number[] = [];
 	inner.handleMouse = (event) => {

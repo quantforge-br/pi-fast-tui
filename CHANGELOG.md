@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The `opencode` panel closes with a half-height row instead of a full empty row, so the gap before the footer is half a row.
+
 ## [0.3.2] - 2026-11-10
 
 ### Changed

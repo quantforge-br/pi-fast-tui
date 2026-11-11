@@ -319,6 +319,12 @@ function fillBackground(open: string, text: string): string {
 	return `${open}${text.replace(BACKGROUND_RESET, (reset) => `${reset}${open}`)}\x1b[49m`;
 }
 
+/** Foreground SGR for the color of a 256-color or truecolor background SGR, if it is one. */
+function backgroundAsForeground(open: string): string | undefined {
+	const color = open.match(/^\x1b\[48;((?:2;\d+;\d+;\d+)|(?:5;\d+))m$/)?.[1];
+	return color ? `\x1b[38;${color}m` : undefined;
+}
+
 /** `left` and `right` spread over `width` cells; `right` keeps its room when space runs short. */
 function spreadRow(left: string, right: string, width: number): string {
 	const fittedRight = truncateToWidth(right, Math.max(0, width), "");
@@ -341,8 +347,9 @@ function panelStatus(width: number, scrollLabel: string | undefined, indicator: 
 
 /**
  * Panel shapes: an accent rail beside a filled block holding a padding row with the
- * indicators, Pi's content rows, a blank row and an info row (model or the footer's second line),
- * followed by an unfilled spacer row that keeps whatever is drawn below off the panel.
+ * indicators, Pi's content rows, a blank row and an info row (model or the footer's second line).
+ * A closing row of upper half blocks in the panel color adds half a row of padding under the info
+ * row and half a row of space above whatever is drawn below; without a usable color it stays blank.
  */
 function renderPanel(
 	decoration: EditorDecoration,
@@ -369,7 +376,11 @@ function renderPanel(
 	result.push(row(footer
 		? spreadRow(footer.bottom.left, footer.bottom.right, contentWidth)
 		: decoration.inlineFooter?.renderInfo?.(contentWidth) ?? ""));
-	result.push(" ".repeat(Math.max(0, width)));
+	const halfBlock = backgroundAsForeground(open);
+	const railWidth = visibleWidth(shape.glyphs.vertical);
+	result.push(halfBlock
+		? `${" ".repeat(railWidth)}${halfBlock}${"▀".repeat(Math.max(0, width - railWidth))}\x1b[39m`
+		: " ".repeat(Math.max(0, width)));
 	return result;
 }
 
@@ -402,7 +413,7 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 	const embedFooter = inlineFooter && canEmbedInlineFooter(shape);
 	if (shape.panel) {
 		result.push(...renderPanel(decoration, width, baseLines, bottomIdx, topScrollLabel, embedFooter));
-		// The blank, info and spacer rows replace Pi's single bottom rule.
+		// The blank, info and closing rows replace Pi's single bottom rule.
 		decoration.frame = {
 			width,
 			leftInset: shape.leftInset,
