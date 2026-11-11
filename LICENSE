@@ -23,9 +23,8 @@ SOFTWARE.
 
 ---
 
-This package merges pi-open-tui (https://github.com/OldSuns/pi-open-tui,
-MIT, Copyright (c) 2026 pi-open-tui contributors) and pi-omp-tools
-(MIT, Copyright (c) 2026 Diogo Soares Rodrigues).
+This package is based on pi-open-tui (https://github.com/OldSuns/pi-open-tui,
+MIT, Copyright (c) 2026 pi-open-tui contributors).
 
 The tool card frame, status line, output preview and JSON tree are adapted
 from oh-my-pi (https://github.com/can1357/oh-my-pi), which is distributed

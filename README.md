@@ -2,7 +2,7 @@
 
 A polished terminal interface for the [Pi](https://pi.dev) coding agent, with [oh-my-pi](https://github.com/can1357/oh-my-pi) style tool cards.
 
-pi-fast-tui is based on [pi-open-tui](https://github.com/OldSuns/pi-open-tui) by OldSuns, which provides the header, footer, editor, telemetry, thinking peek, Copy buttons, and settings. It adds the tool cards, codemode card, and generic MCP card from [pi-omp-tools](https://www.npmjs.com/package/pi-omp-tools), so everything shares one config file, one settings dialog, one icon mode, and one tool renderer.
+pi-fast-tui is based on [pi-open-tui](https://github.com/OldSuns/pi-open-tui) by OldSuns, which provides the header, footer, editor, telemetry, thinking peek, Copy buttons, and settings. On top of it, pi-fast-tui adds tool cards, a codemode card, and a generic MCP card, all sharing one config file, one settings dialog, one icon mode, and one tool renderer.
 
 ## Highlights
 
@@ -190,7 +190,7 @@ Each tool call becomes one card. The call sits in the top border, the result in 
 - Expanded, the card shows the highlighted script, every action, full diffs, and the full output.
 - In Cards mode the extension asks the model to start every script with a `// title` comment, which becomes the card's title.
 
-Diffs of nested edits are kept in the session as `codemode-render-changes` entries, the same type pi-codemode-render and pi-omp-tools wrote, so sessions recorded with them keep their diffs.
+Diffs of nested edits are kept in the session as `codemode-render-changes` entries, the same type pi-codemode-render wrote, so sessions recorded with it keep their diffs.
 
 ### Compact rows
 
@@ -246,7 +246,7 @@ Tests run on vitest; they use temporary agent directories and never write to `~/
 
 ## Acknowledgements
 
-pi-fast-tui is based on **[pi-open-tui](https://github.com/OldSuns/pi-open-tui)** by OldSuns. Thanks to its author for the work this extension builds on. The tool cards come from [pi-omp-tools](https://www.npmjs.com/package/pi-omp-tools). Both packages build on several Pi community packages:
+pi-fast-tui is based on **[pi-open-tui](https://github.com/OldSuns/pi-open-tui)** by OldSuns. Thanks to its author for the work this extension builds on. pi-fast-tui also builds on several Pi community packages:
 
 - **[pi-haiku](https://github.com/nnocte/pi-haiku)** — two-line footer structure and working timer
 - **[pi-claude-code-tui](https://github.com/Phoobobo/pi-claude-code-tui)** — Pi logo artwork and rounded editor border technique
@@ -262,4 +262,4 @@ Special thanks to the **[LINUX DO](https://linux.do)** community for its support
 
 ## License
 
-[MIT](./LICENSE). The license file keeps the notices of pi-open-tui, pi-omp-tools, and oh-my-pi.
+[MIT](./LICENSE). The license file keeps the notices of pi-open-tui and oh-my-pi.
