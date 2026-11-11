@@ -55,7 +55,7 @@ const COPY = {
 			other: "Other",
 			measurements: "Measurements",
 		},
-		hint: "Tab/Shift+Tab/←/→: tabs · ↑/↓: move · Enter/Space: change · Esc/q: close",
+		hint: "Tab/Shift+Tab: tabs · ↑/↓: move · ←/→/Enter/Space: change · Esc/q: close",
 		labels: {
 			enabled: "Enabled",
 			header: "Override header",
@@ -128,7 +128,7 @@ const COPY = {
 			other: "其他",
 			measurements: "测量指标",
 		},
-		hint: "Tab/Shift+Tab/←/→：切页 · ↑/↓：移动 · Enter/Space：更改 · Esc/q：关闭",
+		hint: "Tab/Shift+Tab：切页 · ↑/↓：移动 · ←/→/Enter/Space：更改 · Esc/q：关闭",
 		labels: {
 			enabled: "启用",
 			header: "覆盖顶部信息栏",
@@ -203,46 +203,25 @@ function toggleSetting(config: FastTuiConfig, key: keyof FastTuiConfig["footerSe
 	};
 }
 
-function cycleIconMode(config: FastTuiConfig): FastTuiConfig {
-	const order: IconMode[] = ["auto", "nerd", "unicode", "ascii"];
-	const currentIdx = order.indexOf(config.icons.mode);
-	const next = order[(currentIdx + 1) % order.length]!;
-	return { ...config, icons: { mode: next } };
+type CycleDirection = 1 | -1;
+
+/** The value after `current` in `order` (before it for -1), wrapping at both ends. */
+function cycleValue<T>(order: readonly T[], current: T, direction: CycleDirection): T {
+	const index = order.indexOf(current);
+	const from = index < 0 ? (direction === 1 ? -1 : 0) : index;
+	return order[(from + direction + order.length) % order.length]!;
 }
 
-function toggleEnabled(config: FastTuiConfig): FastTuiConfig {
-	return { ...config, enabled: !config.enabled };
-}
-
-function toggleLanguage(config: FastTuiConfig): FastTuiConfig {
-	return { ...config, settingsLanguage: config.settingsLanguage === "en" ? "zh" : "en" };
-}
-
-function cycleCursorStyle(config: FastTuiConfig): FastTuiConfig {
-	const order: CursorStyle[] = ["block", "bar", "underline"];
-	const currentIdx = order.indexOf(config.cursorStyle);
-	const next = order[(currentIdx + 1) % order.length]!;
-	return { ...config, cursorStyle: next };
-}
-
-function cycleEditorShape(config: FastTuiConfig): FastTuiConfig {
-	const currentIdx = EDITOR_SHAPES.indexOf(config.editorShape);
-	const next = EDITOR_SHAPES[(currentIdx + 1) % EDITOR_SHAPES.length]!;
-	return { ...config, editorShape: next };
-}
+const ICON_MODES: readonly IconMode[] = ["auto", "nerd", "unicode", "ascii"];
+const CURSOR_STYLES: readonly CursorStyle[] = ["block", "bar", "underline"];
+const TOOL_VIEW_MODES: readonly ToolViewMode[] = ["cards", "compact", "native"];
+const THINKING_PEEK_LINES: readonly ThinkingPeekLines[] = [0, 1, 2];
+const SETTINGS_LANGUAGES: readonly SettingsLanguage[] = ["en", "zh"];
 
 function toggleTelemetry(config: FastTuiConfig, key: keyof FastTuiConfig["telemetry"]): FastTuiConfig {
 	return {
 		...config,
 		telemetry: { ...config.telemetry, [key]: !config.telemetry[key] },
-	};
-}
-
-function cycleThinkingPeek(config: FastTuiConfig): FastTuiConfig {
-	const next = ([1, 2, 0] as const)[config.thinkingPeek.lines] ?? 0;
-	return {
-		...config,
-		thinkingPeek: { lines: next },
 	};
 }
 
@@ -383,25 +362,30 @@ function handleSettingChange(
 	tab: Tab,
 	itemId: string,
 	config: FastTuiConfig,
+	direction: CycleDirection = 1,
 ): FastTuiConfig {
 	if (tab === "features") {
-		if (itemId === "enabled") return toggleEnabled(config);
+		if (itemId === "enabled") return { ...config, enabled: !config.enabled };
 		if (itemId === "header") return { ...config, header: !config.header };
 		if (itemId === "inlineFooter") return { ...config, inlineFooter: !config.inlineFooter };
 		if (itemId === "copyButtons") return { ...config, copyButtons: !config.copyButtons };
-		if (itemId === "settingsLanguage") return toggleLanguage(config);
-		if (itemId === "thinkingPeek") return cycleThinkingPeek(config);
+		if (itemId === "settingsLanguage") {
+			return { ...config, settingsLanguage: cycleValue(SETTINGS_LANGUAGES, config.settingsLanguage, direction) };
+		}
+		if (itemId === "thinkingPeek") {
+			return { ...config, thinkingPeek: { lines: cycleValue(THINKING_PEEK_LINES, config.thinkingPeek.lines, direction) } };
+		}
 		if (itemId === "toolView") {
-			return { ...config, toolView: { ...config.toolView, mode: nextToolViewMode(config.toolView.mode) } };
+			return { ...config, toolView: { ...config.toolView, mode: cycleValue(TOOL_VIEW_MODES, config.toolView.mode, direction) } };
 		}
 		if (itemId === "extensionTools") {
 			return { ...config, toolView: { ...config.toolView, extensionTools: !config.toolView.extensionTools } };
 		}
 	}
 	if (tab === "icons") {
-		if (itemId === "mode") return cycleIconMode(config);
-		if (itemId === "cursorStyle") return cycleCursorStyle(config);
-		if (itemId === "editorShape") return cycleEditorShape(config);
+		if (itemId === "mode") return { ...config, icons: { mode: cycleValue(ICON_MODES, config.icons.mode, direction) } };
+		if (itemId === "cursorStyle") return { ...config, cursorStyle: cycleValue(CURSOR_STYLES, config.cursorStyle, direction) };
+		if (itemId === "editorShape") return { ...config, editorShape: cycleValue(EDITOR_SHAPES, config.editorShape, direction) };
 		if (itemId === "popupMenus") return { ...config, popupMenus: !config.popupMenus };
 	}
 	if (tab === "segments") {
@@ -602,9 +586,9 @@ class SettingsUi implements SettingsUiHandle {
 		return COPY[this.config.settingsLanguage].title;
 	}
 
-	private applySetting(itemId: string): void {
+	private applySetting(itemId: string, direction: CycleDirection = 1): void {
 		this.selectedItemByTab[this.tab] = itemId;
-		this.config = handleSettingChange(this.tab, itemId, this.config);
+		this.config = handleSettingChange(this.tab, itemId, this.config, direction);
 		this.onChange(this.config);
 		this.rebuild(itemId);
 	}
@@ -661,13 +645,19 @@ class SettingsUi implements SettingsUiHandle {
 	}
 
 	handleInput(data: string): void {
-		if (matchesKey(data, Key.tab) || matchesKey(data, Key.right)) {
+		if (matchesKey(data, Key.tab)) {
 			this.switchTab(1);
 			this.invalidate();
 			return;
 		}
-		if (matchesKey(data, Key.shift("tab")) || matchesKey(data, Key.left)) {
+		if (matchesKey(data, Key.shift("tab"))) {
 			this.switchTab(-1);
+			this.invalidate();
+			return;
+		}
+		if (matchesKey(data, Key.right) || matchesKey(data, Key.left)) {
+			const selected = this.selectList.getSelectedItem();
+			if (selected) this.applySetting(selected.value, matchesKey(data, Key.right) ? 1 : -1);
 			this.invalidate();
 			return;
 		}

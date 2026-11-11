@@ -419,9 +419,9 @@ test("supports localized settings and keyboard shortcuts", async () => {
 	assert.match(reopened.component.render(80).join("\n"), /Fast TUI 设置.*简体中文/s);
 
 	reopened.press("\x1b[B", 2);
-	reopened.component.handleInput("\x1b[C");
+	reopened.component.handleInput("\t");
 	assert.match(reopened.component.render(80).join("\n"), /\[外观\].*图标模式.*光标样式/s);
-	reopened.component.handleInput("\x1b[D");
+	reopened.component.handleInput("\x1b[Z");
 	assert.match(selectedLine(reopened.component), /语言/);
 	reopened.component.handleInput("q");
 	assert.equal(reopened.isClosed(), true);
@@ -541,8 +541,7 @@ test("toggles the header without resetting a disabled slot and warns when persis
 
 test("configures the hostname footer segment", async () => {
 	const settings = await openSettings();
-	settings.component.handleInput("\x1b[C");
-	settings.component.handleInput("\x1b[C");
+	settings.press("\t", 2);
 	settings.component.handleInput("\x1b[B");
 	assert.match(selectedLine(settings.component), /Hostname/);
 
@@ -553,14 +552,85 @@ test("configures the hostname footer segment", async () => {
 
 test("configures the extension status line with Space", async () => {
 	const settings = await openSettings();
-	settings.component.handleInput("\x1b[C");
-	settings.component.handleInput("\x1b[C");
+	settings.press("\t", 2);
 	for (let i = 0; i < 12; i++) settings.component.handleInput("\x1b[B");
 	assert.match(selectedLine(settings.component), /Extension status line/);
 
 	settings.component.handleInput(" ");
 	assert.equal(settings.getConfig().footerSegments.extensionStatuses, false);
 	assert.match(selectedLine(settings.component), /Extension status line/);
+});
+
+test("Left and Right change the selected value in both directions", async () => {
+	const settings = await openSettings();
+	settings.press("\t");
+	settings.press("\x1b[B", 2);
+	assert.match(selectedLine(settings.component), /Input shape.*Rounded/);
+	settings.press("\x1b[C");
+	assert.equal(settings.getConfig().editorShape, "square");
+	assert.match(selectedLine(settings.component), /Input shape.*Square/);
+	settings.press("\x1b[D", 2);
+	assert.equal(settings.getConfig().editorShape, "opencode");
+	assert.match(selectedLine(settings.component), /Input shape.*OpenCode/);
+	assert.match(settings.component.render(80).join("\n"), /\[Appearance\]/);
+});
+
+test("Right then Left restores every multi-value row and both toggle a boolean row", async () => {
+	// [tab presses, down presses, read value]
+	const rows: [number, number, (config: FastTuiConfig) => unknown][] = [
+		[1, 0, (config) => config.icons.mode],
+		[1, 1, (config) => config.cursorStyle],
+		[1, 2, (config) => config.editorShape],
+		[0, 5, (config) => config.toolView.mode],
+		[0, 3, (config) => config.thinkingPeek.lines],
+		[0, 2, (config) => config.settingsLanguage],
+	];
+	for (const [tabs, downs, read] of rows) {
+		const settings = await openSettings();
+		settings.press("\t", tabs);
+		settings.press("\x1b[B", downs);
+		const start = read(settings.getConfig());
+		settings.press("\x1b[C");
+		assert.notEqual(read(settings.getConfig()), start);
+		settings.press("\x1b[D");
+		assert.equal(read(settings.getConfig()), start);
+	}
+	const settings = await openSettings();
+	settings.press("\x1b[B");
+	assert.match(selectedLine(settings.component), /Override header/);
+	settings.press("\x1b[C");
+	assert.equal(settings.getConfig().header, false);
+	settings.press("\x1b[D");
+	assert.equal(settings.getConfig().header, true);
+	assert.match(selectedLine(settings.component), /Override header/);
+	assert.match(settings.component.render(80).join("\n"), /\[General\]/);
+});
+
+test("Tab and Shift+Tab switch tabs and wrap at both ends", async () => {
+	const settings = await openSettings();
+	const active = () => /\[(\w+)\]/.exec(settings.component.render(80).join("\n"))?.[1];
+	assert.equal(active(), "General");
+	settings.press("\x1b[Z");
+	assert.equal(active(), "Telemetry");
+	settings.press("\t");
+	assert.equal(active(), "General");
+	settings.press("\t", 3);
+	assert.equal(active(), "Telemetry");
+	settings.press("\t");
+	assert.equal(active(), "General");
+});
+
+test("hints name Tab/Shift+Tab for tabs and Left/Right for values", async () => {
+	for (const language of ["en", "zh"] as const) {
+		const config = classicConfig();
+		config.settingsLanguage = language;
+		const settings = await openSettings(config);
+		settings.terminal.columns = 200;
+		settings.terminal.rows = 50;
+		const output = settings.component.render(200).join("\n");
+		assert.match(output, /Tab\/Shift\+Tab[:：]/);
+		assert.match(output, /←\/→\/Enter\/Space[:：]/);
+	}
 });
 
 // Width, height, and localization.
