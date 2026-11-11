@@ -33,6 +33,8 @@ export interface IconGlyphs {
 	/** Compact tool view: call marker and result gutter. */
 	toolCall: string;
 	toolResult: string;
+	/** Compact tool view: call marker of a failed call. */
+	toolError: string;
 }
 
 const NERD_GLYPHS: IconGlyphs = {
@@ -67,6 +69,7 @@ const NERD_GLYPHS: IconGlyphs = {
 	deleted: "✘",
 	toolCall: "●",
 	toolResult: "⎿",
+	toolError: "✘",
 };
 
 // ponytail: ASCII fallback uses compact symbols (not English words) to keep
@@ -103,6 +106,7 @@ const ASCII_GLYPHS: IconGlyphs = {
 	deleted: "x",
 	toolCall: "*",
 	toolResult: "`-",
+	toolError: "x",
 };
 
 // Portable Unicode icon set for terminals without a Nerd Font. Keeps the
@@ -143,6 +147,7 @@ const UNICODE_GLYPHS: IconGlyphs = {
 	deleted: "✗",
 	toolCall: "●",
 	toolResult: "└",
+	toolError: "✘",
 };
 
 function isSshSession(): boolean {

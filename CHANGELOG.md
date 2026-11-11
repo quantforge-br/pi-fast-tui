@@ -5,6 +5,7 @@
 ### Changed
 
 - Switching Icon mode to or from ASCII in `/fast-tui` redraws finished cards and the transcript at once instead of on their next change.
+- Compact tool view: a failed call is marked with an error glyph (`✘`, or `x` under ASCII icons) instead of the call dot, so it stands out without color.
 
 ## [0.7.0] - 2026-11-11
 

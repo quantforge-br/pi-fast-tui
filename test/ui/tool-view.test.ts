@@ -707,7 +707,7 @@ test("failed rows stay compact with a red summary", () => {
 	const compact = createCompactRenderers("bash", renderers, glyphs);
 	const ctx = context({ isError: true, durationMs: 1200 });
 	assert.deepEqual(compact.renderCall!({ command: "npm test" }, tagged, ctx).render(80), [
-		" <error>● <toolTitle>Bash<muted>(npm test)",
+		" <error>✘ <toolTitle>Bash<muted>(npm test)",
 	]);
 	assert.deepEqual(
 		compact.renderResult!(text("a\nFAIL b.test.ts\n\nCommand exited with code 1"), { expanded: false, isPartial: false }, tagged, ctx).render(80),
@@ -723,6 +723,31 @@ test("failed rows stay compact with a red summary", () => {
 	);
 	assert.equal(summarizeError("edit", text("Could not edit file: a.ts. Not found.\nmore")), "Could not edit file: a.ts. Not found.");
 	assert.equal(summarizeError("read", text("")), "Failed");
+});
+
+test("failed call rows start with the error glyph of the icon set", () => {
+	for (const [mode, glyph] of [["nerd", "✘"], ["unicode", "✘"], ["ascii", "x"]] as const) {
+		const { renderers } = fakeNative();
+		const icons = () => resolveGlyphs(mode);
+		const call = (ctx: RenderContext) => createCompactRenderers("read", renderers, icons).renderCall!({ path: "a.txt" }, theme, ctx).render(80)[0]!;
+		const failed = call(context({ args: { path: "a.txt" }, isError: true }));
+		const ok = call(context({ args: { path: "a.txt" } }));
+		const running = call(context({ args: { path: "a.txt" }, isPartial: true }));
+		const pending = call(context({ args: { path: "a.txt" }, isPartial: true, executionStarted: false }));
+		assert.equal(stripAnsi(failed).trim()[0], glyph, mode);
+		for (const row of [ok, running, pending]) assert.ok(stripAnsi(row).trim().startsWith(icons().toolCall), mode);
+		assert.notEqual(stripAnsi(failed).trim()[0], stripAnsi(ok).trim()[0]);
+	}
+});
+
+test("a cached compact row redraws when the error glyph changes", () => {
+	const { renderers } = fakeNative();
+	let icons = resolveGlyphs("unicode");
+	const compact = createCompactRenderers("read", renderers, () => icons);
+	const row = compact.renderCall!({ path: "a.txt" }, theme, context({ args: { path: "a.txt" }, isError: true }));
+	assert.match(row.render(80)[0]!, /✘/);
+	icons = { ...icons, toolError: "!" };
+	assert.match(row.render(80)[0]!, /^ ! /);
 });
 
 test("expanded rows hand off to Pi's native card", () => {

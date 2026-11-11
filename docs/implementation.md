@@ -67,7 +67,7 @@ In cards mode, `bash`, `read`, `edit`, `write`, `grep`, `find`, `ls`, and `codem
 
 The compact view registers rendering wrappers, leaving execution, arguments, results, and model-visible content unchanged. Built-in summaries are selected only when Pi reports the tool source as `builtin`. A same-name replacement keeps its native renderer unless compact mode and `toolView.extensionTools` are both enabled, in which case it uses extension handling. `toolView.exclude` takes precedence over either category.
 
-Successful rows have dim text and a green dot. Pending dots are dim; running dots alternate between accent and dim once per second. Errors retain a red dot and summary. Shell output shows the latest three nonempty lines while running; failures retain the closing status and last output line. Known tool truncation notices are summarized without discarding arbitrary bracketed text or error messages.
+Successful rows have dim text and a green dot. Pending dots are dim; running dots alternate between accent and dim once per second. Failed calls are marked with a red error glyph (`✘`, `x` under ASCII icons) instead of the dot and keep a red summary. Shell output shows the latest three nonempty lines while running; failures retain the closing status and last output line. Known tool truncation notices are summarized without discarding arbitrary bracketed text or error messages.
 
 Completed rows reuse rendered lines until width, theme, icons, or invalidation changes them. Calls remain independent. Expansion uses the renderers Pi resolves, with generic argument/output components only for missing extension renderers. Inline images remain visible while collapsed because Pi renders them below the row.
 
@@ -168,7 +168,7 @@ Agent 运行期间，工作计时器每 250 毫秒请求一次重绘。Git 和�
 
 紧凑视图注册渲染包装，不修改执行、参数、结果或模型可见内容。仅在 Pi 将工具来源标记为 `builtin` 时使用内置摘要。同名替换工具默认保留原生渲染；只有紧凑模式和 `toolView.extensionTools` 同时开启时才使用扩展处理。`toolView.exclude` 优先于这两类规则。
 
-成功行使用暗色文字和绿色圆点，等待圆点变暗，运行圆点每秒在强调色与暗色间切换，错误保留红色圆点和摘要。Shell 运行中显示最新三条非空输出行，失败时保留结束状态与最后一行输出。已知的工具截断通知会归纳为提示，不会把任意方括号正文或错误信息一并删除。
+成功行使用暗色文字和绿色圆点，等待圆点变暗，运行圆点每秒在强调色与暗色间切换，失败的调用用红色错误符号（`✘`，ASCII 图标下为 `x`）代替圆点，并保留红色摘要。Shell 运行中显示最新三条非空输出行，失败时保留结束状态与最后一行输出。已知的工具截断通知会归纳为提示，不会把任意方括号正文或错误信息一并删除。
 
 完成的行复用渲染结果，直到宽度、主题、图标变化或缓存失效。各次调用独立显示。展开使用 Pi 解析出的渲染器，仅在扩展缺少渲染器时补上通用参数/输出组件。折叠时内联图片仍可见，因为 Pi 将其绘制在行下方。
 

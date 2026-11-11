@@ -363,15 +363,15 @@ function lines(
 	glyphs: () => IconGlyphs,
 	cacheable = true,
 ): Component {
-	let cache: { width: number; colors: Theme["colors"]; toolCall: string; toolResult: string; lines: string[] } | undefined;
+	let cache: { width: number; colors: Theme["colors"]; toolCall: string; toolResult: string; toolError: string; lines: string[] } | undefined;
 	return {
 		render(width) {
 			const icons = glyphs();
 			const colors = theme.colors;
 			if (cacheable && cache && cache.width === width && cache.colors === colors
-				&& cache.toolCall === icons.toolCall && cache.toolResult === icons.toolResult) return cache.lines;
+				&& cache.toolCall === icons.toolCall && cache.toolResult === icons.toolResult && cache.toolError === icons.toolError) return cache.lines;
 			const rendered = build(width, icons).map((line) => truncateToWidth(line, Math.max(0, width), "…"));
-			if (cacheable) cache = { width, colors, toolCall: icons.toolCall, toolResult: icons.toolResult, lines: rendered };
+			if (cacheable) cache = { width, colors, toolCall: icons.toolCall, toolResult: icons.toolResult, toolError: icons.toolError, lines: rendered };
 			return rendered;
 		},
 		invalidate() { cache = undefined; },
@@ -488,7 +488,7 @@ export function createCompactRenderers(
 			const detail = sanitizeStatus(generic ? genericDetail(callArgs, context.cwd) : callDetail(toolName, callArgs, context.cwd));
 			const pad = " ".repeat(context.outputPad);
 			return lines((_width, icons) => {
-				const call = pad + theme.fg(color, icons.toolCall) + " " + theme.fg(titleColor, titleColor === "dim" ? label : theme.bold(label))
+				const call = pad + theme.fg(color, context.isError ? icons.toolError : icons.toolCall) + " " + theme.fg(titleColor, titleColor === "dim" ? label : theme.bold(label))
 					+ (detail ? theme.fg(context.isPartial || context.isError ? "muted" : "dim", `(${detail})`) : "");
 				// Pi does not call renderResult until the tool provides its first result.
 				// Read the shared flag during rendering, after both slots have been prepared.
