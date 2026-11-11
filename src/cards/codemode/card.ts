@@ -7,7 +7,7 @@ import type { CardBuilder, CardInput, CardSnapshot } from "../card.ts";
 import type { FrameSection } from "../frame.ts";
 import { formatDuration, plural } from "../format.ts";
 import { formatOutputPane } from "../output-pane.ts";
-import { MARKS, SEP, SPINNER_FRAMES, STATUS_GLYPHS, TREE } from "../symbols.ts";
+import { MARKS, SPINNER_FRAMES, STATUS_GLYPHS, TEXT, TREE } from "../symbols.ts";
 import { type ChangeLog, type FileChange, mergeChanges } from "./changes.ts";
 import type { LiveCall, LiveCalls } from "./live.ts";
 import { formatActionTime, formatCost, parseScriptOutput, scriptTitle, shortenPath, summarizeCall } from "./summarize.ts";
@@ -276,5 +276,5 @@ function footer(
 		dim(cost > 0 ? formatCost(cost) : ""),
 		dim(images > 0 ? plural(images, "image") : ""),
 	].filter(Boolean);
-	return parts.length > 0 ? parts.join(theme.fg("dim", SEP)) : undefined;
+	return parts.length > 0 ? parts.join(theme.fg("dim", TEXT.sep)) : undefined;
 }

@@ -2,7 +2,7 @@
 
 import type { Theme, ThemeBg, ThemeColor } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
-import { BOX, SEP } from "./symbols.ts";
+import { BOX, TEXT } from "./symbols.ts";
 
 /** Lifecycle state of a card; it picks the border color and background. */
 export type CardState = "pending" | "running" | "success" | "warning" | "error";
@@ -91,7 +91,7 @@ export function renderFrame(options: FrameOptions, theme: Theme): string[] {
 
 function joinLabel(header: string | undefined, meta: string | undefined): string | undefined {
 	const parts = [header, meta].filter((part): part is string => Boolean(part));
-	return parts.length > 0 ? parts.join(SEP) : undefined;
+	return parts.length > 0 ? parts.join(TEXT.sep) : undefined;
 }
 
 function bar(left: string, right: string, label: string | undefined, width: number, border: (text: string) => string): string {

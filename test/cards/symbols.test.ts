@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { BOX, BRACKET, cardGlyphEpoch, cardGlyphMode, MARKS, setCardGlyphMode, SPINNER_FRAMES, STATUS_GLYPHS, TREE } from "../../src/cards/symbols.ts";
+import { BOX, BRACKET, cardGlyphEpoch, cardGlyphMode, MARKS, setCardGlyphMode, SPINNER_FRAMES, STATUS_GLYPHS, TEXT, TREE } from "../../src/cards/symbols.ts";
 
 const isAscii = (value: string): boolean => /^[\x20-\x7e]*$/.test(value);
 
@@ -19,14 +19,16 @@ describe("card glyph modes", () => {
 		expect(setCardGlyphMode("ascii")).toBe(true);
 		expect(setCardGlyphMode("ascii")).toBe(false);
 		expect(cardGlyphMode()).toBe("ascii");
-		const all = [...Object.values(BOX), ...Object.values(TREE), ...Object.values(BRACKET), ...Object.values(STATUS_GLYPHS), ...Object.values(MARKS), ...SPINNER_FRAMES];
+		const all = [...Object.values(BOX), ...Object.values(TREE), ...Object.values(BRACKET), ...Object.values(STATUS_GLYPHS), ...Object.values(MARKS), ...Object.values(TEXT), ...SPINNER_FRAMES];
 		for (const glyph of all) expect(isAscii(glyph), glyph).toBe(true);
 		expect(SPINNER_FRAMES).toHaveLength(4);
+		expect(TEXT).toEqual({ sep: " | ", ellipsis: "...", minus: "-", lineBreak: " \\n ", chevron: " > ", dash: "-" });
 
 		expect(setCardGlyphMode("unicode")).toBe(true);
 		expect(BOX.topLeft).toBe("╭");
 		expect(TREE.last).toBe("└─");
 		expect(SPINNER_FRAMES[0]).toBe("⠋");
+		expect(TEXT).toEqual({ sep: " · ", ellipsis: "…", minus: "−", lineBreak: " ↵ ", chevron: " › ", dash: "—" });
 	});
 
 	it("counts glyph set changes in the epoch", () => {

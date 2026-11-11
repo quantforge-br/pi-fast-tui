@@ -1,7 +1,7 @@
 // One-line card header: status icon or spinner, title, description, badge and short facts.
 
 import type { Theme, ThemeColor } from "@earendil-works/pi-coding-agent";
-import { BRACKET, SEP, SPINNER_FRAMES, STATUS_GLYPHS } from "./symbols.ts";
+import { BRACKET, SPINNER_FRAMES, STATUS_GLYPHS, TEXT } from "./symbols.ts";
 
 /** What the header's icon says about the call. */
 export type StatusIcon = "pending" | "running" | "success" | "error" | "warning" | "info";
@@ -45,6 +45,6 @@ export function renderStatusLine(options: StatusLineOptions, theme: Theme): stri
 		line += ` ${theme.fg(options.badge.color, `${BRACKET.left}${flat(options.badge.label)}${BRACKET.right}`)}`;
 	}
 	const meta = (options.meta ?? []).map(flat).filter((value) => value.trim().length > 0);
-	if (meta.length > 0) line += ` ${theme.fg("dim", meta.join(SEP))}`;
+	if (meta.length > 0) line += ` ${theme.fg("dim", meta.join(TEXT.sep))}`;
 	return line;
 }

@@ -1,4 +1,4 @@
-// Glyphs every card shares: frame corners, status icons, spinner frames and tree connectors.
+// Glyphs every card shares: frame corners, status icons, spinner frames, tree connectors and text punctuation.
 // The sets follow fast-tui's icon mode: `ascii` swaps every box-drawing and symbol glyph for plain ASCII.
 
 /** Which glyph set the cards draw with. */
@@ -39,6 +39,21 @@ export interface MarkGlyphs {
 	edit: string;
 }
 
+/** Punctuation the cards and the UI chrome print between and around values. */
+export interface TextGlyphs {
+	/** Separator between short facts, with its surrounding spaces. */
+	sep: string;
+	ellipsis: string;
+	/** Minus sign of diff counts such as `+3 −1`. */
+	minus: string;
+	/** Marker for a line break folded into one row, with its surrounding spaces. */
+	lineBreak: string;
+	/** Separator between an MCP server and its tool, with its surrounding spaces. */
+	chevron: string;
+	/** Placeholder for a missing value. */
+	dash: string;
+}
+
 interface GlyphSet {
 	box: BoxGlyphs;
 	spinner: readonly string[];
@@ -46,6 +61,7 @@ interface GlyphSet {
 	bracket: { left: string; right: string };
 	status: StatusGlyphs;
 	marks: MarkGlyphs;
+	text: TextGlyphs;
 }
 
 const UNICODE: GlyphSet = {
@@ -56,6 +72,7 @@ const UNICODE: GlyphSet = {
 	bracket: { left: "⟨", right: "⟩" },
 	status: { pending: "◌", running: "⟳", success: "✔", error: "✘", warning: "⚠", info: "•" },
 	marks: { cancelled: "⊘", edit: "✎" },
+	text: { sep: " · ", ellipsis: "…", minus: "−", lineBreak: " ↵ ", chevron: " › ", dash: "—" },
 };
 
 const ASCII: GlyphSet = {
@@ -65,6 +82,7 @@ const ASCII: GlyphSet = {
 	bracket: { left: "<", right: ">" },
 	status: { pending: "o", running: "~", success: "+", error: "x", warning: "!", info: "*" },
 	marks: { cancelled: "/", edit: "~" },
+	text: { sep: " | ", ellipsis: "...", minus: "-", lineBreak: " \\n ", chevron: " > ", dash: "-" },
 };
 
 /** Characters for card frames in the active glyph set. */
@@ -76,8 +94,8 @@ export const SPINNER_FRAMES: readonly string[] = [...UNICODE.spinner];
 /** Tree connectors in the active glyph set. */
 export const TREE: Readonly<TreeGlyphs> = { ...UNICODE.tree };
 
-/** Separator between short facts in a header or footer. */
-export const SEP = " · ";
+/** Text punctuation in the active glyph set. */
+export const TEXT: Readonly<TextGlyphs> = { ...UNICODE.text };
 
 /** Brackets around header badges such as diff counts. */
 export const BRACKET: Readonly<{ left: string; right: string }> = { ...UNICODE.bracket };
@@ -113,6 +131,7 @@ export function setCardGlyphMode(mode: CardGlyphMode): boolean {
 	Object.assign(BRACKET, set.bracket);
 	Object.assign(STATUS_GLYPHS, set.status);
 	Object.assign(MARKS, set.marks);
+	Object.assign(TEXT, set.text);
 	(SPINNER_FRAMES as string[]).splice(0, SPINNER_FRAMES.length, ...set.spinner);
 	activeMode = mode;
 	epoch++;

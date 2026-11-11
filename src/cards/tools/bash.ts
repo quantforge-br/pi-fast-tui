@@ -4,7 +4,7 @@ import type { CardBuilder } from "../card.ts";
 import type { FrameSection } from "../frame.ts";
 import { formatDuration } from "../format.ts";
 import { formatOutputPane, splitTerminalLines } from "../output-pane.ts";
-import { SEP } from "../symbols.ts";
+import { TEXT } from "../symbols.ts";
 import { lines, numberArg, resultText, stringArg } from "./common.ts";
 
 /** Output rows a collapsed bash card shows. */
@@ -92,7 +92,7 @@ export const bashCard: CardBuilder = (input) => {
 	return {
 		variant: "framed",
 		status: { title: "Bash" },
-		footerMeta: facts.length > 0 ? theme.fg("dim", facts.join(SEP)) : undefined,
+		footerMeta: facts.length > 0 ? theme.fg("dim", facts.join(TEXT.sep)) : undefined,
 		sections,
 		state: outcome?.note === "aborted" ? "warning" : undefined,
 	};
