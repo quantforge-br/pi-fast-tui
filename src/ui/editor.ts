@@ -6,7 +6,7 @@ import {
 import type { Component, Container, EditorComponent, TUI } from "@earendil-works/pi-tui";
 import { CURSOR_MARKER, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import type { CursorStyle, EditorShape } from "./config.ts";
-import { canEmbedInlineFooter, getEditorShapeStyle, type EditorShapeStyle, type FrameGlyphs } from "./editor-shapes.ts";
+import { canEmbedInlineFooter, getEditorShapeStyle, type BareShapeStyle, type EditorShapeStyle, type FrameGlyphs } from "./editor-shapes.ts";
 import { findBottomBorderIndex, isEditorBorderLine, stripAnsi } from "./utils.ts";
 
 function fillLine(content: string, width: number): string {
@@ -215,6 +215,8 @@ interface FastTuiEditorOptions {
 	inlineFooter?: InlineFooterRenderer;
 	/** SGR sequence that opens the panel background of panel shapes; empty leaves it unfilled. */
 	panelBackground?: () => string;
+	/** Stable color for shape-defining caps and rails of rule-less shapes; defaults to the border color. */
+	accentColor?: (text: string) => string;
 }
 
 /** Capabilities this decorator adds to the editor instance it wraps. */
@@ -247,6 +249,7 @@ interface EditorDecoration {
 	indicator: WorkingStatusIndicator | undefined;
 	shape: EditorShapeStyle;
 	panelBackground: (() => string) | undefined;
+	accentColor: (text: string) => string;
 	baseRender: (width: number) => string[];
 	frame: FrameLayout | undefined;
 	active: boolean;
@@ -413,6 +416,65 @@ function renderPanel(
 	return result;
 }
 
+/** Line count in a `↑ N more` / `↓ N more` label; 0 without one. */
+function scrollCountOf(label: string | undefined): number {
+	const count = label?.match(/\d+/)?.[0];
+	return count ? Number(count) : 0;
+}
+
+/** Visible rows the scroll thumb covers, or undefined when no line is scrolled out of view. */
+export function scrollThumbRange(visible: number, above: number, below: number): { start: number; end: number } | undefined {
+	if (visible <= 0 || above + below <= 0) return undefined;
+	const size = Math.max(1, Math.min(visible, Math.floor((visible * visible) / (visible + above + below))));
+	const start = Math.round((above / (above + below)) * (visible - size));
+	return { start, end: start + size };
+}
+
+/**
+ * Rule-less shapes: Pi's content rows without its rules, led by the prompt (`borderless`) or
+ * wrapped in accent caps on the panel background (`field`, `rail`). Both rules are gone, so the
+ * working indicator gets a status row of its own above the input, holding the scroll labels too
+ * unless a scroll thumb in the right column replaces them. Returns the number of rows drawn
+ * above the content.
+ */
+function renderBare(
+	decoration: EditorDecoration,
+	bare: BareShapeStyle,
+	width: number,
+	baseLines: string[],
+	bottomIdx: number,
+	result: string[],
+): number {
+	const shape = decoration.shape;
+	const innerWidth = Math.max(0, width - shape.leftInset - shape.rightInset);
+	const indent = " ".repeat(shape.leftInset);
+	const borderPaint = (text: string) => decoration.editor.borderColor(text);
+	const topLabel = scrollLabelOf(baseLines[0]);
+	const bottomLabel = scrollLabelOf(baseLines[bottomIdx]);
+	const labels = bare.scrollbar ? "" : [topLabel, bottomLabel].filter((label) => label !== undefined).join(" ");
+	const status = panelStatus(innerWidth, labels ? borderPaint(labels) : undefined, decoration.indicator);
+	const statusRows = visibleWidth(status) > 0 ? 1 : 0;
+	if (statusRows > 0) result.push(fillLine(`${indent}${status}`, width));
+
+	const open = bare.filled ? decoration.panelBackground?.() ?? "" : "";
+	const accent = decoration.accentColor;
+	const thumb = bare.scrollbar ? scrollThumbRange(bottomIdx - 1, scrollCountOf(topLabel), scrollCountOf(bottomLabel)) : undefined;
+	const prompt = shape.prompt === undefined ? indent : borderPaint(shape.prompt);
+	for (let i = 1; i < bottomIdx; i++) {
+		const line = fillLine(baseLines[i] ?? "", innerWidth);
+		if (!bare.leftCap) {
+			result.push(`${i === 1 ? prompt : indent}${line}`);
+			continue;
+		}
+		const row = i - 1;
+		const rightCap = thumb && row >= thumb.start && row < thumb.end ? "█" : bare.rightCap ?? "";
+		const leftGap = " ".repeat(Math.max(0, shape.leftInset - visibleWidth(bare.leftCap)));
+		const rightGap = " ".repeat(Math.max(0, shape.rightInset - visibleWidth(rightCap)));
+		result.push(`${accent(bare.leftCap)}${fillBackground(open, `${leftGap}${line}${rightGap}`)}${rightCap ? accent(rightCap) : ""}`);
+	}
+	return statusRows;
+}
+
 function renderFrame(decoration: EditorDecoration, width: number): string[] {
 	decoration.frame = undefined;
 	const shape = decoration.shape;
@@ -453,6 +515,22 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 			belowFrameShift: -3,
 		};
 		for (let i = bottomIdx + 1; i < baseLines.length; i++) result.push(baseLines[i]!);
+		return result.map((line) => truncateToWidth(line, width, ""));
+	}
+	if (shape.bare) {
+		const statusRows = renderBare(decoration, shape.bare, width, baseLines, bottomIdx, result);
+		for (let i = bottomIdx + 1; i < baseLines.length; i++) result.push(baseLines[i]!);
+		if (shape.bare.footerGap) result.push(" ".repeat(width));
+		// Both of Pi's rules are dropped and the status row, when drawn, sits above the content.
+		decoration.frame = {
+			width,
+			leftInset: shape.leftInset,
+			horizontalChrome,
+			contentRowShift: 1 - statusRows,
+			contentEndRow: bottomIdx,
+			belowFrameRow: bottomIdx - 1 + statusRows,
+			belowFrameShift: 2 - statusRows,
+		};
 		return result.map((line) => truncateToWidth(line, width, ""));
 	}
 	result.push(embedFooter
@@ -532,6 +610,7 @@ export function decorateFastTuiEditor<T extends FrameableEditor>(
 		indicator: undefined,
 		shape: getEditorShapeStyle(options.editorShape),
 		panelBackground: options.panelBackground,
+		accentColor: options.accentColor ?? ((text) => editor.borderColor(text)),
 		baseRender: editor.render.bind(editor),
 		frame: undefined,
 		active: true,
@@ -716,6 +795,10 @@ export function installEditor(
 					editorShape: currentEditorShape,
 					inlineFooter,
 					panelBackground: () => ctx.ui.theme?.getBgAnsi?.("userMessageBg") ?? "",
+					accentColor: (text) => {
+						const theme = ctx.ui.theme;
+						return typeof theme?.fg === "function" ? theme.fg("accent", text) : editor.borderColor(text);
+					},
 				});
 			}
 		}

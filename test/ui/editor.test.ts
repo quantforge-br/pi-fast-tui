@@ -18,7 +18,7 @@ import {
 	type KeybindingsManager,
 } from "@earendil-works/pi-coding-agent";
 import { Container, TuiMainScreen, type EditorComponent, type EditorTheme, type Terminal, type TUI, type TuiMouseEvent, visibleWidth } from "@earendil-works/pi-tui";
-import { decorateFastTuiEditor, installEditor, repaintAfterStreamWrites, type InlineFooterRenderer } from "../../src/ui/editor.ts";
+import { decorateFastTuiEditor, installEditor, repaintAfterStreamWrites, scrollThumbRange, type InlineFooterRenderer } from "../../src/ui/editor.ts";
 import { FastTuiHeader } from "../../src/ui/header.ts";
 import type { CursorStyle, EditorShape } from "../../src/ui/config.ts";
 import { stripAnsi } from "../../src/ui/utils.ts";
@@ -262,6 +262,109 @@ test("moves both scroll indicators to the top rule of the rule shape", () => {
 	assert.ok(!lines.slice(1).some((line) => /^─+$/.test(line)));
 });
 
+test("draws the borderless shape as a bare prompt without rules", () => {
+	const editor = createFastTuiEditor({ editorShape: "borderless" });
+	editor.setText("first\nsecond");
+
+	const lines = editor.render(20).map(stripAnsi);
+	assert.deepEqual(lines, [`❯ ${"first".padEnd(18)}`, `  ${"second".padEnd(18)}`]);
+	editor.handleMouse(mouseEvent("click", 4, 1, { width: 20, height: 8 }));
+	assert.deepEqual(editor.getCursor(), { line: 1, col: 2 });
+});
+
+test("draws the field shape as filled rows between accent end caps", () => {
+	const open = "\x1b[48;5;236m";
+	const editor = createFastTuiEditor({ editorShape: "field", panelBackground: () => open });
+	editor.setText("first\nsecond");
+
+	const raw = editor.render(20);
+	assert.deepEqual(raw.map(stripAnsi), [`▐ ${"first".padEnd(16)} ▌`, `▐ ${"second".padEnd(16)} ▌`, " ".repeat(20)]);
+	for (const line of raw.slice(0, 2)) {
+		assert.ok(line.startsWith(`▐${open}`), JSON.stringify(line));
+		assert.ok(line.endsWith("\x1b[49m▌"), JSON.stringify(line));
+	}
+	editor.handleMouse(mouseEvent("click", 4, 1, { width: 20, height: 8 }));
+	assert.deepEqual(editor.getCursor(), { line: 1, col: 2 });
+});
+
+test("draws the rail shape as filled rows beside one accent rail", () => {
+	const open = "\x1b[48;5;236m";
+	const editor = createFastTuiEditor({ editorShape: "rail", panelBackground: () => open });
+	editor.setText("x");
+
+	const raw = editor.render(20);
+	assert.deepEqual(raw.map(stripAnsi), [`▎ ${"x".padEnd(18)}`, " ".repeat(20)]);
+	assert.ok(raw[0]!.startsWith(`▎${open}`));
+	assert.ok(raw[0]!.endsWith("\x1b[49m"));
+});
+
+test("paints the field and rail caps with the accent color", () => {
+	for (const [shape, caps] of [["field", ["▐", "▌"]], ["rail", ["▎"]]] as const) {
+		const editor = decorateFastTuiEditor(
+			new CustomEditor(tui, editorTheme, { matches: () => false } as unknown as KeybindingsManager, { paddingX: 0 }),
+			tui,
+			{ editorShape: shape, accentColor: (text) => `\x1b[35m${text}\x1b[39m` },
+		);
+		const row = editor.render(20)[0] ?? "";
+		for (const cap of caps) assert.ok(row.includes(`\x1b[35m${cap}\x1b[39m`), `${shape} ${cap}`);
+	}
+});
+
+for (const shape of ["borderless", "field", "rail"] as const) {
+	test(`draws the working indicator on a status row above the ${shape} input`, () => {
+		const editor = createFastTuiEditor({ editorShape: shape });
+		editor.setText("abc");
+		editor.setWorkingStatusIndicator({ renderInBorder: () => "◐ working", renderSpinnerInBorder: () => "◐" });
+
+		const lines = editor.render(30).map(stripAnsi);
+		assert.equal(lines[0], `  ${"◐ working".padEnd(28)}`);
+		assert.ok(lines[1]!.includes("abc"));
+		assert.ok(!lines.some((line) => line.includes("─")));
+		editor.handleMouse(mouseEvent("click", 3, 1, { width: 30, height: 8 }));
+		assert.deepEqual(editor.getCursor(), { line: 0, col: 1 });
+	});
+}
+
+test("lists the scroll labels on the borderless status row", () => {
+	const editor = createFastTuiEditor({ editorShape: "borderless" });
+	editor.setText(Array.from({ length: 30 }, (_, index) => `line ${index}`).join("\n"));
+	for (let i = 0; i < 12; i++) editor.handleInput("\x1b[A");
+
+	const lines = editor.render(60).map(stripAnsi);
+	assert.match(lines[0] ?? "", /^ {2}↑ \d+ more ↓ \d+ more +$/);
+	assert.ok(lines.slice(1).every((line) => line.startsWith("❯ ") || line.startsWith("  ")));
+});
+
+test("draws a scroll thumb in the right column of the field and rail shapes", () => {
+	for (const shape of ["field", "rail"] as const) {
+		const editor = createFastTuiEditor({ editorShape: shape });
+		editor.setText(Array.from({ length: 30 }, (_, index) => `line ${index}`).join("\n"));
+		for (let i = 0; i < 12; i++) editor.handleInput("\x1b[A");
+
+		const lines = editor.render(40).map(stripAnsi);
+		const thumbRows = lines.filter((line) => line.endsWith("█"));
+		assert.ok(thumbRows.length >= 1, shape);
+		assert.ok(thumbRows.length < lines.length - 1, shape);
+		assert.ok(!lines.some((line) => /more/.test(line)), shape);
+		for (const line of lines) assert.equal(visibleWidth(line), 40, shape);
+	}
+});
+
+test("sizes the scroll thumb by the share of visible lines and places it by the scroll position", () => {
+	assert.equal(scrollThumbRange(5, 0, 0), undefined);
+	assert.deepEqual(scrollThumbRange(5, 0, 20), { start: 0, end: 1 });
+	assert.deepEqual(scrollThumbRange(5, 20, 0), { start: 4, end: 5 });
+	assert.deepEqual(scrollThumbRange(10, 5, 5), { start: 3, end: 8 });
+});
+
+test("keeps the footer out of the rule-less shapes", () => {
+	for (const shape of ["borderless", "field", "rail"] as const) {
+		const editor = createFastTuiEditor({ editorShape: shape, inlineFooter: inlineFooterStub });
+		const lines = editor.render(40).map(stripAnsi);
+		assert.ok(!lines.some((line) => /cwd|model/.test(line)), shape);
+	}
+});
+
 for (const shape of ["native", "claude", "rule"] as const) {
 	test(`embeds the working indicator in the ${shape} top rule`, () => {
 		const editor = createFastTuiEditor({ editorShape: shape });
@@ -390,7 +493,7 @@ test("maps clicks on the opencode info and closing rows to Pi's bottom rule", ()
 });
 
 test("maps clicks below the frame to Pi's completion rows without the frame inset", () => {
-	for (const [shape, yOffset] of [["rounded", 0], ["claude", 0], ["rule", 1], ["opencode", -3]] as const) {
+	for (const [shape, yOffset] of [["rounded", 0], ["claude", 0], ["rule", 1], ["borderless", 2], ["field", 2], ["rail", 2], ["opencode", -3]] as const) {
 		const inner = new CustomEditor(tui, editorTheme, { matches: () => false } as unknown as KeybindingsManager, { paddingX: 0 });
 		const events: TuiMouseEvent[] = [];
 		inner.handleMouse = (event) => {
@@ -400,7 +503,7 @@ test("maps clicks below the frame to Pi's completion rows without the frame inse
 		const editor = decorateFastTuiEditor(inner, tui, { editorShape: shape });
 		const rows = editor.render(40).length;
 		editor.handleMouse(mouseEvent("click", 5, rows, { width: 40, height: 8 }));
-		const contentRow = shape === "opencode" ? 2 : 1;
+		const contentRow = shape === "opencode" ? 2 : ["borderless", "field", "rail"].includes(shape) ? 0 : 1;
 		editor.handleMouse(mouseEvent("click", 5, contentRow, { width: 40, height: 8 }));
 		assert.equal(events[0]?.x, 5, `${shape} completion x`);
 		assert.equal(events[0]?.y, rows + yOffset, `${shape} completion y`);

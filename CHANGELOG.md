@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `borderless`, `field`, and `rail` input shapes, modeled on oh-my-pi's Borderless, Compact Field, and Accent Rail composers. `borderless` draws only the `❯ ` prompt; `field` fills each row between `▐`/`▌` caps in the theme's accent color; `rail` fills each row beside one `▎` accent rail. Without rules, the working indicator gets a row above the input; `field` and `rail` show a `█` scroll thumb in the right column and leave a blank row before the footer.
+
 ### Changed
 
 - `icons.mode: auto` no longer assumes a Nerd Font: it picks Unicode symbols on UTF-8 terminals, locally and over SSH, so a default install no longer shows boxes for missing glyphs. Select **Appearance → Icons → Nerd** to get the Nerd Font icons back. The Icons row shows what Auto resolved to, such as `Auto (Unicode)`.

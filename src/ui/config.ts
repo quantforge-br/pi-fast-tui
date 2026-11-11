@@ -8,11 +8,13 @@ export type CursorStyle = "block" | "bar" | "underline";
 /**
  * Editor frame shape. Box shapes (`rounded`, `square`, `heavy`, `double`, `ascii`) draw a
  * closed frame; `native` keeps Pi's two rules; `claude` adds a `❯` prompt between the rules;
- * `rule` keeps only the top rule with a `❯` prompt.
+ * `rule` keeps only the top rule with a `❯` prompt. `borderless` drops both rules and keeps the
+ * `❯` prompt; `field` and `rail` draw filled rows between accent caps or beside one accent rail;
+ * `opencode` draws a filled panel with an accent rail and an info row.
  */
-export type EditorShape = "rounded" | "square" | "heavy" | "double" | "ascii" | "native" | "claude" | "rule" | "opencode";
+export type EditorShape = "rounded" | "square" | "heavy" | "double" | "ascii" | "native" | "claude" | "rule" | "borderless" | "field" | "rail" | "opencode";
 
-export const EDITOR_SHAPES: readonly EditorShape[] = ["rounded", "square", "heavy", "double", "ascii", "native", "claude", "rule", "opencode"];
+export const EDITOR_SHAPES: readonly EditorShape[] = ["rounded", "square", "heavy", "double", "ascii", "native", "claude", "rule", "borderless", "field", "rail", "opencode"];
 export type ThinkingPeekLines = 0 | 1 | 2;
 /** `cards` draws oh-my-pi style cards, `compact` collapses rows to one line, `native` keeps Pi's rows. */
 export type ToolViewMode = "cards" | "compact" | "native";

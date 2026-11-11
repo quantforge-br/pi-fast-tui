@@ -251,6 +251,9 @@ test("cycles editor shapes from the Appearance tab without remounting the editor
 		native: /^─/,
 		claude: /^─/,
 		rule: /^─/,
+		borderless: /^❯ /,
+		field: /^▐ /,
+		rail: /^▎ /,
 		opencode: /^▌/,
 	};
 
@@ -338,6 +341,11 @@ test("labels editor shapes in Chinese", async () => {
 	settings.component.handleInput("\t");
 	settings.press("\x1b[B", 2);
 	assert.match(selectedLine(settings.component), /输入框样式.*顶部横线/);
+	for (const [shape, label] of [["borderless", /无边框/], ["field", /紧凑输入条/], ["rail", /强调竖条/]] as const) {
+		settings.component.handleInput("\r");
+		assert.equal(settings.getConfig().editorShape, shape);
+		assert.match(selectedLine(settings.component), label);
+	}
 	settings.component.handleInput("\r");
 	assert.equal(settings.getConfig().editorShape, "opencode");
 	assert.match(selectedLine(settings.component), /输入框样式.*OpenCode/);

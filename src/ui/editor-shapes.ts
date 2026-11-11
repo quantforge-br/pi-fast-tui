@@ -28,6 +28,11 @@ export interface EditorShapeStyle {
 	 * rows, a blank row and an info row. Replaces both of Pi's rules.
 	 */
 	readonly panel?: boolean;
+	/**
+	 * Rows without rules: Pi's top and bottom rules are dropped and only the content rows are
+	 * drawn, wrapped in optional accent caps on a filled or transparent surface.
+	 */
+	readonly bare?: BareShapeStyle;
 	/** Lower half of the panel rail, drawn on the half-height opening row. */
 	readonly panelRailStart?: string;
 	/** Upper half of the panel rail, drawn on the half-height closing row. */
@@ -36,6 +41,20 @@ export interface EditorShapeStyle {
 	readonly leftInset: number;
 	/** Cells added after Pi's content. */
 	readonly rightInset: number;
+}
+
+/** Chrome of a rule-less shape, drawn around each content row. */
+export interface BareShapeStyle {
+	/** Accent glyph before each content row; without it the shape's `prompt` leads the row. */
+	readonly leftCap?: string;
+	/** Accent glyph after each content row. */
+	readonly rightCap?: string;
+	/** Paint the panel background behind the row between the caps. */
+	readonly filled: boolean;
+	/** Draw a scroll thumb in the rightmost column while the content is scrolled. */
+	readonly scrollbar: boolean;
+	/** Blank row after the editor so the separate footer does not sit flush against the input. */
+	readonly footerGap: boolean;
 }
 
 const ROUNDED: EditorShapeStyle = {
@@ -64,6 +83,9 @@ const SHAPES: Partial<Record<EditorShape, EditorShapeStyle>> = {
 	native: { id: "native", glyphs: RULE, sideRails: false, bottomBorder: true, leftInset: 0, rightInset: 0 },
 	claude: { id: "claude", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: true, leftInset: 2, rightInset: 0 },
 	rule: { id: "rule", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: false, leftInset: 2, rightInset: 0 },
+	borderless: { id: "borderless", glyphs: RULE, sideRails: false, prompt: PROMPT, bottomBorder: false, bare: { filled: false, scrollbar: false, footerGap: false }, leftInset: 2, rightInset: 0 },
+	field: { id: "field", glyphs: RULE, sideRails: false, bottomBorder: false, bare: { leftCap: "▐", rightCap: "▌", filled: true, scrollbar: true, footerGap: true }, leftInset: 2, rightInset: 2 },
+	rail: { id: "rail", glyphs: RULE, sideRails: false, bottomBorder: false, bare: { leftCap: "▎", filled: true, scrollbar: true, footerGap: true }, leftInset: 2, rightInset: 1 },
 	opencode: { id: "opencode", glyphs: { ...RULE, vertical: "▌" }, sideRails: false, panel: true, panelRailStart: "▖", panelRailEnd: "▘", bottomBorder: false, leftInset: 2, rightInset: 1 },
 };
 
