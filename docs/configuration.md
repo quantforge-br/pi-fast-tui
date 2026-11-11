@@ -58,7 +58,7 @@ For example, `"toolView": { "mode": "compact", "extensionTools": true, "exclude"
 | `"native"` | Pi's top and bottom rules | No side rails or extra inset; text uses the full width |
 | `"claude"` | Top and bottom rules | `❯ ` before the first line; later lines are indented to match |
 | `"rule"` | Top rule only | `❯ ` prompt like `claude`; both `↑/↓ N more` scroll indicators move to the top rule |
-| `"opencode"` | `▎` accent rail, no rules | Filled panel (theme `userMessageBg`): padding row with the working indicator and scroll indicators on the right, the text, a blank row, an info row with model, provider, and thinking level, and a bottom padding row that separates it from the footer |
+| `"opencode"` | `▎` accent rail, no rules | Filled panel (theme `userMessageBg`): padding row with the working indicator and scroll indicators on the right, the text, a blank row, and an info row with model, provider, and thinking level; an empty row without background separates the panel from the footer |
 
 The working indicator, cursor style, completion list, and mouse positions work with every shape. **Footer in editor border** needs a bottom border, so with `"rule"` the footer stays in its separate rows even when `inlineFooter` is `true`. With `"opencode"`, the footer's first row moves into the padding row and its second row replaces the model info row. Unknown values fall back to `"rounded"`.
 
@@ -172,7 +172,7 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | `"native"` | Pi 原生的上下横线 | 无左右边线和额外缩进，文本使用完整宽度 |
 | `"claude"` | 上下横线 | 第一行前显示 `❯ `，后续行对齐缩进 |
 | `"rule"` | 仅上横线 | 与 `claude` 相同的 `❯ ` 提示符；`↑/↓ N more` 滚动提示都移到上横线 |
-| `"opencode"` | `▎` 强调竖条，无横线 | 填充背景面板（主题 `userMessageBg`）：顶部留白行右侧显示工作指示和滚动提示，然后是文本、空行，显示模型、提供商和思考等级的信息行，以及与底栏隔开的底部留白行 |
+| `"opencode"` | `▎` 强调竖条，无横线 | 填充背景面板（主题 `userMessageBg`）：顶部留白行右侧显示工作指示和滚动提示，然后是文本、空行，以及显示模型、提供商和思考等级的信息行；面板下方有一行无背景的空行，与底栏隔开 |
 
 工作指示、光标样式、补全列表和鼠标位置在所有样式下均正常工作。**底栏嵌入输入框**需要下边框，因此 `"rule"` 样式下即使 `inlineFooter` 为 `true`，底栏仍独立显示。`"opencode"` 样式会把底栏第一行放进顶部留白行，第二行替换模型信息行。未知值回退为 `"rounded"`。
 

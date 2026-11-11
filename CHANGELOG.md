@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- The `opencode` panel ends at its info row again and leaves an empty row without background before the footer, instead of a filled padding row.
+
 ## [0.3.1] - 2026-11-10
 
 ### Changed

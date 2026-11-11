@@ -341,8 +341,8 @@ function panelStatus(width: number, scrollLabel: string | undefined, indicator: 
 
 /**
  * Panel shapes: an accent rail beside a filled block holding a padding row with the
- * indicators, Pi's content rows, a blank row, an info row (model or the footer's second line)
- * and a bottom padding row that keeps the info row off whatever is drawn below the editor.
+ * indicators, Pi's content rows, a blank row and an info row (model or the footer's second line),
+ * followed by an unfilled spacer row that keeps whatever is drawn below off the panel.
  */
 function renderPanel(
 	decoration: EditorDecoration,
@@ -369,7 +369,7 @@ function renderPanel(
 	result.push(row(footer
 		? spreadRow(footer.bottom.left, footer.bottom.right, contentWidth)
 		: decoration.inlineFooter?.renderInfo?.(contentWidth) ?? ""));
-	result.push(row(""));
+	result.push(" ".repeat(Math.max(0, width)));
 	return result;
 }
 
@@ -402,7 +402,7 @@ function renderFrame(decoration: EditorDecoration, width: number): string[] {
 	const embedFooter = inlineFooter && canEmbedInlineFooter(shape);
 	if (shape.panel) {
 		result.push(...renderPanel(decoration, width, baseLines, bottomIdx, topScrollLabel, embedFooter));
-		// The blank, info and bottom padding rows replace Pi's single bottom rule.
+		// The blank, info and spacer rows replace Pi's single bottom rule.
 		decoration.frame = {
 			width,
 			leftInset: shape.leftInset,

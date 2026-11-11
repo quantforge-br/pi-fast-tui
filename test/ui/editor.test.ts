@@ -305,7 +305,7 @@ test("draws the opencode panel with a rail, padding and an info row", () => {
 		`▎ ${"second".padEnd(28)}`,
 		`▎${" ".repeat(29)}`,
 		`▎ ${"Opus 4.5 Anthropic · high".padEnd(28)}`,
-		`▎${" ".repeat(29)}`,
+		" ".repeat(30),
 	]);
 	for (const line of lines) assert.equal(visibleWidth(line), 30);
 });
@@ -320,7 +320,8 @@ test("fills the opencode panel background past embedded resets", () => {
 	editor.setText("x");
 
 	const lines = editor.render(20);
-	for (const line of lines) {
+	assert.equal(lines.at(-1), " ".repeat(20), "the spacer row below the panel stays unfilled");
+	for (const line of lines.slice(0, -1)) {
 		assert.ok(line.startsWith(`▎${open}`), JSON.stringify(line));
 		assert.ok(line.endsWith("\x1b[49m"), JSON.stringify(line));
 	}
@@ -336,7 +337,7 @@ test("puts the working indicator and scroll labels in the opencode padding row",
 	for (let i = 0; i < 12; i++) editor.handleInput("\x1b[A");
 	const lines = editor.render(60).map(stripAnsi);
 	assert.match(lines[0] ?? "", /^▎ +◐ working ↑ \d+ more ↓ \d+ more $/);
-	assert.ok(lines.every((line) => line.startsWith("▎") && visibleWidth(line) === 60));
+	assert.ok(lines.slice(0, -1).every((line) => line.startsWith("▎") && visibleWidth(line) === 60));
 	assert.ok(!lines.some((line) => line.includes("─")));
 });
 
@@ -345,7 +346,7 @@ test("embeds both inline footer lines in the opencode panel", () => {
 	const lines = editor.render(40).map(stripAnsi);
 	assert.match(lines[0] ?? "", /^▎ cwd +context $/);
 	assert.match(lines.at(-2) ?? "", /^▎ model +stats $/);
-	assert.equal(lines.at(-1), `▎${" ".repeat(39)}`);
+	assert.equal(lines.at(-1), " ".repeat(40));
 });
 
 test("maps opencode panel clicks past the rail", () => {
@@ -356,7 +357,7 @@ test("maps opencode panel clicks past the rail", () => {
 	assert.equal(editor.getCursor().col, 1);
 });
 
-test("maps clicks on the opencode info and padding rows to Pi's bottom rule", () => {
+test("maps clicks on the opencode info and spacer rows to Pi's bottom rule", () => {
 	const inner = new CustomEditor(tui, editorTheme, { matches: () => false } as unknown as KeybindingsManager, { paddingX: 0 });
 	const rows: number[] = [];
 	inner.handleMouse = (event) => {
