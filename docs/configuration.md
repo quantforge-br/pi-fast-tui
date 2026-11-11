@@ -35,7 +35,7 @@ Tab/Shift+Tab or ←/→ switches tabs; ↑/↓ or Page Up/Page Down moves betwe
 | `copyButtons` | `true` | Code-block and user-message Copy labels in fullscreen mode |
 | `settingsLanguage` | `"en"` | `"en"` or `"zh"`; changes the settings interface language |
 | `cursorStyle` | `"block"` | `"block"`, `"bar"`, or `"underline"`; the latter two need terminal cursor-shape support |
-| `editorShape` | `"rounded"` | `"rounded"`, `"square"`, `"heavy"`, `"double"`, `"ascii"`, `"native"`, `"claude"`, or `"rule"`; see [Editor shapes](#editor-shapes) |
+| `editorShape` | `"rounded"` | `"rounded"`, `"square"`, `"heavy"`, `"double"`, `"ascii"`, `"native"`, `"claude"`, `"rule"`, or `"opencode"`; see [Editor shapes](#editor-shapes) |
 | `icons.mode` | `"auto"` | `"auto"`, `"nerd"`, `"unicode"`, or `"ascii"`; see [Icons](#icons). Cards draw Unicode box glyphs unless the mode is `"ascii"` |
 | `thinkingPeek.lines` | `1` | `0` (off), `1`, or `2`; visible while Pi's Hide thinking setting is on and reasoning is streamed |
 | `toolView.mode` | `"cards"` | `"cards"`, `"compact"`, or `"native"`; selected when Pi creates each tool row |
@@ -58,8 +58,9 @@ For example, `"toolView": { "mode": "compact", "extensionTools": true, "exclude"
 | `"native"` | Pi's top and bottom rules | No side rails or extra inset; text uses the full width |
 | `"claude"` | Top and bottom rules | `❯ ` before the first line; later lines are indented to match |
 | `"rule"` | Top rule only | `❯ ` prompt like `claude`; both `↑/↓ N more` scroll indicators move to the top rule |
+| `"opencode"` | `▎` accent rail, no rules | Filled panel (theme `userMessageBg`): padding row with the working indicator and scroll indicators on the right, the text, a blank row, and an info row with model, provider, and thinking level |
 
-The working indicator, cursor style, completion list, and mouse positions work with every shape. **Footer in editor border** needs a bottom border, so with `"rule"` the footer stays in its separate rows even when `inlineFooter` is `true`. Unknown values fall back to `"rounded"`.
+The working indicator, cursor style, completion list, and mouse positions work with every shape. **Footer in editor border** needs a bottom border, so with `"rule"` the footer stays in its separate rows even when `inlineFooter` is `true`. With `"opencode"`, the footer's first row moves into the padding row and its second row replaces the model info row. Unknown values fall back to `"rounded"`.
 
 ### Footer options
 
@@ -148,7 +149,7 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | `copyButtons` | `true` | 全屏模式中代码块和用户消息的复制标签 |
 | `settingsLanguage` | `"en"` | `"en"` 或 `"zh"`，控制设置界面的语言 |
 | `cursorStyle` | `"block"` | `"block"`、`"bar"` 或 `"underline"`，后两种需要终端支持光标形状控制 |
-| `editorShape` | `"rounded"` | `"rounded"`、`"square"`、`"heavy"`、`"double"`、`"ascii"`、`"native"`、`"claude"` 或 `"rule"`，见[输入框样式](#输入框样式) |
+| `editorShape` | `"rounded"` | `"rounded"`、`"square"`、`"heavy"`、`"double"`、`"ascii"`、`"native"`、`"claude"`、`"rule"` 或 `"opencode"`，见[输入框样式](#输入框样式) |
 | `icons.mode` | `"auto"` | `"auto"`、`"nerd"`、`"unicode"` 或 `"ascii"`，见[图标](#图标)。除 `"ascii"` 外，卡片使用 Unicode 边框字符 |
 | `thinkingPeek.lines` | `1` | `0`（关闭）、`1` 或 `2`；Pi 开启 Hide thinking 且模型输出推理时可见 |
 | `toolView.mode` | `"cards"` | `"cards"`、`"compact"` 或 `"native"`，每条工具行创建时确定 |
@@ -171,8 +172,9 @@ Tab/Shift+Tab 或 ←/→ 切页，↑/↓ 或 Page Up/Page Down 移动，Enter/
 | `"native"` | Pi 原生的上下横线 | 无左右边线和额外缩进，文本使用完整宽度 |
 | `"claude"` | 上下横线 | 第一行前显示 `❯ `，后续行对齐缩进 |
 | `"rule"` | 仅上横线 | 与 `claude` 相同的 `❯ ` 提示符；`↑/↓ N more` 滚动提示都移到上横线 |
+| `"opencode"` | `▎` 强调竖条，无横线 | 填充背景面板（主题 `userMessageBg`）：顶部留白行右侧显示工作指示和滚动提示，然后是文本、空行，以及显示模型、提供商和思考等级的信息行 |
 
-工作指示、光标样式、补全列表和鼠标位置在所有样式下均正常工作。**底栏嵌入输入框**需要下边框，因此 `"rule"` 样式下即使 `inlineFooter` 为 `true`，底栏仍独立显示。未知值回退为 `"rounded"`。
+工作指示、光标样式、补全列表和鼠标位置在所有样式下均正常工作。**底栏嵌入输入框**需要下边框，因此 `"rule"` 样式下即使 `inlineFooter` 为 `true`，底栏仍独立显示。`"opencode"` 样式会把底栏第一行放进顶部留白行，第二行替换模型信息行。未知值回退为 `"rounded"`。
 
 ### 底栏选项
 

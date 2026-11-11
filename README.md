@@ -19,7 +19,7 @@ pi-fast-tui merges two packages into one extension: [pi-open-tui](https://www.np
 
 - **Pi header** with model, thinking level, working directory, and useful slash-command hints
 - **Responsive footer** with Git state, detected runtime, context usage, tokens, cost, and extension status
-- **Framed editor** with eight input shapes (rounded, square, heavy, double, ASCII, native, Claude, and rule) and block, bar, and underline cursors, preserving compatible editors from other extensions
+- **Framed editor** with nine input shapes (rounded, square, heavy, double, ASCII, native, Claude, rule, and OpenCode) and block, bar, and underline cursors, preserving compatible editors from other extensions
 - **Project awareness** for 50+ runtimes and detailed Git state, including ahead/behind, staged, modified, untracked, stash, and detached HEAD
 - **Turn telemetry** with generation speed, time to first token, duration, stalls, tokens, and cost rate
 - **Thinking peek** with a live preview of hidden reasoning while the model works
@@ -93,10 +93,11 @@ Footer token and cost totals include assistant responses, tool-reported usage, c
 | `native` | Pi's own top and bottom rules, no side rails |
 | `claude` | Top and bottom rules with a `❯ ` prompt on the first line |
 | `rule` | Top rule only, with the `❯ ` prompt; scroll indicators move to that rule |
+| `opencode` | Filled panel with a `▎` accent rail: a padding row with the working indicator, the text, a blank row, and a model · provider · thinking row |
 
 The shapes were inspired by oh-my-pi's `composer.shape`. In `fast-tui.json` the key is `editorShape`. See the [configuration reference](./docs/configuration.md#editor-shapes) for details.
 
-Enable **Footer in editor border** to move the two main rows into the editor's top and bottom borders. Extension status rows remain below the editor. Compatible editors keep their input behavior, completion, and ghost text; editors that cannot be framed retain a separate footer. The `rule` shape has no bottom border, so it also keeps the footer separate. See [editor compatibility and layout](./docs/implementation.md#editor-and-layout) for the integration boundaries.
+Enable **Footer in editor border** to move the two main rows into the editor's top and bottom borders. Extension status rows remain below the editor. Compatible editors keep their input behavior, completion, and ghost text; editors that cannot be framed retain a separate footer. The `rule` shape has no bottom border, so it also keeps the footer separate. The `opencode` shape puts the two rows in its padding and info rows instead. See [editor compatibility and layout](./docs/implementation.md#editor-and-layout) for the integration boundaries.
 
 ## Turn telemetry
 

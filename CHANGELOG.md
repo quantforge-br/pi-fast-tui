@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `opencode` input shape: a filled panel with a `▎` accent rail, a padding row holding the working indicator and scroll indicators, the text, a blank row, and an info row with model, provider, and thinking level. With **Footer in editor border** on, the footer rows fill the padding and info rows.
+
 ## [0.2.0] - 2026-11-10
 
 ### Added
