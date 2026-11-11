@@ -36,11 +36,11 @@ In inline mode, rows 1 and 2 become the top and bottom editor borders. Explicit 
 | Regular | cwd, hostname, sessionName, git, runtime, timer | context | model | tokens, cost |
 | Inline | sessionName, git | cwd, hostname, runtime, timer, context | model | tokens, cost |
 
-`tokens` represents the complete token statistics group. Region/start entries precede its anchors, and region/end entries follow them. At each anchor, entries appear before or after its text. Within each placement, `order` (default `0`) sorts ascending, then `key` uses ordinary string ordering, independent of load order or locale.
+`tokens` represents the complete token statistics group. `model` spans the model name and the thinking level: `{ before: "model" }` entries precede the model icon and `{ after: "model" }` entries follow the thinking level. Region/start entries precede its anchors, and region/end entries follow them. At each anchor, entries appear before or after its text. Within each placement, `order` (default `0`) sorts ascending, then `key` uses ordinary string ordering, independent of load order or locale.
 
-`priority` defaults to `-1`; higher values survive longer when space is limited. Both `order` and `priority` must be finite numbers. Built-in priorities are `cwd: 4`, `hostname/timer: 3`, `sessionName: 2`, `git: 1`, `runtime/context: 0` on row 1, and `tokens: 2`, `cost: 1`, `model: 0` on row 2.
+`priority` defaults to `-1`; higher values survive longer when space is limited. Both `order` and `priority` must be finite numbers. Built-in priorities are `cwd: 4`, `hostname/timer: 3`, `sessionName: 2`, `git: 1`, `runtime/context: 0` on row 1, and `thinking level: 3`, `tokens: 2`, `cost: 1`, `model: 0` on row 2. On row 2 the thinking level, tokens and cost are shown whole or not at all; the model name is shortened with an ellipsis, keeping its icon.
 
-Both sides share the available row width. Shorter, nonempty `compactText` forms are tried in ascending priority order before truncating or removing lower-priority content; ties follow display order. A row without visible contributions retains its existing layout.
+Both sides share the available row width. Row 2 first sheds built-in detail, in this order: the input breakdown `(U … + R …)`, the cache-hit rate, then the provider name. Only when the row still does not fit without them are shorter, nonempty `compactText` forms tried, in ascending priority order, before truncating or removing lower-priority content; ties follow display order. Row 1 has no built-in detail to shed and goes straight to `compactText`. A row 1 without visible contributions retains its existing layout.
 
 ## Lifecycle and visibility
 

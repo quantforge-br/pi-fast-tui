@@ -184,15 +184,19 @@ function renderStatsSegments(
 	totals: UsageTotals,
 	glyphs: IconGlyphs,
 	segments: FastTuiConfig["footerSegments"],
+	detail: Pick<Row2Detail, "inputBreakdown" | "cacheHit">,
 ): { tokens: string; cost: string } {
 	const stats: string[] = [];
 	if (segments.tokens) {
-		stats.push(theme.fg("accent", `${glyphs.input} ${formatInputBreakdown(totals.input, totals.cacheRead)}`));
+		const input = detail.inputBreakdown
+			? formatInputBreakdown(totals.input, totals.cacheRead)
+			: fmtTokens(totals.input + totals.cacheRead);
+		stats.push(theme.fg("accent", `${glyphs.input} ${input}`));
 		stats.push(theme.fg("success", `${glyphs.output} ${fmtTokens(totals.output)}`));
 		// ponytail: hide cache-hit rate when the provider never reported cache
 		// tokens — avoids a misleading "0%" on providers without prompt caching.
 		const hasCacheTokens = totals.cacheRead > 0 || totals.cacheWrite > 0;
-		if (hasCacheTokens && totals.latestCacheHitRate !== undefined) {
+		if (detail.cacheHit && hasCacheTokens && totals.latestCacheHitRate !== undefined) {
 			stats.push(theme.fg(cacheHitColor(totals.latestCacheHitRate), `${glyphs.cacheHit} ${totals.latestCacheHitRate.toFixed(1)}%`));
 		}
 	}
@@ -254,22 +258,6 @@ export interface InlineFooterLines {
 	bottom: InlineFooterLine;
 }
 
-/**
- * Split the bottom border content the way `alignRight` splits the plain row:
- * the right block (statistics) survives, the left one (model) shrinks to an
- * ellipsis and only then disappears. Keeps the assembled border inside its
- * budget so editor-side truncation never eats the right corner.
- */
-function fitInlineLine(left: string, right: string, width: number, theme: Theme): InlineFooterLine {
-	const rightWidth = visibleWidth(right);
-	if (rightWidth > width) {
-		return { left: "", right: truncateToWidth(right, width, theme.fg("dim", "...")) };
-	}
-	const availableForLeft = width - rightWidth - 1;
-	if (availableForLeft <= 0) return { left: "", right };
-	return { left: truncateToWidth(left, availableForLeft, theme.fg("dim", "...")), right };
-}
-
 /** `Model Provider · effort` for the info row of panel editor shapes. */
 export function renderModelInfo(theme: Theme, meta: ModelMeta, width: number): string {
 	let line = theme.bold(theme.fg("text", meta.model));
@@ -312,14 +300,38 @@ const FOOTER_ANCHORS: Record<FooterLayoutMode, Record<1 | 2, Record<FooterSide, 
 	},
 };
 
-function fitContributedRow(
+/** Optional built-in detail on footer row 2, shed in ladder order before any segment is compacted, truncated or dropped. */
+interface Row2Detail {
+	inputBreakdown: boolean;
+	cacheHit: boolean;
+	provider: boolean;
+}
+
+const ROW2_DETAIL_LADDER: readonly Row2Detail[] = [
+	{ inputBreakdown: true, cacheHit: true, provider: true },
+	{ inputBreakdown: false, cacheHit: true, provider: true },
+	{ inputBreakdown: false, cacheHit: false, provider: true },
+	{ inputBreakdown: false, cacheHit: false, provider: false },
+];
+
+type BuiltinSegments = Partial<Record<FooterBuiltinSegment, PrioritizedSegment | readonly PrioritizedSegment[]>>;
+
+interface CollectedRow {
+	left: PrioritizedSegment[];
+	right: PrioritizedSegment[];
+	contributed: boolean;
+	leftSeparator: string;
+	rightSeparator: string;
+}
+
+/** Built-in and contributed segments of one row in display order; an anchor may carry several built-ins. */
+function collectRow(
 	row: 1 | 2,
 	mode: FooterLayoutMode,
-	builtins: Partial<Record<FooterBuiltinSegment, PrioritizedSegment>>,
+	builtins: BuiltinSegments,
 	contributions: readonly RegisteredFooterSegment[],
-	width: number,
 	theme: Theme,
-): InlineFooterLine | undefined {
+): CollectedRow {
 	let contributed = false;
 	const collect = (side: FooterSide): PrioritizedSegment[] => {
 		const parts: PrioritizedSegment[] = [];
@@ -342,7 +354,10 @@ function fitContributedRow(
 		for (const anchor of FOOTER_ANCHORS[mode][row][side]) {
 			append((position) => "before" in position && position.before === anchor);
 			const builtin = builtins[anchor];
-			if (builtin?.text) parts.push(builtin);
+			const anchored: readonly PrioritizedSegment[] = builtin === undefined
+				? []
+				: "text" in builtin ? [builtin] : builtin;
+			for (const part of anchored) if (part.text) parts.push(part);
 			append((position) => "after" in position && position.after === anchor);
 		}
 		atEdge("end");
@@ -350,24 +365,77 @@ function fitContributedRow(
 	};
 	const left = collect("left");
 	const right = collect("right");
-	if (!contributed) return undefined;
-
 	const leftSeparator = row === 1 && mode === "plain" ? " " : theme.fg("dim", " · ");
 	const rightSeparator = row === 1 ? leftSeparator : theme.fg("dim", " | ");
-	const fitted = fitSegmentsByPriority([...left, ...right], width, theme.fg("dim", "..."), {
-		compactOrder: "priority",
-		gapWidth: (previous, next) => {
-			if (previous < left.length && next >= left.length) return 1;
-			return visibleWidth(next < left.length ? leftSeparator : rightSeparator);
-		},
-	});
-	// Truncation can remove an input's trailing reset; terminate each surviving style.
-	const join = (parts: string[], separator: string) => parts.filter(Boolean)
-		.map((part) => `${part}${ANSI_RESET}`).join(separator);
-	return {
-		left: join(fitted.slice(0, left.length), leftSeparator),
-		right: join(fitted.slice(left.length), rightSeparator),
+	return { left, right, contributed, leftSeparator, rightSeparator };
+}
+
+/** Separator width between segments on one side, one column between the left and right sides. */
+function rowGapWidth(row: CollectedRow): (previous: number, next: number) => number {
+	const leftCount = row.left.length;
+	return (previous, next) => {
+		if (previous < leftCount && next >= leftCount) return 1;
+		return visibleWidth(next < leftCount ? row.leftSeparator : row.rightSeparator);
 	};
+}
+
+/** Width of the row with every segment at its full text, measured with the fit's gap rule. */
+function naturalRowWidth(row: CollectedRow): number {
+	const gapWidth = rowGapWidth(row);
+	let width = 0;
+	let previous = -1;
+	[...row.left, ...row.right].forEach((part, index) => {
+		if (part.text === "") return;
+		width += visibleWidth(part.text) + (previous === -1 ? 0 : gapWidth(previous, index));
+		previous = index;
+	});
+	return width;
+}
+
+function fitCollectedRow(row: CollectedRow, width: number, theme: Theme): InlineFooterLine {
+	const parts = [...row.left, ...row.right];
+	const fitted = fitSegmentsByPriority(parts, width, theme.fg("dim", "..."), {
+		compactOrder: "priority",
+		gapWidth: rowGapWidth(row),
+	});
+	// Truncation can remove an input's trailing reset; terminate each shortened style.
+	const join = (from: number, to: number, separator: string) => fitted.slice(from, to)
+		.map((text, offset) => text && text !== parts[from + offset]!.text ? `${text}${ANSI_RESET}` : text)
+		.filter(Boolean)
+		.join(separator);
+	return {
+		left: join(0, row.left.length, row.leftSeparator),
+		right: join(row.left.length, parts.length, row.rightSeparator),
+	};
+}
+
+/** Row 1 with extension segments; undefined when none is visible so the row keeps its own layout. */
+function fitContributedRow(
+	mode: FooterLayoutMode,
+	builtins: BuiltinSegments,
+	contributions: readonly RegisteredFooterSegment[],
+	width: number,
+	theme: Theme,
+): InlineFooterLine | undefined {
+	const row = collectRow(1, mode, builtins, contributions, theme);
+	return row.contributed ? fitCollectedRow(row, width, theme) : undefined;
+}
+
+/** Row 2 for both footer placements; never undefined. */
+function fitBottomRow(
+	mode: FooterLayoutMode,
+	buildBuiltins: (detail: Row2Detail) => BuiltinSegments,
+	contributions: readonly RegisteredFooterSegment[],
+	width: number,
+	theme: Theme,
+): InlineFooterLine {
+	// Shed built-in detail first: take the richest level that fits untouched.
+	let row: CollectedRow | undefined;
+	for (const detail of ROW2_DETAIL_LADDER) {
+		row = collectRow(2, mode, buildBuiltins(detail), contributions, theme);
+		if (naturalRowWidth(row) <= width) break;
+	}
+	return fitCollectedRow(row!, width, theme);
 }
 
 function alignContributedRow(line: InlineFooterLine, width: number, theme: Theme): string {
@@ -408,7 +476,7 @@ function renderFooterContent(
 	}
 	const meta = getModelMeta();
 	const totals = getUsageTotals(ctx);
-	const builtins: Partial<Record<FooterBuiltinSegment, PrioritizedSegment>> = {};
+	const builtins: BuiltinSegments = {};
 	const contributions = segments.extensionSegments
 		? getExtensionSegments().filter((segment) => visibleWidth(segment.text) > 0)
 		: [];
@@ -509,7 +577,7 @@ function renderFooterContent(
 
 	const fitted = fitSegmentsByPriority(allParts, width, theme.fg("dim", "..."));
 	const fittedContext = contextText ? fitted.pop() ?? "" : "";
-	const contributedTop = fitContributedRow(1, "plain", builtins, contributions, width, theme);
+	const contributedTop = fitContributedRow("plain", builtins, contributions, width, theme);
 	const line1 = contributedTop
 		? alignContributedRow(contributedTop, width, theme)
 		: alignRight(fitted.filter(Boolean).join(" "), fittedContext, width, theme);
@@ -517,36 +585,52 @@ function renderFooterContent(
 	const inlineLeftBudget = Math.floor(width * 0.45);
 	const inlineTopLeft = fitInlineSegments(inlineTopLeftParts, inlineLeftBudget, theme);
 	const inlineRightBudget = Math.max(0, width - visibleWidth(inlineTopLeft) - (inlineTopLeft ? 1 : 0));
-	const inlineTop: InlineFooterLine = fitContributedRow(1, "inline", builtins, contributions, width, theme) ?? {
+	const inlineTop: InlineFooterLine = fitContributedRow("inline", builtins, contributions, width, theme) ?? {
 		left: inlineTopLeft,
 		right: fitInlineSegments(inlineTopRightParts, inlineRightBudget, theme),
 	};
 
-	const modelParts: string[] = [];
-	if (meta.provider && meta.provider !== "Unknown") {
-		modelParts.push(theme.fg(providerColor(ctx.model?.provider ?? "none"), meta.provider));
-	}
-	modelParts.push(theme.fg("text", meta.model));
-	if (meta.effort && meta.effort !== "off") {
-		modelParts.push(theme.fg(effortColor(meta.effort), `${glyphs.thinking} ${meta.effort}`));
-	}
-	const modelBlock = `${theme.fg("mdLink", glyphs.model)} ${modelParts.join(theme.fg("dim", " · "))}`;
-	const stats = renderStatsSegments(theme, totals, glyphs, segments);
-	const statsBlock = [stats.tokens, stats.cost].filter(Boolean).join(` ${theme.fg("dim", "|")} `);
-	builtins.model = { text: modelBlock, priority: 0 };
-	builtins.tokens = { text: stats.tokens, priority: 2 };
-	builtins.cost = { text: stats.cost, priority: 1 };
-	const contributedBottom = fitContributedRow(2, "plain", builtins, contributions, width, theme);
-	const inlineBottom = contributedBottom ?? fitInlineLine(modelBlock, statsBlock, width, theme);
-	const line2 = contributedBottom
-		? alignContributedRow(contributedBottom, width, theme)
-		: alignRight(inlineBottom.left, inlineBottom.right, width, theme);
+	const modelPrefix = `${theme.fg("mdLink", glyphs.model)} `;
+	const modelName = (provider: boolean) => provider && meta.provider && meta.provider !== "Unknown"
+		? `${theme.fg(providerColor(ctx.model?.provider ?? "none"), meta.provider)}${theme.fg("dim", " · ")}${theme.fg("text", meta.model)}`
+		: theme.fg("text", meta.model);
+	const dropWhole = () => "";
+	const buildRow2Builtins = (detail: Row2Detail): BuiltinSegments => {
+		const name = modelName(detail.provider);
+		const model: PrioritizedSegment[] = [{
+			text: `${modelPrefix}${name}`,
+			priority: 0,
+			// Keep the icon and shorten the name; drop it once not even one name column fits beside the ellipsis.
+			truncate: (_text, maxWidth, ellipsis) => {
+				const nameWidth = maxWidth - visibleWidth(modelPrefix);
+				if (nameWidth < 1 + visibleWidth(ellipsis)) return "";
+				return `${modelPrefix}${truncateToWidth(name, nameWidth, ellipsis)}`;
+			},
+		}];
+		if (meta.effort && meta.effort !== "off") {
+			model.push({
+				text: theme.fg(effortColor(meta.effort), `${glyphs.thinking} ${meta.effort}`),
+				priority: 3,
+				truncate: dropWhole,
+			});
+		}
+		const stats = renderStatsSegments(theme, totals, glyphs, segments, detail);
+		return {
+			...builtins,
+			model,
+			tokens: { text: stats.tokens, priority: 2, truncate: dropWhole },
+			cost: { text: stats.cost, priority: 1, truncate: dropWhole },
+		};
+	};
+	// Row 2 anchors are the same in both placements, so one fit serves the plain row and the editor border.
+	const bottom = fitBottomRow("plain", buildRow2Builtins, contributions, width, theme);
+	const line2 = alignContributedRow(bottom, width, theme);
 	const mainLines: [string, string] = [line1, line2]
 		.map((line) => truncateToWidth(line, width, theme.fg("dim", "..."))) as [string, string];
 	const extensionLines = segments.extensionStatuses
 		? renderExtensionStatusLines(theme, footerData.getExtensionStatuses(), glyphs, width)
 		: [];
-	return { mainLines, inlineLines: { top: inlineTop, bottom: inlineBottom }, extensionLines };
+	return { mainLines, inlineLines: { top: inlineTop, bottom }, extensionLines };
 }
 
 export function installFooter(

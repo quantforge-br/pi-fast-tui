@@ -14,6 +14,7 @@ import type { Component, TUI } from "@earendil-works/pi-tui";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { DEFAULT_CONFIG } from "../../src/ui/config.ts";
 import { installFooter, renderModelInfo, shortHostname } from "../../src/ui/footer.ts";
+import type { FooterPosition, RegisteredFooterSegment } from "../../src/ui/footer-segments.ts";
 import type { LiveTps } from "../../src/ui/telemetry.ts";
 import { emptyGitStatus, readGitStatus } from "../../src/ui/git.ts";
 import { detectNerdFont, resolveGlyphs, resolveIconMode, runtimeSymbol } from "../../src/ui/icons.ts";
@@ -421,10 +422,14 @@ test("provides inline footer content without duplicating native rows", () => {
 	config.footerSegments.sessionName = false;
 	assert.ok(!handle.renderInline(100)!.top.left.includes("session-title"));
 
-	// Narrow: the model block is shed first, matching the plain row's alignRight.
-	const narrow = handle.renderInline(30);
+	// Narrow: the provider is shed first, then the model name shrinks while the statistics stay.
+	const shed = handle.renderInline(30);
+	assert.ok(shed);
+	assert.equal(stripAnsi(shed.bottom.left), "M gpt-5");
+	const narrowWidth = visibleWidth(shed.bottom.left) + 1 + visibleWidth(shed.bottom.right) - 1;
+	const narrow = handle.renderInline(narrowWidth);
 	assert.ok(narrow);
-	assert.ok(visibleWidth(narrow.bottom.left) + visibleWidth(narrow.bottom.right) <= 30);
+	assert.ok(visibleWidth(narrow.bottom.left) + 1 + visibleWidth(narrow.bottom.right) <= narrowWidth);
 	assert.match(stripAnsi(narrow.bottom.right), /\$/);
 	assert.match(stripAnsi(narrow.bottom.left), /\.\.\.$/);
 	assert.equal(visibleWidth(handle.renderInline(visibleWidth(narrow.bottom.right) + 1)!.bottom.left), 0);
@@ -1098,4 +1103,95 @@ test("row 2 prefixes the model block with its icon and a space", () => {
 	const unknown = footerFixture({ provider: "Unknown" });
 	assert.ok(unknown.component.render(160)[1]!.startsWith(`${model} gpt-5`), unknown.component.render(160)[1]);
 	assert.ok(unknown.handle.renderInline(160)!.bottom.left.startsWith(`${model} gpt-5`));
+});
+
+const cachedUsageEntries = [{
+	id: "usage-1",
+	timestamp: Date.now(),
+	type: "message",
+	message: {
+		role: "assistant",
+		usage: { input: 90, output: 12, cacheRead: 5000, cacheWrite: 27009, cost: { total: 0.01 } },
+	},
+}];
+
+function row2Fixture(contributions: RegisteredFooterSegment[] = []) {
+	const fixture = footerFixture({
+		entries: cachedUsageEntries,
+		effort: "high",
+		hooks: { getExtensionSegments: () => contributions },
+	});
+	const row = (width: number) => stripAnsi(fixture.component.render(width)[1] ?? "");
+	const inline = (width: number) => {
+		const bottom = fixture.handle.renderInline(width)!.bottom;
+		return { left: stripAnsi(bottom.left), right: stripAnsi(bottom.right) };
+	};
+	/** Width of row 2 at `width` with the alignment padding collapsed to one column. */
+	const used = (width: number) => {
+		const bottom = inline(width);
+		return visibleWidth(bottom.left) + (bottom.left && bottom.right ? 1 : 0) + visibleWidth(bottom.right);
+	};
+	return { row, inline, used };
+}
+
+const ROW2_ITEMS = ["OpenAI", "gpt-5", "~ high", "(U 27k + R 5.0k)", "↑ 32k", "↓ 12", "c 15.6%", "$0.010"];
+
+function assertRow2Items(line: string, missing: readonly string[]): void {
+	for (const item of ROW2_ITEMS) {
+		if (missing.includes(item)) assert.ok(!line.includes(item), `${item} should be shed\n${line}`);
+		else assert.ok(line.includes(item), `${item} missing\n${line}`);
+	}
+}
+
+test("footer row 2 sheds input breakdown, cache-hit rate and provider before shrinking the model", () => {
+	const { row, used } = row2Fixture();
+	const full = used(200);
+	assertRow2Items(row(full), []);
+	const level1 = used(full - 1);
+	assertRow2Items(row(full - 1), ["(U 27k + R 5.0k)"]);
+	const level2 = used(level1 - 1);
+	assertRow2Items(row(level1 - 1), ["(U 27k + R 5.0k)", "c 15.6%"]);
+	const level3 = used(level2 - 1);
+	assertRow2Items(row(level2 - 1), ["(U 27k + R 5.0k)", "c 15.6%", "OpenAI"]);
+	const truncated = row(level3 - 1);
+	assert.match(truncated, /^M g\S*\.\.\. · ~ high /);
+	for (const item of ["~ high", "↑ 32k", "↓ 12", "$0.010"]) assert.ok(truncated.includes(item), `${item} missing\n${truncated}`);
+});
+
+test("footer row 2 keeps every metric whole and the thinking level last at every width", () => {
+	const { row, inline } = row2Fixture();
+	const wholeOrAbsent: Array<[RegExp, string]> = [
+		[/~/, "~ high"], [/↑/, "↑ 32k"], [/↓/, "↓ 12"], [/%/, "c 15.6%"], [/\$/, "$0.010"],
+	];
+	for (let width = 1; width <= 200; width++) {
+		const bottom = inline(width);
+		for (const line of [row(width), `${bottom.left} ${bottom.right}`]) {
+			for (const [marker, item] of wholeOrAbsent) {
+				if (marker.test(line)) assert.ok(line.includes(item), `${item} broken at ${width}\n${line}`);
+			}
+		}
+		assert.ok(visibleWidth(row(width)) <= width, `row 2 exceeds ${width}`);
+		assert.ok(visibleWidth(bottom.left) + (bottom.left && bottom.right ? 1 : 0) + visibleWidth(bottom.right) <= width);
+		if (width >= visibleWidth("~ high")) assert.ok(row(width).includes("~ high"), `thinking level shed at ${width}`);
+	}
+});
+
+test("footer row 2 sheds built-in detail before using an extension compactText", () => {
+	const segment = (key: string, position: FooterPosition, text: string, compactText?: string): RegisteredFooterSegment => ({
+		key, position, text, compactText, order: 0, priority: -1,
+	});
+	const plain = row2Fixture();
+	const full = plain.used(200);
+	const { row } = row2Fixture([segment("ext", { after: "cost" }, "EXTENSION-TEXT", "E")]);
+	const withExtension = full + visibleWidth(" | EXTENSION-TEXT");
+	assert.ok(row(withExtension).includes("(U 27k + R 5.0k)"));
+	const shed = row(withExtension - 1);
+	assert.ok(shed.includes("EXTENSION-TEXT"), shed);
+	assert.ok(!shed.includes("(U 27k"), shed);
+
+	const anchored = row2Fixture([
+		segment("before", { before: "model" }, "[B]"),
+		segment("after", { after: "model" }, "[A]"),
+	]).row(200);
+	assert.match(anchored, /^\[B\] · M OpenAI · gpt-5 · ~ high · \[A\] /);
 });
