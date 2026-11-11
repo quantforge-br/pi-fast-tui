@@ -2,18 +2,7 @@
 
 A polished terminal interface for the [Pi](https://pi.dev) coding agent, with [oh-my-pi](https://github.com/can1357/oh-my-pi) style tool cards.
 
-pi-fast-tui merges two packages into one extension: [pi-open-tui](https://www.npmjs.com/package/pi-open-tui) (header, footer, editor, telemetry, thinking peek, Copy buttons, settings) and [pi-omp-tools](https://www.npmjs.com/package/pi-omp-tools) (tool cards, codemode card, generic MCP card). Both halves share one config file, one settings dialog, one icon mode, and one tool renderer.
-
-> [!IMPORTANT]
-> pi-fast-tui replaces **pi-open-tui**, **pi-omp-tools**, and **pi-codemode-render**. Remove them before installing it:
->
-> ```bash
-> pi remove npm:pi-open-tui
-> pi remove npm:pi-omp-tools
-> pi remove npm:pi-codemode-render
-> ```
->
-> With any of them installed next to pi-fast-tui, two extensions fight over the header, footer, editor, and tool rows, and codemode file changes are recorded twice.
+pi-fast-tui is based on [pi-open-tui](https://github.com/OldSuns/pi-open-tui) by OldSuns, which provides the header, footer, editor, telemetry, thinking peek, Copy buttons, and settings. It adds the tool cards, codemode card, and generic MCP card from [pi-omp-tools](https://www.npmjs.com/package/pi-omp-tools), so everything shares one config file, one settings dialog, one icon mode, and one tool renderer.
 
 ## Highlights
 
@@ -257,7 +246,7 @@ Tests run on vitest; they use temporary agent directories and never write to `~/
 
 ## Acknowledgements
 
-This project merges [pi-open-tui](https://www.npmjs.com/package/pi-open-tui) and [pi-omp-tools](https://www.npmjs.com/package/pi-omp-tools), which build on several Pi community packages:
+pi-fast-tui is based on **[pi-open-tui](https://github.com/OldSuns/pi-open-tui)** by OldSuns. Thanks to its author for the work this extension builds on. The tool cards come from [pi-omp-tools](https://www.npmjs.com/package/pi-omp-tools). Both packages build on several Pi community packages:
 
 - **[pi-haiku](https://github.com/nnocte/pi-haiku)** — two-line footer structure and working timer
 - **[pi-claude-code-tui](https://github.com/Phoobobo/pi-claude-code-tui)** — Pi logo artwork and rounded editor border technique
