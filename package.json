@@ -1,6 +1,6 @@
 {
 	"name": "pi-fast-tui",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "A fast, polished TUI for pi: branded header, responsive footer, framed editor, turn telemetry, thinking peek, Copy buttons, and oh-my-pi style tool cards with live codemode progress",
 	"type": "module",
 	"keywords": [
